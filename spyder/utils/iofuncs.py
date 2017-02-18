@@ -365,6 +365,10 @@ def load_dictionary(filename):
     except (EOFError, ValueError) as error:
         error_message = to_text_string(error)
     os.chdir(old_cwd)
+    try:
+        shutil.rmtree(tmp_folder)
+    except OSError as error:
+        error_message = to_text_string(error)
     return data, error_message
 
 
