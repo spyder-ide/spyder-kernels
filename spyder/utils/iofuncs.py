@@ -488,14 +488,6 @@ if __name__ == "__main__":
     print("Data loaded in %.3f seconds" % (time.time()-t0))  # spyder: test-skip
     os.remove("test.spydata")
 
-    a = MatlabStruct()
-    a.b = 'spam'
-    assert a["b"] == 'spam'
-    a.c["d"] = 'eggs'
-    assert a.c.d == 'eggs'
-    assert a == {'c': {'d': 'eggs'}, 'b': 'spam'}
-    a['d'] = [1, 2, 3]
-
     if save_matlab:
         buf = io.BytesIO()
         save_matlab(a, buf)
