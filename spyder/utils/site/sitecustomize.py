@@ -677,8 +677,9 @@ def _cmdloop(self):
             self.allow_kbdint = False
             break
         except KeyboardInterrupt:
-            self.message("--KeyboardInterrupt--\n"
-                         "For copying text while debugging, use Ctrl+Shift+C")
+            _print("--KeyboardInterrupt--\n"
+                   "For copying text while debugging, use Ctrl+Shift+C",
+                   file=self.stdout)
 
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def reset(self):
