@@ -469,10 +469,8 @@ def reset(self):
     self._old_Pdb_reset()
 
     from IPython.core.getipython import get_ipython
-    ipython_shell = get_ipython()
-    if ipython_shell:
-        ipython_shell.kernel._register_pdb_session(self)
-
+    kernel = get_ipython().kernel
+    kernel._register_pdb_session(self)
     self.set_spyder_breakpoints()
 
 
@@ -598,8 +596,7 @@ def clear_post_mortem():
     """
     from IPython.core.getipython import get_ipython
     ipython_shell = get_ipython()
-    if ipython_shell:
-        ipython_shell.set_custom_exc((), None)
+    ipython_shell.set_custom_exc((), None)
 
 
 def post_mortem_excepthook(type, value, tb):
