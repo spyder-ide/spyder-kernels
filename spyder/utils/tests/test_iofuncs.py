@@ -1,22 +1,34 @@
 # -*- coding: utf-8 -*-
-#
+# ----------------------------------------------------------------------------
 # Copyright © Spyder Project Contributors
 # Licensed under the terms of the MIT License
-#
+# (see spyder/__init__.py for details)
+# ----------------------------------------------------------------------------
 
 """
 Tests for iofuncs.py
 """
 
+# Standard library imports
+import io
 import os
+
+# Third party imports
 import pytest
 import numpy as np
-import spyder.utils.iofuncs as io
 
+# Local imports
+import spyder.utils.iofuncs as iofuncs
+
+
+# Full path to this file's parent directory for loading data
 LOCATION = os.path.realpath(os.path.join(os.getcwd(),
                                          os.path.dirname(__file__)))
 
 
+# =============================================================================
+# Fixtures
+# =============================================================================
 @pytest.fixture
 def spydata_values():
     """
@@ -31,6 +43,7 @@ def spydata_values():
     D = {'a': True, 'b': np.eye(4, dtype=np.complex)}
     E = [np.eye(2, dtype=np.int64), 42.0, np.eye(3, dtype=np.bool_)]
     return {'A': A, 'B': B, 'C': C, 'D': D, 'E': E}
+
 
 @pytest.fixture
 def real_values():
@@ -53,8 +66,12 @@ def real_values():
     C = file_s['C']
     D = file_s['D'].item()
     E = file_s['E']
-    return {'A':A, 'B':B, 'C':C, 'D':D, 'E':E}
+    return {'A': A, 'B': B, 'C': C, 'D': D, 'E': E}
 
+
+# =============================================================================
+# Tests
+# =============================================================================
 @pytest.mark.skipif(io.load_matlab is None, reason="SciPy required")
 def test_matlab_import(real_values):
     """
