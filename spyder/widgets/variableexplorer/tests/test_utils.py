@@ -187,6 +187,24 @@ def test_str_in_container_display():
         assert value_to_display([u'Э'.encode('cp1251')]) == "['\xdd']"
 
 
+def test_ellipses(tmpdir):
+    """
+    Test that we're adding a binary ellipses when value_to_display of
+    a collection is too long and binary.
+
+    For issue 6942
+    """
+    # Create binary file with all bytes
+    file = tmpdir.new(basename='bytes.txt')
+    file.write_binary(bytearray(list(range(255))))
+
+    # Read bytes back
+    buffer = file.read(mode='rb')
+
+    # Assert that there's a binary ellipses in the representation
+    assert b' ...' in value_to_display(buffer)
+
+
 def test_datetime_display():
     """Simple tests that dates, datetimes and timedeltas display correctly."""
     test_date = datetime.date(2017, 12, 18)
