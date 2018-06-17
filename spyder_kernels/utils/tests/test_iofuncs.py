@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------
 # Copyright © Spyder Project Contributors
+#
 # Licensed under the terms of the MIT License
 # (see spyder/__init__.py for details)
 # ----------------------------------------------------------------------------
@@ -72,7 +73,7 @@ def real_values():
 # =============================================================================
 # Tests
 # =============================================================================
-@pytest.mark.skipif(io.load_matlab is None, reason="SciPy required")
+@pytest.mark.skipif(iofuncs.load_matlab is None, reason="SciPy required")
 def test_matlab_import(real_values):
     """
     Test the automatic conversion and import of variables from MATLAB.
@@ -84,7 +85,7 @@ def test_matlab_import(real_values):
     manual conversion of the variables.
     """
     path = os.path.join(LOCATION, 'data.mat')
-    inf, _ = io.load_matlab(path)
+    inf, _ = iofuncs.load_matlab(path)
     valid = True
     for var in sorted(real_values.keys()):
         valid = valid and bool(np.mean(real_values[var] == inf[var]))
@@ -99,7 +100,7 @@ def test_spydata_import(spydata_values):
     container and compares them against their static values.
     """
     path = os.path.join(LOCATION, 'export_data.spydata')
-    data, error = io.load_dictionary(path)
+    data, error = iofuncs.load_dictionary(path)
     assert error is None
     valid = True
     for var in sorted(spydata_values.keys()):
@@ -114,7 +115,7 @@ def test_spydata_import(spydata_values):
 @pytest.mark.skipif(iofuncs.load_matlab is None, reason="SciPy required")
 def test_matlabstruct():
     """Test support for matlab stlye struct."""
-    a = io.MatlabStruct()
+    a = iofuncs.MatlabStruct()
     a.b = 'spam'
     assert a["b"] == 'spam'
     a.c["d"] = 'eggs'
@@ -137,7 +138,7 @@ def test_spydata_export(spydata_values):
     """
     Test spydata export and re-import.
 
-    This test saves the variables in ``spydata`` in spydata format and then
+    This test saves the variables in ``spydata`` format and then
     reloads and checks them to make sure they save/restore properly
     and no errors occur during the process.
     """

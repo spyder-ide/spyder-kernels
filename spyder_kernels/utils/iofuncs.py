@@ -20,6 +20,7 @@ import sys
 import os
 import os.path as osp
 import tarfile
+import tempfile
 import shutil
 import warnings
 import json
@@ -348,13 +349,15 @@ def load_dictionary(filename):
     """Load dictionary from .spydata file"""
     filename = osp.abspath(filename)
     old_cwd = getcwd_or_home()
-    os.chdir(osp.dirname(filename))
+    tmp_folder = tempfile.mkdtemp()
+    os.chdir(tmp_folder)
     data = None
     error_message = None
     try:
         tar = tarfile.open(filename, "r")
         tar.extractall()
-        pickle_filename = osp.splitext(filename)[0]+'.pickle'
+        data_file = osp.basename(filename)
+        pickle_filename = osp.splitext(data_file)[0]+'.pickle'
         try:
             # Old format (Spyder 2.0-2.1 for Python 2)
             with open(pickle_filename, 'U') as fdesc:
@@ -369,7 +372,7 @@ def load_dictionary(filename):
             try:
                 saved_arrays = data.pop('__saved_arrays__')
                 for (name, index), fname in list(saved_arrays.items()):
-                    arr = np.load( osp.join(osp.dirname(filename), fname) )
+                    arr = np.load( osp.join(tmp_folder, fname) )
                     if index is None:
                         data[name] = arr
                     elif isinstance(data[name], dict):
@@ -480,7 +483,6 @@ def save_auto(data, filename):
 
 
 if __name__ == "__main__":
-    import io
     import datetime
     testdict = {'d': 1, 'a': np.random.rand(10, 10), 'b': [1, 2]}
     testdate = datetime.date(1945, 5, 8)
@@ -501,14 +503,6 @@ if __name__ == "__main__":
     print(" Data saved in %.3f seconds" % (time.time()-t0))  # spyder: test-skip
     t0 = time.time()
     example2, ok = load_dictionary("test.spydata")
-    print("Data loaded in %.3f seconds" % (time.time()-t0))  # spyder: test-skip
     os.remove("test.spydata")
 
-    if save_matlab:
-        buf = io.BytesIO()
-        save_matlab(a, buf)
-        buf.seek(0)
-        data, err = load_matlab(buf)
-        assert data['b'] == 'spam'
-        assert data['c'].d == 'eggs'
-        assert data['d'].tolist() == [[1, 2, 3]]
+    print("Data loaded in %.3f seconds" % (time.time()-t0))  # spyder: test-skip

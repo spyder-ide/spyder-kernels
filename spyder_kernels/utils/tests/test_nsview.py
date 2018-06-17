@@ -175,36 +175,6 @@ def test_dict_display():
     assert is_supported(di, filters=supported_types)
 
 
-def test_str_in_container_display():
-    """Test that strings are displayed correctly inside lists or dicts."""
-    # Assert that both bytes and unicode return the right display
-    assert value_to_display([b'a', u'b']) == "['a', 'b']"
-
-    # Encoded unicode gives bytes and it can't be transformed to
-    # unicode again. So this test the except part of
-    # is_binary_string(value) in value_to_display
-    if PY2:
-        assert value_to_display([u'Э'.encode('cp1251')]) == "['\xdd']"
-
-
-def test_ellipses(tmpdir):
-    """
-    Test that we're adding a binary ellipses when value_to_display of
-    a collection is too long and binary.
-
-    For issue 6942
-    """
-    # Create binary file with all bytes
-    file = tmpdir.new(basename='bytes.txt')
-    file.write_binary(bytearray(list(range(255))))
-
-    # Read bytes back
-    buffer = file.read(mode='rb')
-
-    # Assert that there's a binary ellipses in the representation
-    assert b' ...' in value_to_display(buffer)
-
-
 def test_datetime_display():
     """Simple tests that dates, datetimes and timedeltas display correctly."""
     test_date = datetime.date(2017, 12, 18)
@@ -238,6 +208,36 @@ def test_datetime_display():
                               1: test_datetime,
                               2: test_timedelta_2}) ==
             ("{0:2017-12-18, 1:2017-12-18 13:43:02, 2:1:00:00}"))
+
+
+def test_str_in_container_display():
+    """Test that strings are displayed correctly inside lists or dicts."""
+    # Assert that both bytes and unicode return the right display
+    assert value_to_display([b'a', u'b']) == "['a', 'b']"
+
+    # Encoded unicode gives bytes and it can't be transformed to
+    # unicode again. So this test the except part of
+    # is_binary_string(value) in value_to_display
+    if PY2:
+        assert value_to_display([u'Э'.encode('cp1251')]) == "['\xdd']"
+
+
+def test_ellipses(tmpdir):
+    """
+    Test that we're adding a binary ellipses when value_to_display of
+    a collection is too long and binary.
+
+    For issue 6942
+    """
+    # Create binary file with all bytes
+    file = tmpdir.new(basename='bytes.txt')
+    file.write_binary(bytearray(list(range(255))))
+
+    # Read bytes back
+    buffer = file.read(mode='rb')
+
+    # Assert that there's a binary ellipses in the representation
+    assert b' ...' in value_to_display(buffer)
 
 
 if __name__ == "__main__":
