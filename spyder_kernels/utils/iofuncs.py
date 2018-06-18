@@ -39,9 +39,7 @@ except:
     pd = None            #analysis:ignore
 
 # Local imports
-from spyder.config.base import _, STDERR
-from spyder.py3compat import pickle, to_text_string, PY2
-from spyder.utils.misc import getcwd_or_home
+from spyder_kernels.py3compat import getcwd, pickle, PY2, to_text_string
 
 
 class MatlabStruct(dict):
@@ -287,7 +285,7 @@ def load_json(filename):
 def save_dictionary(data, filename):
     """Save dictionary in a single file .spydata file"""
     filename = osp.abspath(filename)
-    old_cwd = getcwd_or_home()
+    old_cwd = getcwd()
     os.chdir(osp.dirname(filename))
     error_message = None
 
@@ -348,7 +346,7 @@ def save_dictionary(data, filename):
 def load_dictionary(filename):
     """Load dictionary from .spydata file"""
     filename = osp.abspath(filename)
-    old_cwd = getcwd_or_home()
+    old_cwd = getcwd()
     tmp_folder = tempfile.mkdtemp()
     os.chdir(tmp_folder)
     data = None
@@ -420,9 +418,9 @@ class IOFunctions(object):
                 save_extensions[filter_str] = ext
                 save_filters.append(filter_str)
                 save_funcs[ext] = savefunc
-        load_filters.insert(0, to_text_string(_("Supported files")+" (*"+\
+        load_filters.insert(0, to_text_string("Supported files"+" (*"+\
                                               " *".join(load_ext)+")"))
-        load_filters.append(to_text_string(_("All files (*.*)")))
+        load_filters.append(to_text_string("All files (*.*)"))
         self.load_filters = "\n".join(load_filters)
         self.save_filters = "\n".join(save_filters)
         self.load_funcs = load_funcs
@@ -432,31 +430,34 @@ class IOFunctions(object):
 
     def get_internal_funcs(self):
         return [
-                ('.spydata', _("Spyder data files"),
+                ('.spydata', "Spyder data files",
                              load_dictionary, save_dictionary),
-                ('.npy', _("NumPy arrays"), load_array, None),
-                ('.npz', _("NumPy zip arrays"), load_array, None),
-                ('.mat', _("Matlab files"), load_matlab, save_matlab),
-                ('.csv', _("CSV text files"), 'import_wizard', None),
-                ('.txt', _("Text files"), 'import_wizard', None),
-                ('.jpg', _("JPEG images"), load_image, None),
-                ('.png', _("PNG images"), load_image, None),
-                ('.gif', _("GIF images"), load_image, None),
-                ('.tif', _("TIFF images"), load_image, None),
-                ('.pkl', _("Pickle files"), load_pickle, None),
-                ('.pickle', _("Pickle files"), load_pickle, None),
-                ('.json', _("JSON files"), load_json, None),
+                ('.npy', "NumPy arrays", load_array, None),
+                ('.npz', "NumPy zip arrays", load_array, None),
+                ('.mat', "Matlab files", load_matlab, save_matlab),
+                ('.csv', "CSV text files", 'import_wizard', None),
+                ('.txt', "Text files", 'import_wizard', None),
+                ('.jpg', "JPEG images", load_image, None),
+                ('.png', "PNG images", load_image, None),
+                ('.gif', "GIF images", load_image, None),
+                ('.tif', "TIFF images", load_image, None),
+                ('.pkl', "Pickle files", load_pickle, None),
+                ('.pickle', "Pickle files", load_pickle, None),
+                ('.json', "JSON files", load_json, None),
                 ]
 
     def get_3rd_party_funcs(self):
         other_funcs = []
-        from spyder.otherplugins import get_spyderplugins_mods
-        for mod in get_spyderplugins_mods(io=True):
-            try:
-                other_funcs.append((mod.FORMAT_EXT, mod.FORMAT_NAME,
-                                    mod.FORMAT_LOAD, mod.FORMAT_SAVE))
-            except AttributeError as error:
-                print("%s: %s" % (mod, str(error)), file=STDERR)
+        try:
+            from spyder.otherplugins import get_spyderplugins_mods
+            for mod in get_spyderplugins_mods(io=True):
+                try:
+                    other_funcs.append((mod.FORMAT_EXT, mod.FORMAT_NAME,
+                                        mod.FORMAT_LOAD, mod.FORMAT_SAVE))
+                except AttributeError as error:
+                    print("%s: %s" % (mod, str(error)), file=sys.stderr)
+        except ImportError:
+            pass
         return other_funcs
 
     def save(self, data, filename):
@@ -464,14 +465,14 @@ class IOFunctions(object):
         if ext in self.save_funcs:
             return self.save_funcs[ext](data, filename)
         else:
-            return _("<b>Unsupported file type '%s'</b>") % ext
+            return "<b>Unsupported file type '%s'</b>" % ext
 
     def load(self, filename):
         ext = osp.splitext(filename)[1].lower()
         if ext in self.load_funcs:
             return self.load_funcs[ext](filename)
         else:
-            return None, _("<b>Unsupported file type '%s'</b>") % ext
+            return None, "<b>Unsupported file type '%s'</b>" % ext
 
 iofunctions = IOFunctions()
 iofunctions.setup()

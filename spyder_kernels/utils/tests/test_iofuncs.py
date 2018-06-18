@@ -19,7 +19,7 @@ import pytest
 import numpy as np
 
 # Local imports
-import spyder.utils.iofuncs as iofuncs
+import spyder_kernels.utils.iofuncs as iofuncs
 
 
 # Full path to this file's parent directory for loading data
