@@ -220,10 +220,13 @@ def varexp(line):
     """
     ip = get_ipython()       #analysis:ignore
     funcname, name = line.split()
-    import spyder.pyplot
-    __fig__ = spyder.pyplot.figure();
-    __items__ = getattr(spyder.pyplot, funcname[2:])(ip.user_ns[name])
-    spyder.pyplot.show()
+    try:
+        import guiqwt.pyplot as pyplot
+    except:
+        import matplotlib.pyplot as pyplot
+    __fig__ = pyplot.figure();
+    __items__ = getattr(pyplot, funcname[2:])(ip.user_ns[name])
+    pyplot.show()
     del __fig__, __items__
 
 
@@ -247,14 +250,7 @@ def main():
 
     # Fire up the kernel instance.
     from ipykernel.kernelapp import IPKernelApp
-
-    if not os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True":
-        from spyder.utils.ipython.spyder_kernel import SpyderKernel
-    else:
-        # We add "spyder" to sys.path for external interpreters,
-        # so this works!
-        # See create_kernel_spec of plugins/ipythonconsole
-        from utils.ipython.spyder_kernel import SpyderKernel
+    from spyder_kernels.console.kernel import SpyderKernel
 
     kernel = IPKernelApp.instance()
     kernel.kernel_class = SpyderKernel

@@ -19,11 +19,6 @@ from ipykernel.ipkernel import IPythonKernel
 
 PY2 = sys.version[0] == '2'
 
-# Check if we are running under an external interpreter
-# We add "spyder" to sys.path for external interpreters,
-# so relative imports work!
-IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
-
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
 EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
@@ -78,10 +73,7 @@ class SpyderKernel(IPythonKernel):
         * 'size' and 'type' are self-evident
         * and'view' is its value or the text shown in the last column
         """
-        if not IS_EXT_INTERPRETER:
-            from spyder.widgets.variableexplorer.utils import make_remote_view
-        else:
-            from widgets.variableexplorer.utils import make_remote_view
+        from spyder_kernels.utils.nsview import make_remote_view
 
         settings = self.namespace_view_settings
         if settings:
@@ -96,10 +88,7 @@ class SpyderKernel(IPythonKernel):
         Get some properties of the variables in the current
         namespace
         """
-        if not IS_EXT_INTERPRETER:
-            from spyder.widgets.variableexplorer.utils import get_remote_data
-        else:
-            from widgets.variableexplorer.utils import get_remote_data
+        from spyder_kernels.utils.nsview import get_remote_data
 
         settings = self.namespace_view_settings
         if settings:
@@ -198,12 +187,8 @@ class SpyderKernel(IPythonKernel):
 
     def load_data(self, filename, ext):
         """Load data from filename"""
-        if not IS_EXT_INTERPRETER:
-            from spyder.utils.iofuncs import iofunctions
-            from spyder.utils.misc import fix_reference_name
-        else:
-            from utils.iofuncs import iofunctions
-            from utils.misc import fix_reference_name
+        from spyder_kernels.utils.iofuncs import iofunctions
+        from spyder_kernels.utils.misc import fix_reference_name
 
         glbs = self._mglobals()
 
@@ -227,12 +212,8 @@ class SpyderKernel(IPythonKernel):
 
     def save_namespace(self, filename):
         """Save namespace into filename"""
-        if not IS_EXT_INTERPRETER:
-            from spyder.utils.iofuncs import iofunctions
-            from spyder.widgets.variableexplorer.utils import get_remote_data
-        else:
-            from utils.iofuncs import iofunctions
-            from widgets.variableexplorer.utils import get_remote_data
+        from spyder_kernels.utils.nsview import get_remote_data
+        from spyder_kernels.utils.iofuncs import iofunctions
 
         ns = self._get_current_namespace()
         settings = self.namespace_view_settings
@@ -266,10 +247,7 @@ class SpyderKernel(IPythonKernel):
     # --- For the Help plugin
     def is_defined(self, obj, force_import=False):
         """Return True if object is defined in current namespace"""
-        if not IS_EXT_INTERPRETER:
-            from spyder.utils.dochelpers import isdefined
-        else:
-            from utils.dochelpers import isdefined
+        from spyder_kernels.utils.dochelpers import isdefined
 
         ns = self._get_current_namespace(with_magics=True)
         return isdefined(obj, force_import=force_import, namespace=ns)
@@ -281,11 +259,7 @@ class SpyderKernel(IPythonKernel):
             matplotlib.rcParams['docstring.hardcopy'] = True
         except:
             pass
-
-        if not IS_EXT_INTERPRETER:
-            from spyder.utils.dochelpers import getdoc
-        else:
-            from utils.dochelpers import getdoc
+        from spyder_kernels.utils.dochelpers import getdoc
 
         obj, valid = self._eval(objtxt)
         if valid:
@@ -293,10 +267,7 @@ class SpyderKernel(IPythonKernel):
 
     def get_source(self, objtxt):
         """Get object source"""
-        if not IS_EXT_INTERPRETER:
-            from spyder.utils.dochelpers import getsource
-        else:
-            from utils.dochelpers import getsource
+        from spyder_kernels.utils.dochelpers import getsource
 
         obj, valid = self._eval(objtxt)
         if valid:
@@ -456,10 +427,7 @@ class SpyderKernel(IPythonKernel):
         where *obj* is the object represented by *text*
         and *valid* is True if object evaluation did not raise any exception
         """
-        if not IS_EXT_INTERPRETER:
-            from spyder.py3compat import is_text_string
-        else:
-            from py3compat import is_text_string
+        from spyder_kernels.py3compat import is_text_string
 
         assert is_text_string(text)
         ns = self._get_current_namespace(with_magics=True)
