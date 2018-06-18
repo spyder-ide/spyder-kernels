@@ -49,7 +49,7 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     install_requires=REQUIREMENTS,
     include_package_data=True,
-    classifiers=['Development Status :: 5 - Stable',
+    classifiers=['Development Status :: 5 - Production/Stable',
                  'Framework :: Jupyter',
                  'Intended Audience :: Developers',
                  'License :: OSI Approved :: MIT License',
