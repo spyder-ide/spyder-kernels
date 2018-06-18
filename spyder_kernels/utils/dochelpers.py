@@ -12,13 +12,13 @@ import inspect
 import re
 
 # Local imports:
-from spyder.utils import encoding
-from spyder.py3compat import (is_text_string, builtins, get_meth_func,
-                              get_meth_class_inst, get_meth_class,
-                              get_func_defaults, to_text_string, PY2)
+from spyder_kernels.py3compat import (is_text_string, builtins, get_meth_func,
+                                      get_meth_class_inst, get_meth_class,
+                                      get_func_defaults, to_text_string, PY2)
 
 
 SYMBOLS = r"[^\'\"a-zA-Z0-9_.]"
+
 
 def getobj(txt, last=False):
     """Return the last valid object name in string"""
@@ -159,10 +159,10 @@ def getsource(obj):
     """Wrapper around inspect.getsource"""
     try:
         try:
-            src = encoding.to_unicode( inspect.getsource(obj) )
+            src = to_text_string(inspect.getsource(obj))
         except TypeError:
             if hasattr(obj, '__class__'):
-                src = encoding.to_unicode( inspect.getsource(obj.__class__) )
+                src = to_text_string(inspect.getsource(obj.__class__))
             else:
                 # Bindings like VTK or ITK require this case
                 src = getdoc(obj)

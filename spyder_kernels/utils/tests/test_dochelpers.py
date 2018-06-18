@@ -15,8 +15,9 @@ import sys
 import pytest
 
 # Local imports
-from spyder.utils.dochelpers import getargtxt, getdoc, getobj, isdefined
-from spyder.py3compat import PY2
+from spyder_kernels.utils.dochelpers import (getargtxt, getdoc, getobj,
+                                             isdefined)
+from spyder_kernels.py3compat import PY2
 
 
 class Test(object):
