@@ -16,11 +16,10 @@ import pandas as pd
 import pytest
 
 # Local imports
-from spyder.config.base import get_supported_types
-from spyder.py3compat import PY2
-from spyder.widgets.variableexplorer.utils import (sort_against,
-                                                   is_supported,
-                                                   value_to_display)
+from spyder_kernels.py3compat import PY2
+from spyder_kernels.utils.nsview import (sort_against, is_supported,
+                                         value_to_display,
+                                         get_supported_types)
 
 def generate_complex_object():
     """Taken from issue #4221."""

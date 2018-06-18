@@ -14,28 +14,12 @@ from itertools import islice
 import re
 
 # Local imports
-from spyder.config.base import get_supported_types
-from spyder.py3compat import (NUMERIC_TYPES, TEXT_TYPES, to_text_string,
-                              is_text_string, is_type_text_string,
-                              is_binary_string, PY2,
-                              to_binary_string, iteritems)
-from spyder.utils import programs
-from spyder import dependencies
-from spyder.config.base import _
+from spyder_kernels.py3compat import (NUMERIC_TYPES, INT_TYPES, TEXT_TYPES,
+                                      to_text_string, is_text_string,
+                                      is_type_text_string,
+                                      is_binary_string, PY2,
+                                      to_binary_string, iteritems)
 
-
-#==============================================================================
-# Dependencies
-#==============================================================================
-PANDAS_REQVER = '>=0.13.1'
-dependencies.add('pandas',  _("View and edit DataFrames and Series in the "
-                              "Variable Explorer"),
-                 required_version=PANDAS_REQVER, optional=True)
-
-NUMPY_REQVER = '>=1.7'
-dependencies.add("numpy", _("View and edit two and three dimensional arrays "
-                            "in the Variable Explorer"),
-                 required_version=NUMPY_REQVER, optional=True)
 
 #==============================================================================
 # FakeObject
@@ -84,13 +68,10 @@ def get_numpy_dtype(obj):
 #==============================================================================
 # Pandas support
 #==============================================================================
-if programs.is_module_installed('pandas', PANDAS_REQVER):
-    try:
-        from pandas import DataFrame, DatetimeIndex, Series
-    except:
-        DataFrame = DatetimeIndex = Series = FakeObject
-else:
-    DataFrame = DatetimeIndex = Series = FakeObject      # analysis:ignore
+try:
+    from pandas import DataFrame, DatetimeIndex, Series
+except:
+    DataFrame = DatetimeIndex = Series = FakeObject
 
 
 #==============================================================================
@@ -613,6 +594,37 @@ def globalsfilter(input_dict, check_all=False, filters=None,
 REMOTE_SETTINGS = ('check_all', 'exclude_private', 'exclude_uppercase',
                    'exclude_capitalized', 'exclude_unsupported',
                    'excluded_names', 'minmax')
+
+
+def get_supported_types():
+    """
+    Return a dictionnary containing types lists supported by the
+    namespace browser.
+
+    Note:
+    If you update this list, don't forget to update variablexplorer.rst
+    in spyder-docs
+    """
+    from datetime import date, timedelta
+    editable_types = [int, float, complex, list, dict, tuple, date, timedelta
+                      ] + list(TEXT_TYPES) + list(INT_TYPES)
+    try:
+        from numpy import ndarray, matrix, generic
+        editable_types += [ndarray, matrix, generic]
+    except:
+        pass
+    try:
+        from pandas import DataFrame, Series, DatetimeIndex
+        editable_types += [DataFrame, Series, DatetimeIndex]
+    except:
+        pass
+    picklable_types = editable_types[:]
+    try:
+        from spyder.pil_patch import Image
+        editable_types.append(Image.Image)
+    except:
+        pass
+    return dict(picklable=picklable_types, editable=editable_types)
 
 
 def get_remote_data(data, settings, mode, more_excluded_names=None):
