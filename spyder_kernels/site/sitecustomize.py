@@ -139,34 +139,6 @@ if os.name == 'nt' and PY2:
 
 
 #==============================================================================
-# Settings for our MacOs X app
-#==============================================================================
-# FIXME: If/when we create new apps we need to revisit this!
-if sys.platform == 'darwin':
-    from spyder.config.base import MAC_APP_NAME
-    if MAC_APP_NAME in __file__:
-        if IS_EXT_INTERPRETER:
-            # Add a minimal library (with spyder) at the end of sys.path to
-            # be able to connect our monitor to the external console
-            py_ver = '%s.%s' % (sys.version_info[0], sys.version_info[1])
-            app_pythonpath = '%s/Contents/Resources/lib/python%s' % (MAC_APP_NAME,
-                                                                     py_ver)
-            full_pythonpath = [p for p in sys.path if p.endswith(app_pythonpath)]
-            if full_pythonpath:
-                sys.path.remove(full_pythonpath[0])
-                sys.path.append(full_pythonpath[0] + osp.sep + 'minimal-lib')
-        else:
-            # Add missing variables and methods to the app's site module
-            import site
-            import osx_app_site
-            osx_app_site.setcopyright()
-            osx_app_site.sethelper()
-            site._Printer = osx_app_site._Printer
-            site.USER_BASE = osx_app_site.getuserbase()
-            site.USER_SITE = osx_app_site.getusersitepackages()
-
-
-#==============================================================================
 # Cython support
 #==============================================================================
 RUN_CYTHON = os.environ.get("SPY_RUN_CYTHON") == "True"
