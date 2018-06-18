@@ -8,6 +8,8 @@ To release a new version of spyder-kernels on PyPI:
 
 * git fetch upstream && get merge upstream/master
 
+* git clean -xfdi
+
 * Update CHANGELOG.md with loghub
 
 * Update `_version.py` (set release version, remove 'dev0')
