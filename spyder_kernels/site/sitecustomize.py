@@ -103,23 +103,6 @@ except ImportError:
 
 
 #==============================================================================
-# Prepending this spyder package's path to sys.path to be sure
-# that another version of spyder won't be imported instead:
-#==============================================================================
-spyder_path = osp.dirname(__file__)
-while not osp.isdir(osp.join(spyder_path, 'spyder')):
-    spyder_path = osp.abspath(osp.join(spyder_path, os.pardir))
-if not spyder_path.startswith(sys.prefix):
-    # Spyder is not installed: moving its parent directory to the top of
-    # sys.path to be sure that this spyder package will be imported in
-    # the remote process (instead of another installed version of Spyder)
-    while spyder_path in sys.path:
-        sys.path.remove(spyder_path)
-    sys.path.insert(0, spyder_path)
-os.environ['SPYDER_PARENT_DIR'] = spyder_path
-
-
-#==============================================================================
 # Setting console encoding (otherwise Python does not recognize encoding)
 # for Windows platforms
 #==============================================================================
@@ -206,7 +189,7 @@ if PY2 and sys.platform.startswith('linux'):
 #==============================================================================
 # Set PyQt API to #2
 #==============================================================================
-if os.environ["QT_API"] == 'pyqt':
+if os.environ.get("QT_API") == 'pyqt':
     try:
         import sip
         for qtype in ('QString', 'QVariant', 'QDate', 'QDateTime',
@@ -215,7 +198,10 @@ if os.environ["QT_API"] == 'pyqt':
     except:
         pass
 else:
-    os.environ.pop('QT_API')
+    try:
+        os.environ.pop('QT_API')
+    except KeyError:
+        pass
 
 
 #==============================================================================
@@ -500,19 +486,6 @@ if PY2:
 
 
 #==============================================================================
-# Restoring (almost) original sys.path:
-#
-# NOTE: do not remove spyder_path from sys.path because if Spyder has been
-# installed using python setup.py install, then this could remove the
-# 'site-packages' directory from sys.path!
-#==============================================================================
-try:
-    sys.path.remove(osp.join(spyder_path, "spyder", "utils", "site"))
-except ValueError:
-    pass
-
-
-#==============================================================================
 # User module reloader
 #==============================================================================
 class UserModuleReloader(object):
@@ -736,5 +709,4 @@ try:
     os.environ['PYTHONPATH'] = os.environ['OLD_PYTHONPATH']
     del os.environ['OLD_PYTHONPATH']
 except KeyError:
-    if os.environ.get('PYTHONPATH') is not None:
-        del os.environ['PYTHONPATH']
+    pass
