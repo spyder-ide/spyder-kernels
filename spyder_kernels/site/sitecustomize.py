@@ -103,23 +103,6 @@ except ImportError:
 
 
 #==============================================================================
-# Prepending this spyder package's path to sys.path to be sure
-# that another version of spyder won't be imported instead:
-#==============================================================================
-spyder_path = osp.dirname(__file__)
-while not osp.isdir(osp.join(spyder_path, 'spyder')):
-    spyder_path = osp.abspath(osp.join(spyder_path, os.pardir))
-if not spyder_path.startswith(sys.prefix):
-    # Spyder is not installed: moving its parent directory to the top of
-    # sys.path to be sure that this spyder package will be imported in
-    # the remote process (instead of another installed version of Spyder)
-    while spyder_path in sys.path:
-        sys.path.remove(spyder_path)
-    sys.path.insert(0, spyder_path)
-os.environ['SPYDER_PARENT_DIR'] = spyder_path
-
-
-#==============================================================================
 # Setting console encoding (otherwise Python does not recognize encoding)
 # for Windows platforms
 #==============================================================================
@@ -500,19 +483,6 @@ if PY2:
             return True
         else:
             return False
-
-
-#==============================================================================
-# Restoring (almost) original sys.path:
-#
-# NOTE: do not remove spyder_path from sys.path because if Spyder has been
-# installed using python setup.py install, then this could remove the
-# 'site-packages' directory from sys.path!
-#==============================================================================
-try:
-    sys.path.remove(osp.join(spyder_path, "spyder", "utils", "site"))
-except ValueError:
-    pass
 
 
 #==============================================================================
