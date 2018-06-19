@@ -206,7 +206,7 @@ if PY2 and sys.platform.startswith('linux'):
 #==============================================================================
 # Set PyQt API to #2
 #==============================================================================
-if os.environ["QT_API"] == 'pyqt':
+if os.environ.get("QT_API") == 'pyqt':
     try:
         import sip
         for qtype in ('QString', 'QVariant', 'QDate', 'QDateTime',
@@ -215,7 +215,10 @@ if os.environ["QT_API"] == 'pyqt':
     except:
         pass
 else:
-    os.environ.pop('QT_API')
+    try:
+        os.environ.pop('QT_API')
+    except KeyError:
+        pass
 
 
 #==============================================================================
