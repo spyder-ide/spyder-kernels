@@ -13,9 +13,27 @@ from distutils.version import LooseVersion
 import os
 import os.path as osp
 import sys
+import site
 
 
 PY2 = sys.version[0] == '2'
+
+
+def import_spydercustomize():
+    """Import our customizations into the kernel."""
+    here = osp.dirname(__file__)
+    parent = osp.dirname(here)
+    customize_dir = osp.join(parent, 'customize')
+
+    # Import our customizations
+    site.addsitedir(customize_dir)
+    import spydercustomize
+
+    # Remove our customize path from sys.path
+    try:
+        sys.path.remove(customize_dir)
+    except ValueError:
+        pass
 
 
 def is_module_installed(module_name):
@@ -247,6 +265,9 @@ def main():
     # Add current directory to sys.path (like for any standard Python interpreter
     # executed in interactive mode):
     sys.path.insert(0, '')
+
+    # Import our customizations into the kernel
+    import_spydercustomize()
 
     # Fire up the kernel instance.
     from ipykernel.kernelapp import IPKernelApp
