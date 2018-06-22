@@ -286,7 +286,7 @@ class SpyderPdb(pdb.Pdb):
     send_initial_notification = True
     starting = True
 
-    def set_spyder_breakpoints(self):
+    def set_spyder_breakpoints(self, breakpoints):
         self.clear_all_breaks()
         #------Really deleting all breakpoints:
         for bp in bdb.Breakpoint.bpbynumber:
@@ -296,12 +296,9 @@ class SpyderPdb(pdb.Pdb):
         bdb.Breakpoint.bplist = {}
         bdb.Breakpoint.bpbynumber = [None]
         #------
-        from spyder.config.main import CONF
-        CONF.load_from_ini()
-        if CONF.get('run', 'breakpoints/enabled', True):
-            breakpoints = CONF.get('run', 'breakpoints', {})
-            i = 0
-            for fname, data in list(breakpoints.items()):
+        i = 0
+        for fname, data in list(breakpoints.items()):
+            if osp.isfile(fname):
                 for linenumber, condition in data:
                     i += 1
                     self.set_break(self.canonic(fname), linenumber,
@@ -434,6 +431,7 @@ def _cmdloop(self):
                    "For copying text while debugging, use Ctrl+Shift+C",
                    file=self.stdout)
 
+
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def reset(self):
     self._old_Pdb_reset()
@@ -448,7 +446,7 @@ def reset(self):
 #     specific behaviour desired?)
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def postcmd(self, stop, line):
-    if line != "!get_ipython().kernel._set_spyder_breakpoints()":
+    if "_set_spyder_breakpoints" not in line:
         self.notify_spyder(self.curframe)
     return self._old_Pdb_postcmd(stop, line)
 
