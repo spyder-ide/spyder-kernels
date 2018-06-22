@@ -423,6 +423,10 @@ class SpyderKernel(IPythonKernel):
         breakpoints = pickle.loads(breakpoints)
         self._pdb_obj.set_spyder_breakpoints(breakpoints)
 
+    def _ask_spyder_for_breakpoints(self):
+        if self._pdb_obj:
+            self.send_spyder_msg('set_breakpoints')
+
     # --- For the Help plugin
     def _eval(self, text):
         """

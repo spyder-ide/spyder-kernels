@@ -286,6 +286,13 @@ class SpyderPdb(pdb.Pdb):
     send_initial_notification = True
     starting = True
 
+    # --- Methods overriden by us
+    def preloop(self):
+        """Ask Spyder for berkpoints before the first prompt is created."""
+        if self.starting:
+            get_ipython().kernel._ask_spyder_for_breakpoints()
+
+    # --- Methods defined by us
     def set_spyder_breakpoints(self, breakpoints):
         self.clear_all_breaks()
         #------Really deleting all breakpoints:
@@ -304,6 +311,23 @@ class SpyderPdb(pdb.Pdb):
                     self.set_break(self.canonic(fname), linenumber,
                                    cond=condition)
 
+        # Jump to first breakpoint.
+        # Fixes issue 2034
+        if self.starting:
+            # Only run this after a Pdb session is created
+            self.starting = False
+
+            # Get all breakpoints for the file we're going to debug
+            frame = self.curframe
+            lineno = frame.f_lineno
+            breaks = self.get_file_breaks(frame.f_code.co_filename)
+
+            # Do 'continue' if the first breakpoint is *not* placed
+            # where the debugger is going to land.
+            # Fixes issue 4681
+            if breaks and lineno != breaks[0] and osp.isfile(fname):
+                get_ipython().kernel.pdb_continue()
+
     def notify_spyder(self, frame):
         if not frame:
             return
@@ -319,21 +343,6 @@ class SpyderPdb(pdb.Pdb):
             except TypeError:
                 pass
         lineno = frame.f_lineno
-
-        # Jump to first breakpoint.
-        # Fixes issue 2034
-        if self.starting:
-            # Only run this after a Pdb session is created
-            self.starting = False
-
-            # Get all breakpoints for the file we're going to debug
-            breaks = self.get_file_breaks(frame.f_code.co_filename)
-
-            # Do 'continue' if the first breakpoint is *not* placed
-            # where the debugger is going to land.
-            # Fixes issue 4681
-            if breaks and lineno != breaks[0] and osp.isfile(fname):
-                kernel.pdb_continue()
 
         # Set step of the current frame (if any)
         step = {}
@@ -439,7 +448,6 @@ def reset(self):
     from IPython.core.getipython import get_ipython
     kernel = get_ipython().kernel
     kernel._register_pdb_session(self)
-    self.set_spyder_breakpoints()
 
 
 #XXX: notify spyder on any pdb command (is that good or too lazy? i.e. is more
