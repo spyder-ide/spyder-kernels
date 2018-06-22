@@ -20,6 +20,8 @@ import sys
 import time
 import warnings
 
+from IPython.core.getipython import get_ipython
+
 PY2 = sys.version[0] == '2'
 
 
@@ -332,7 +334,6 @@ class SpyderPdb(pdb.Pdb):
         if not frame:
             return
 
-        from IPython.core.getipython import get_ipython
         kernel = get_ipython().kernel
 
         # Get filename and line number of the current frame
@@ -444,8 +445,6 @@ def _cmdloop(self):
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def reset(self):
     self._old_Pdb_reset()
-
-    from IPython.core.getipython import get_ipython
     kernel = get_ipython().kernel
     kernel._register_pdb_session(self)
 
@@ -567,7 +566,6 @@ def clear_post_mortem():
     """
     Remove the post mortem excepthook and replace with a standard one.
     """
-    from IPython.core.getipython import get_ipython
     ipython_shell = get_ipython()
     ipython_shell.set_custom_exc((), None)
 
@@ -578,8 +576,6 @@ def post_mortem_excepthook(type, value, tb):
     mortem debugging.
     """
     clear_post_mortem()
-
-    from IPython.core.getipython import get_ipython
     ipython_shell = get_ipython()
     ipython_shell.showtraceback((type, value, tb))
     p = pdb.Pdb(ipython_shell.colors)
@@ -608,7 +604,6 @@ def set_post_mortem():
     """
     Enable the post mortem debugging excepthook.
     """
-    from IPython.core.getipython import get_ipython
     def ipython_post_mortem_debug(shell, etype, evalue, tb,
                tb_offset=None):
         post_mortem_excepthook(etype, evalue, tb)
@@ -626,7 +621,6 @@ if "SPYDER_EXCEPTHOOK" in os.environ:
 #==============================================================================
 def _get_globals():
     """Return current namespace"""
-    from IPython.core.getipython import get_ipython
     ipython_shell = get_ipython()
     return ipython_shell.user_ns
 
@@ -676,7 +670,6 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     if HAS_CYTHON:
         # Cython files
         with io.open(filename, encoding='utf-8') as f:
-            from IPython.core.getipython import get_ipython
             ipython_shell = get_ipython()
             ipython_shell.run_cell_magic('cython', '', f.read())
     else:
