@@ -1,5 +1,15 @@
 # History of changes
 
+## Version 0.2.2 (2018-06-22)
+
+### Pull Requests Merged
+
+* [PR 4](https://github.com/spyder-ide/spyder-kernels/pull/4) - PR: Fix debugging in Python 2
+
+In this release 1 pull request was closed.
+
+----
+
 ## Version 0.2.1 (2018-06-22)
 
 ### Pull Requests Merged
