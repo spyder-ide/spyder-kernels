@@ -417,7 +417,7 @@ def user_return(self, frame, return_value):
 
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def interaction(self, frame, traceback):
-    if frame is not None and "sitecustomize.py" in frame.f_code.co_filename:
+    if frame is not None and "spydercustomize.py" in frame.f_code.co_filename:
         self.run('exit')
     else:
         self.setup(frame, traceback)
