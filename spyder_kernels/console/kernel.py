@@ -419,8 +419,13 @@ class SpyderKernel(IPythonKernel):
         """Set all Spyder breakpoints in an active pdb session"""
         if not self._pdb_obj:
             return
-        # Breakpoints come serialized from Spyder
-        breakpoints = pickle.loads(breakpoints)
+
+        # Breakpoints come serialized from Spyder. We send them
+        # in a list of one element to be able to send them at all
+        # in Python 2
+        serialized_breakpoints = breakpoints[0]
+        breakpoints = pickle.loads(serialized_breakpoints)
+
         self._pdb_obj.set_spyder_breakpoints(breakpoints)
 
     def _ask_spyder_for_breakpoints(self):
