@@ -11,6 +11,7 @@ Spyder kernel for Jupyter
 # Standard library imports
 import os
 import os.path as osp
+import pickle
 import sys
 
 # Third-party imports
@@ -415,11 +416,17 @@ class SpyderKernel(IPythonKernel):
         """Register Pdb session to use it later"""
         self._pdb_obj = pdb_obj
 
-    def _set_spyder_breakpoints(self):
+    def _set_spyder_breakpoints(self, breakpoints):
         """Set all Spyder breakpoints in an active pdb session"""
         if not self._pdb_obj:
             return
-        self._pdb_obj.set_spyder_breakpoints()
+        # Breakpoints come serialized from Spyder
+        breakpoints = pickle.loads(breakpoints)
+        self._pdb_obj.set_spyder_breakpoints(breakpoints)
+
+    def _ask_spyder_for_breakpoints(self):
+        if self._pdb_obj:
+            self.send_spyder_msg('set_breakpoints')
 
     # --- For the Help plugin
     def _eval(self, text):

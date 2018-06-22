@@ -20,6 +20,10 @@ import sys
 import time
 import warnings
 
+from IPython.core.getipython import get_ipython
+
+
+# We are in Python 2?
 PY2 = sys.version[0] == '2'
 
 
@@ -286,7 +290,14 @@ class SpyderPdb(pdb.Pdb):
     send_initial_notification = True
     starting = True
 
-    def set_spyder_breakpoints(self):
+    # --- Methods overriden by us
+    def preloop(self):
+        """Ask Spyder for berkpoints before the first prompt is created."""
+        if self.starting:
+            get_ipython().kernel._ask_spyder_for_breakpoints()
+
+    # --- Methods defined by us
+    def set_spyder_breakpoints(self, breakpoints):
         self.clear_all_breaks()
         #------Really deleting all breakpoints:
         for bp in bdb.Breakpoint.bpbynumber:
@@ -296,22 +307,35 @@ class SpyderPdb(pdb.Pdb):
         bdb.Breakpoint.bplist = {}
         bdb.Breakpoint.bpbynumber = [None]
         #------
-        from spyder.config.main import CONF
-        CONF.load_from_ini()
-        if CONF.get('run', 'breakpoints/enabled', True):
-            breakpoints = CONF.get('run', 'breakpoints', {})
-            i = 0
-            for fname, data in list(breakpoints.items()):
+        i = 0
+        for fname, data in list(breakpoints.items()):
+            if osp.isfile(fname):
                 for linenumber, condition in data:
                     i += 1
                     self.set_break(self.canonic(fname), linenumber,
                                    cond=condition)
 
+        # Jump to first breakpoint.
+        # Fixes issue 2034
+        if self.starting:
+            # Only run this after a Pdb session is created
+            self.starting = False
+
+            # Get all breakpoints for the file we're going to debug
+            frame = self.curframe
+            lineno = frame.f_lineno
+            breaks = self.get_file_breaks(frame.f_code.co_filename)
+
+            # Do 'continue' if the first breakpoint is *not* placed
+            # where the debugger is going to land.
+            # Fixes issue 4681
+            if breaks and lineno != breaks[0] and osp.isfile(fname):
+                get_ipython().kernel.pdb_continue()
+
     def notify_spyder(self, frame):
         if not frame:
             return
 
-        from IPython.core.getipython import get_ipython
         kernel = get_ipython().kernel
 
         # Get filename and line number of the current frame
@@ -322,21 +346,6 @@ class SpyderPdb(pdb.Pdb):
             except TypeError:
                 pass
         lineno = frame.f_lineno
-
-        # Jump to first breakpoint.
-        # Fixes issue 2034
-        if self.starting:
-            # Only run this after a Pdb session is created
-            self.starting = False
-
-            # Get all breakpoints for the file we're going to debug
-            breaks = self.get_file_breaks(frame.f_code.co_filename)
-
-            # Do 'continue' if the first breakpoint is *not* placed
-            # where the debugger is going to land.
-            # Fixes issue 4681
-            if breaks and lineno != breaks[0] and osp.isfile(fname):
-                kernel.pdb_continue()
 
         # Set step of the current frame (if any)
         step = {}
@@ -408,7 +417,7 @@ def user_return(self, frame, return_value):
 
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def interaction(self, frame, traceback):
-    if frame is not None and "sitecustomize.py" in frame.f_code.co_filename:
+    if frame is not None and "spydercustomize.py" in frame.f_code.co_filename:
         self.run('exit')
     else:
         self.setup(frame, traceback)
@@ -434,21 +443,19 @@ def _cmdloop(self):
                    "For copying text while debugging, use Ctrl+Shift+C",
                    file=self.stdout)
 
+
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def reset(self):
     self._old_Pdb_reset()
-
-    from IPython.core.getipython import get_ipython
     kernel = get_ipython().kernel
     kernel._register_pdb_session(self)
-    self.set_spyder_breakpoints()
 
 
 #XXX: notify spyder on any pdb command (is that good or too lazy? i.e. is more
 #     specific behaviour desired?)
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def postcmd(self, stop, line):
-    if line != "!get_ipython().kernel._set_spyder_breakpoints()":
+    if "_set_spyder_breakpoints" not in line:
         self.notify_spyder(self.curframe)
     return self._old_Pdb_postcmd(stop, line)
 
@@ -561,7 +568,6 @@ def clear_post_mortem():
     """
     Remove the post mortem excepthook and replace with a standard one.
     """
-    from IPython.core.getipython import get_ipython
     ipython_shell = get_ipython()
     ipython_shell.set_custom_exc((), None)
 
@@ -572,8 +578,6 @@ def post_mortem_excepthook(type, value, tb):
     mortem debugging.
     """
     clear_post_mortem()
-
-    from IPython.core.getipython import get_ipython
     ipython_shell = get_ipython()
     ipython_shell.showtraceback((type, value, tb))
     p = pdb.Pdb(ipython_shell.colors)
@@ -602,7 +606,6 @@ def set_post_mortem():
     """
     Enable the post mortem debugging excepthook.
     """
-    from IPython.core.getipython import get_ipython
     def ipython_post_mortem_debug(shell, etype, evalue, tb,
                tb_offset=None):
         post_mortem_excepthook(etype, evalue, tb)
@@ -620,7 +623,6 @@ if "SPYDER_EXCEPTHOOK" in os.environ:
 #==============================================================================
 def _get_globals():
     """Return current namespace"""
-    from IPython.core.getipython import get_ipython
     ipython_shell = get_ipython()
     return ipython_shell.user_ns
 
@@ -670,7 +672,6 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     if HAS_CYTHON:
         # Cython files
         with io.open(filename, encoding='utf-8') as f:
-            from IPython.core.getipython import get_ipython
             ipython_shell = get_ipython()
             ipython_shell.run_cell_magic('cython', '', f.read())
     else:
