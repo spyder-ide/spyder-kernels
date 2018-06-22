@@ -22,6 +22,8 @@ import warnings
 
 from IPython.core.getipython import get_ipython
 
+
+# We are in Python 2?
 PY2 = sys.version[0] == '2'
 
 
