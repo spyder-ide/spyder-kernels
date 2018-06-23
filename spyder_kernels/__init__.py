@@ -5,5 +5,7 @@
 # (see spyder/__init__.py for details)
 
 """
-Jupyter kernels for Spyder
+Jupyter kernels for the Spyder console
 """
+
+from ._version import __version__
