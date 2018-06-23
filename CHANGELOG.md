@@ -1,5 +1,15 @@
 # History of changes
 
+## Version 0.2.3 (2018-06-23)
+
+### Pull Requests Merged
+
+* [PR 5](https://github.com/spyder-ide/spyder-kernels/pull/5) - PR: Add __version__ to package's init
+
+In this release 1 pull request was closed.
+
+----
+
 ## Version 0.2.2 (2018-06-22)
 
 ### Pull Requests Merged
