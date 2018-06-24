@@ -282,7 +282,7 @@ class SpyderPdb(pdb.Pdb):
 
     # --- Methods overriden by us
     def preloop(self):
-        """Ask Spyder for berkpoints before the first prompt is created."""
+        """Ask Spyder for breakpoints before the first prompt is created."""
         if self.starting:
             get_ipython().kernel._ask_spyder_for_breakpoints()
 
@@ -672,6 +672,61 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     namespace.pop('__file__')
 
 builtins.runfile = runfile
+
+
+def runcell(cell_name, filename):
+    """
+    Runs a code cell from an editor as a file.
+
+    Currently looks for code in in a ipython property called `cell_code`.
+    This property must be set by the editor prior to calling this function
+    This function deletes the contents of `cell_code` upon completion.
+
+    The filename is needed to allow for proper traceback links.
+
+    The cell_name is used currently as a reference in the history log of which
+    cell was run with the command. It is currently unused in the function.
+
+    Parameters
+    ----------
+
+    cell_name: The name of the code cell (string)
+    filename: The name of the file containing the code cell (string)
+    """
+    try:
+        filename = filename.decode('utf-8')
+    except (UnicodeError, TypeError, AttributeError):
+        # UnicodeError, TypeError --> eventually raised in Python 2
+        # AttributeError --> systematically raised in Python 3
+        pass
+    global __umr__
+    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
+        if __umr__ is None:
+            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
+            if namelist is not None:
+                namelist = namelist.split(',')
+            __umr__ = UserModuleReloader(namelist=namelist)
+        else:
+            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
+            __umr__.run(verbose=verbose)
+
+    namespace = _get_globals()
+    namespace['__file__'] = filename
+
+    from IPython.core.getipython import get_ipython
+    ipython_shell = get_ipython()
+    try:
+        cell_code = ipython_shell.cell_code
+    except AttributeError:
+        _print("--Run Cell Error--\n"
+               "Please use only in editor")
+        return
+    exec(compile(cell_code, filename, 'exec'), namespace)
+    del ipython_shell.cell_code
+    namespace.pop('__file__')
+
+
+builtins.runcell = runcell
 
 
 def debugfile(filename, args=None, wdir=None, post_mortem=False):
