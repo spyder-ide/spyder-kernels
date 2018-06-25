@@ -392,7 +392,10 @@ def value_to_display(value, minmax=False, level=0):
                 display = u"'" + display + u"'"
         elif isinstance(value, DatetimeIndex):
             if level == 0:
-                display = value.summary()
+                try:
+                    display = value._summary()
+                except AttributeError:
+                    display = value.summary()
             else:
                 display = 'DatetimeIndex'
         elif is_binary_string(value):
