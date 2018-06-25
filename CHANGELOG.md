@@ -6,6 +6,16 @@ Initial release for Spyder 4
 
 ----
 
+## Version 0.2.4 (2018-06-25)
+
+### Pull Requests Merged
+
+* [PR 6](https://github.com/spyder-ide/spyder-kernels/pull/6) - PR: Handle deprecated 'summary' method for Pandas
+
+In this release 1 pull request was closed.
+
+----
+
 ## Version 0.2.3 (2018-06-23)
 
 ### Pull Requests Merged
