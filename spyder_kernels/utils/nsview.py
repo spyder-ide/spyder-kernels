@@ -396,7 +396,10 @@ def value_to_display(value, minmax=False, level=0):
                 display = u"'" + display + u"'"
         elif isinstance(value, Index):
             if level == 0:
-                display = value.summary()
+                try:
+                    display = value._summary()
+                except AttributeError:
+                    display = value.summary()
             else:
                 display = 'Index'
         elif is_binary_string(value):
