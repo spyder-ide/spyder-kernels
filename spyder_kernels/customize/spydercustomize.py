@@ -228,18 +228,6 @@ class IPyTesProgram(TestProgram):
         TestProgram.__init__(self, *args, **kwargs)
 unittest.main = IPyTesProgram
 
-# Patch ipykernel to avoid errors when setting the Qt5 Matplotlib
-# backemd
-# Fixes Issue 6091
-import ipykernel
-import IPython
-if LooseVersion(ipykernel.__version__) <= LooseVersion('4.7.0'):
-    if ((PY2 and LooseVersion(IPython.__version__) >= LooseVersion('5.5.0')) or
-        (not PY2 and LooseVersion(IPython.__version__) >= LooseVersion('6.2.0'))
-       ):
-        from ipykernel import eventloops
-        eventloops.loop_map['qt'] = eventloops.loop_map['qt5']
-
 
 #==============================================================================
 # Pandas adjustments
