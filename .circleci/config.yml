@@ -1,0 +1,47 @@
+version: 2
+
+jobs:
+  python2.7:
+    machine: true
+    environment:
+      - PYTHON_VERSION: "2.7"
+    steps:
+      - checkout
+      - run:
+          command: docker pull continuumio/miniconda3:latest
+      - run:
+          command: ./.circleci/install.sh
+      - run:
+          command: pytest -x -vv spyder_kernels
+  python3.5:
+    machine: true
+    environment:
+      - PYTHON_VERSION: "3.5"
+    steps:
+      - checkout
+      - run:
+          command: docker pull continuumio/miniconda3:latest
+      - run:
+          command: ./.circleci/install.sh
+      - run:
+          command: pytest -x -vv spyder_kernels
+  python3.6:
+    machine: true
+    environment:
+      - PYTHON_VERSION: "3.6"
+    steps:
+      - checkout
+      - run:
+          command: docker pull continuumio/miniconda3:latest
+      - run:
+          command: ./.circleci/install.sh
+      - run:
+          command: pytest -x -vv spyder_kernels
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - python2.7
+      - python3.5
+      - python3.6
