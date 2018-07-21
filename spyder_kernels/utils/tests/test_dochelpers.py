@@ -25,9 +25,7 @@ class Test(object):
         pass
 
 
-@pytest.mark.skipif(not 'Continuum' in sys.version or not PY2,
-                    reason="It fails when not run in Anaconda and in "
-                            "Python 3")
+@pytest.mark.skipif(not PY2, reason="It fails in Python 3")
 def test_dochelpers():
     """Test dochelpers."""
     assert not getargtxt(Test.__init__)
