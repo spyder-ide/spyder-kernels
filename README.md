@@ -1,5 +1,8 @@
 # Jupyter kernels for the Spyder console
 
+[![CircleCI](https://circleci.com/gh/spyder-ide/spyder-kernels.svg?style=shield)](https://circleci.com/gh/spyder-ide/spyder-kernels)
+[![codecov](https://codecov.io/gh/spyder-ide/spyder-kernels/branch/master/graph/badge.svg)](https://codecov.io/gh/spyder-ide/spyder-kernels)
+
 Package that provides the kernels used by Spyder on its IPython console.
 
 ## Installation
