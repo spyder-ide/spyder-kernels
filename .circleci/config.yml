@@ -12,7 +12,7 @@ jobs:
       - run:
           command: ./.circleci/install.sh
       - run:
-          command: pytest -x -vv spyder_kernels
+          command: ./.circleci/run_tests.sh
   python3.5:
     machine: true
     environment:
@@ -24,7 +24,7 @@ jobs:
       - run:
           command: ./.circleci/install.sh
       - run:
-          command: pytest -x -vv spyder_kernels
+          command: ./.circleci/run_tests.sh
   python3.6:
     machine: true
     environment:
@@ -36,7 +36,7 @@ jobs:
       - run:
           command: ./.circleci/install.sh
       - run:
-          command: pytest -x -vv spyder_kernels
+          command: ./.circleci/run_tests.sh
 
 workflows:
   version: 2
