@@ -183,7 +183,7 @@ except:
 # Add default filesystem encoding on Linux to avoid an error with
 # Matplotlib 1.5 in Python 2 (Fixes Issue 2793)
 #==============================================================================
-if PY2 and sys.platform.startswith('linux'):
+if PY2 and ('linux' in sys.platform or 'bsd' in sys.platform):
     def _getfilesystemencoding_wrapper():
         return 'utf-8'
 
