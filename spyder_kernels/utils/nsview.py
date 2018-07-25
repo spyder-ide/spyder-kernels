@@ -69,9 +69,9 @@ def get_numpy_dtype(obj):
 # Pandas support
 #==============================================================================
 try:
-    from pandas import DataFrame, DatetimeIndex, Series
+    from pandas import DataFrame, Index, Series
 except:
-    DataFrame = DatetimeIndex = Series = FakeObject
+    DataFrame = Index = Series = FakeObject
 
 
 #==============================================================================
@@ -113,13 +113,13 @@ def try_to_eval(value):
     
 def get_size(item):
     """Return size of an item of arbitrary type"""
-    if isinstance(item, (list, tuple, dict)):
+    if isinstance(item, (list, set, tuple, dict)):
         return len(item)
     elif isinstance(item, (ndarray, MaskedArray)):
         return item.shape
     elif isinstance(item, Image):
         return item.size
-    if isinstance(item, (DataFrame, DatetimeIndex, Series)):
+    if isinstance(item, (DataFrame, Index, Series)):
         return item.shape
     else:
         return 1
@@ -195,6 +195,7 @@ COLORS = {
           bool:               "#ff00ff",
           NUMERIC_TYPES:      SCALAR_COLOR,
           list:               "#ffff00",
+          set:                "#008000",
           dict:               "#00ffff",
           tuple:              "#c0c0c0",
           TEXT_TYPES:         "#800000",
@@ -203,7 +204,7 @@ COLORS = {
            matrix,
            DataFrame,
            Series,
-           DatetimeIndex):    ARRAY_COLOR,
+           Index):            ARRAY_COLOR,
           Image:              "#008000",
           datetime.date:      "#808000",
           datetime.timedelta: "#808000",
@@ -275,8 +276,9 @@ def default_display(value, with_module=True):
 
 
 def collections_display(value, level):
-    """Display for collections (i.e. list, tuple and dict)."""
+    """Display for collections (i.e. list, set, tuple and dict)."""
     is_dict = isinstance(value, dict)
+    is_set = isinstance(value, set)
 
     # Get elements
     if is_dict:
@@ -287,10 +289,10 @@ def collections_display(value, level):
     # Truncate values
     truncate = False
     if level == 1 and len(value) > 10:
-        elements = islice(elements, 10) if is_dict else value[:10]
+        elements = islice(elements, 10) if is_dict or is_set else value[:10]
         truncate = True
     elif level == 2 and len(value) > 5:
-        elements = islice(elements, 5) if is_dict else value[:5]
+        elements = islice(elements, 5) if is_dict or is_set else value[:5]
         truncate = True
 
     # Get display of each element
@@ -313,6 +315,8 @@ def collections_display(value, level):
         display = '{' + display + '}'
     elif isinstance(value, list):
         display = '[' + display + ']'
+    elif isinstance(value, set):
+        display = '{' + display + '}'
     else:
         display = '(' + display + ')'
 
@@ -359,7 +363,7 @@ def value_to_display(value, minmax=False, level=0):
                     display = default_display(value)
             else:
                 display = 'Numpy array'
-        elif any([type(value) == t for t in [list, tuple, dict]]):
+        elif any([type(value) == t for t in [list, set, tuple, dict]]):
             display = collections_display(value, level+1)
         elif isinstance(value, Image):
             if level == 0:
@@ -390,14 +394,14 @@ def value_to_display(value, minmax=False, level=0):
             display = to_text_string(value)
             if level > 0:
                 display = u"'" + display + u"'"
-        elif isinstance(value, DatetimeIndex):
+        elif isinstance(value, Index):
             if level == 0:
                 try:
                     display = value._summary()
                 except AttributeError:
                     display = value.summary()
             else:
-                display = 'DatetimeIndex'
+                display = 'Index'
         elif is_binary_string(value):
             # We don't apply this to classes that extend string types
             # See issue 5636
@@ -508,8 +512,8 @@ def get_type_string(item):
     """Return type string of an object."""
     if isinstance(item, DataFrame):
         return "DataFrame"
-    if isinstance(item, DatetimeIndex):
-        return "DatetimeIndex"
+    if isinstance(item, Index):
+        return type(item).__name__
     if isinstance(item, Series):
         return "Series"
     found = re.findall(r"<(?:type|class) '(\S*)'>",
@@ -609,8 +613,8 @@ def get_supported_types():
     in spyder-docs
     """
     from datetime import date, timedelta
-    editable_types = [int, float, complex, list, dict, tuple, date, timedelta
-                      ] + list(TEXT_TYPES) + list(INT_TYPES)
+    editable_types = [int, float, complex, list, set, dict, tuple, date,
+                      timedelta] + list(TEXT_TYPES) + list(INT_TYPES)
     try:
         from numpy import ndarray, matrix, generic
         editable_types += [ndarray, matrix, generic]
@@ -618,7 +622,7 @@ def get_supported_types():
         pass
     try:
         from pandas import DataFrame, Series, DatetimeIndex
-        editable_types += [DataFrame, Series, DatetimeIndex]
+        editable_types += [DataFrame, Series, Index]
     except:
         pass
     picklable_types = editable_types[:]

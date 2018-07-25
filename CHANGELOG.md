@@ -1,5 +1,17 @@
 # History of changes
 
+## Version 1.0.1 (2018-06-25)
+
+Sister release for 0.2.4
+
+----
+
+## Version 1.0.0 (2018-06-24)
+
+Initial release for Spyder 4
+
+----
+
 ## Version 0.2.4 (2018-06-25)
 
 ### Pull Requests Merged

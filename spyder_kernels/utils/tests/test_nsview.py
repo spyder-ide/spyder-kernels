@@ -174,6 +174,26 @@ def test_dict_display():
     assert is_supported(di, filters=supported_types)
 
 
+def test_set_display():
+    """Tests for display of sets."""
+    long_set = {i for i in range(100)}
+
+    # Simple set
+    assert value_to_display({1, 2, 3}) == '{1, 2, 3}'
+
+    # Long set
+    disp = '{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, ...}'
+    assert value_to_display(long_set) == disp
+
+    # Short list of sets
+    disp = '[{0, 1, 2, 3, 4, ...}, {0, 1, 2, 3, 4, ...}, {0, 1, 2, 3, 4, ...}]'
+    assert value_to_display([long_set] * 3) == disp
+
+    # Long list of sets
+    disp = '[' + ''.join('{0, 1, 2, 3, 4, ...}, '*10)[:-2] + ']'
+    assert value_to_display([long_set] * 10) == disp[:70] + ' ...'
+
+
 def test_datetime_display():
     """Simple tests that dates, datetimes and timedeltas display correctly."""
     test_date = datetime.date(2017, 12, 18)
