@@ -6,10 +6,9 @@
 
 
 """
-Spyder kernels
+Spyder Kernels
 ==============
 
-Jupyter kernels for the Spyder console
 """
 
 # Standard library imports
@@ -48,7 +47,7 @@ setup(
     url='https://github.com/spyder-ide/spyder-kernels',
     license='MIT',
     author='Spyder Development Team',
-    description='Jupyter kernels for the Spyder console',
+    description="Jupyter kernels for the Spyder IDE's IPython consoles.",
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     install_requires=REQUIREMENTS,
     include_package_data=True,
