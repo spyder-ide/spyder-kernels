@@ -106,7 +106,7 @@ def get_matlab_value(val):
     Extract a value from a Matlab file
 
     From the oct2py project, see
-    http://pythonhosted.org/oct2py/conversions.html
+    https://pythonhosted.org/oct2py/conversions.html
     """
     import numpy as np
 
