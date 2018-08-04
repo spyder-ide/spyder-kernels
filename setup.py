@@ -9,6 +9,31 @@
 Spyder Kernels
 ==============
 
+Provides Jupyter kernels for use with the Spyder IDE's IPython consoles,
+launched either through Spyder itself or in an independent Python session.
+These allow for interactive or file-based execution of Python code in
+different environments inside of Spyder.
+
+Spyder is a powerful scientific environment written in Python, for Python,
+and designed by and for scientists, engineers and data analysts.
+It features a unique combination of the advanced editing, analysis, debugging
+and profiling functionality of a comprehensive development tool with the data
+exploration, interactive execution, deep inspection and beautiful visualization
+capabilities of a scientific package.
+
+To launch a Spyder IPython console and run code in a different environment
+(virtualenv/venv or conda), Python installation or machine from Spyder itself,
+just install this package there and either change Spyder's Python interpreter
+to point to it (under Tools -> Preferences -> Python interpreter) or launch an
+independent kernel on the host (via python -m spyder_kernels.console) and
+connect to it via the Console -> Connect to existing kernel dialog in Spyder.
+
+For further advice on managing packages and environments with Spyder, see:
+https://github.com/spyder-ide/spyder/wiki/Working-with-packages-and-environments-in-Spyder
+
+To learn more about creating, connecting and using Spyder's consoles, read:
+https://docs.spyder-ide.org/ipythonconsole.html
+
 """
 
 # Standard library imports
@@ -19,6 +44,7 @@ import os
 from setuptools import find_packages, setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+DOCLINES = __doc__.split('\n')
 
 
 def get_version(module='spyder_kernels'):
@@ -48,6 +74,7 @@ setup(
     license='MIT',
     author='Spyder Development Team',
     description="Jupyter kernels for the Spyder IDE's IPython consoles.",
+    long_description="\n".join(DOCLINES[4:]),
     packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     install_requires=REQUIREMENTS,
     include_package_data=True,
