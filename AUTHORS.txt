@@ -1,0 +1,5 @@
+The Spyder Kernels Contributors are composed of:
+
+* Carlos Cordoba <ccordoba12@gmail.com> (Spyder-Kernels creator and maintainer)
+* All other developers that have contributed to the spyder-kernels repository:
+  <https://github.com/spyder-ide/spyder-kernels/graphs/contributors>
