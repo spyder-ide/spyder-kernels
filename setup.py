@@ -19,7 +19,8 @@ and designed by and for scientists, engineers and data analysts.
 It features a unique combination of the advanced editing, analysis, debugging
 and profiling functionality of a comprehensive development tool with the data
 exploration, interactive execution, deep inspection and beautiful visualization
-capabilities of a scientific package.
+capabilities of a scientific package. For more on Spyder, see our website:
+https://www.spyder-ide.org/
 
 To launch a Spyder IPython console and run code in a different environment
 (virtualenv/venv or conda), Python installation or machine from Spyder itself,
