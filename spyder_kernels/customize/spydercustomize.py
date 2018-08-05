@@ -1,7 +1,9 @@
 #
-# Copyright (c) Spyder Project Contributors)
-# Licensed under the terms of the MIT License)
-# (see spyder/__init__.py for details)
+# Copyright (c) 2016-2018 Spyder Kernels Contributors
+#
+# Licensed under the terms of the MIT License
+# (see spyder_kernels/__init__.py for details)
+# -----------------------------------------------------------------------------
 #
 # IMPORTANT NOTE: Don't add a coding line here! It's not necessary for
 # site files
