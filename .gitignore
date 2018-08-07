@@ -1,5 +1,5 @@
 # Compiled python files
-*.py[oc]
+*.py[ocd]
 
 # gedit files
 *~
@@ -10,11 +10,17 @@ nppBackup/
 # Pytest dirs/files
 .pytest_cache/
 
+# git .orig files
+*.orig
+
+# Sphinx doc build dir
+_build/
+
 # Special dirs and files
 build/
 dist/
 bin/
-spyder_kernels.egg-info/
+*.egg-info/
 Thumbs.db
 .DS_Store/
 spyder_crash.log
@@ -23,6 +29,6 @@ spyder_crash.log
 .idea/
 .cache
 .coverage*
-
-# git .orig files
-*.orig
+*.tmp
+*.temp
+*.bak
