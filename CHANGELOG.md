@@ -1,5 +1,11 @@
 # History of changes
 
+## Version 1.0.2 (2018-08-09)
+
+Sister release for 0.2.5
+
+----
+
 ## Version 1.0.1 (2018-06-25)
 
 Sister release for 0.2.4
