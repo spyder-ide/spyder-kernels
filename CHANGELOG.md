@@ -18,6 +18,16 @@ Initial release for Spyder 4
 
 ----
 
+## Version 0.2.6 (2018-08-09)
+
+### Pull Requests Merged
+
+* [PR 20](https://github.com/spyder-ide/spyder-kernels/pull/20) - PR: Include license file again in tarball
+
+In this release 1 pull request was closed.
+
+----
+
 ## Version 0.2.5 (2018-08-09)
 
 ### Pull Requests Merged
