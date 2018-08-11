@@ -1,5 +1,21 @@
 # History of changes
 
+## Version 1.1 (2018-08-11)
+
+### Issues Closed
+
+* [Issue 14](https://github.com/spyder-ide/spyder-kernels/issues/14) - Startup lines to split with semicolon instead of comma ([PR 15](https://github.com/spyder-ide/spyder-kernels/pull/15))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 15](https://github.com/spyder-ide/spyder-kernels/pull/15) - PR: Separate startup run_lines with semicolon instead of comma ([14](https://github.com/spyder-ide/spyder-kernels/issues/14))
+
+In this release 1 pull request was closed.
+
+----
+
 ## Version 1.0.3 (2018-08-09)
 
 Sister release for 0.2.6
