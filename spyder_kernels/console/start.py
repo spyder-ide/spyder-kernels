@@ -103,7 +103,7 @@ def kernel_config():
     # Run lines of code at startup
     run_lines_o = os.environ.get('SPY_RUN_LINES_O')
     if run_lines_o is not None:
-        spy_cfg.IPKernelApp.exec_lines = [x.strip() for x in run_lines_o.split(',')]
+        spy_cfg.IPKernelApp.exec_lines = [x.strip() for x in run_lines_o.split(';')]
     else:
         spy_cfg.IPKernelApp.exec_lines = []
 
