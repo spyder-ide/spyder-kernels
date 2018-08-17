@@ -80,6 +80,9 @@ class IPdbKernel(MetaKernel):
                                              line_input_checker=False)
 
     def do_execute_direct(self, code):
+        """
+        Execute code with the debugger.
+        """
         # Process command:
         line = self.debugger.precmd(code)
         stop = self.debugger.onecmd(line)
@@ -88,6 +91,23 @@ class IPdbKernel(MetaKernel):
             self.debugger.postloop()
 
     def do_is_complete(self, code):
+        """
+        Given code as string, returns dictionary with 'status' representing
+        whether code is ready to evaluate. Possible values for status are:
+
+           'complete'   - ready to evaluate
+           'incomplete' - not yet ready
+           'invalid'    - invalid code
+           'unknown'    - unknown; the default unless overridden
+
+        Optionally, if 'status' is 'incomplete', you may indicate
+        an indentation string.
+
+        Example:
+
+            return {'status' : 'incomplete',
+                    'indent': ' ' * 4}
+        """
         if self.parse_code(code)["magic"]:
             return {"status": "complete"}
         (status,
@@ -98,6 +118,9 @@ class IPdbKernel(MetaKernel):
         return r
 
     def get_completions(self, info):
+        """
+        Get completions from kernel based on info dict.
+        """
         code = info["code"]
         if code[-1] == ' ':
             return []
@@ -114,8 +137,3 @@ class IPdbKernel(MetaKernel):
 
     def get_usage(self):
         return self.debugger.do_help(None)
-
-
-if __name__ == '__main__':
-    from ipykernel.kernelapp import IPKernelApp
-    IPKernelApp.launch_instance(kernel_class=IPdbKernel)
