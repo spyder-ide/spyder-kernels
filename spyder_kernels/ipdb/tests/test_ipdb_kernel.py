@@ -113,8 +113,7 @@ def test_help():
         'payload'][0]['data']['text/plain']
 
     resp = kernel.get_help_on('what', 0)
-    assert resp == "Sorry, no help is available on 'what'.", \
-                   ("response was actually %s" % resp)
+    assert resp == None
 
 
 def test_complete():
