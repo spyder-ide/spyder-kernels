@@ -82,6 +82,8 @@ class IPdbKernel(MetaKernel):
         self.input_transformer_manager = IPythonInputSplitter(
                                              line_input_checker=False)
 
+        self._remove_unneeded_magics()
+
     def phony_stdout(self, text):
         self.log.debug(text)
         self.send_response(self.iopub_socket,
@@ -147,3 +149,18 @@ class IPdbKernel(MetaKernel):
 
     def get_usage(self):
         return self.debugger.do_help(None)
+
+    def _remove_unneeded_magics(self):
+        """Remove unnecessary magics from MetaKernel."""
+        line_magics = ['activity', 'conversation', 'dot', 'get', 'include',
+                       'install', 'install_magic', 'jigsaw', 'kernel', 'kx',
+                       'macro', 'parallel', 'pmap', 'px', 'run', 'scheme',
+                       'set']
+        cell_magics = ['activity', 'brain', 'conversation', 'debug', 'dot',
+                       'macro', 'processing', 'px', 'scheme', 'tutor']
+
+        for lm in line_magics:
+            self.line_magics.pop(lm)
+
+        for cm in cell_magics:
+            self.cell_magics.pop(cm)
