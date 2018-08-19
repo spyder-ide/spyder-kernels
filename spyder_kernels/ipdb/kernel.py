@@ -148,7 +148,13 @@ class IPdbKernel(MetaKernel):
         return matches
 
     def get_usage(self):
+        """General Pdb help."""
         return self.debugger.do_help(None)
+
+    def get_kernel_help_on(self, info, level=0, none_on_fail=False):
+        """Help for Pdb commands."""
+        cmd = info['code'].strip()
+        return self.debugger.do_help(cmd)
 
     def _remove_unneeded_magics(self):
         """Remove unnecessary magics from MetaKernel."""
