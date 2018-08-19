@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
-#
-# Copyright © Spyder Project Contributors
+# -----------------------------------------------------------------------------
+# Copyright (c) 2018- Spyder Project Contributors
+# Copyright (c) 2015, Lev Givon. All rights reserved.
 # Licensed under the terms of the BSD 3 clause license
+# -----------------------------------------------------------------------------
 
 """
 IPython debugger kernel
+
+This kernel is based in the ipbdkernel project of Lev Givon,
+which is present in:
+
+https://github.com/lebedov/ipdbkernel
 """
 
 import functools
