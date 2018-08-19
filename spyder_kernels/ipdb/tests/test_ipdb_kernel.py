@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright (c) 2009- Spyder Kernels Contributors
+# Copyright (c) 2018- Spyder Kernels Contributors
 # Based on the tests in the Metakernel package
 # See test_metakernel.py at
 # https://github.com/Calysto/metakernel/metakernel/tests
@@ -37,18 +37,18 @@ FILES_PATH = osp.dirname(osp.realpath(__file__))
 def test_available_magics():
     """Check the magics available for the kernel."""
     kernel = get_kernel(kernel_class=IPdbKernel)
-    for magic in ['EOF', 'a', 'activity', 'alias', 'args', 'b', 'break',
+    for magic in ['EOF', 'a', 'alias', 'args', 'b', 'break',
                   'bt', 'c', 'cd', 'cl', 'clear', 'commands', 'connect_info',
-                  'cont', 'continue', 'conversation', 'd', 'disable',
-                  'display', 'dot', 'down', 'download', 'edit', 'enable',
-                  'exit', 'get', 'help', 'html', 'ignore', 'include',
-                  'install', 'install_magic', 'interact', 'j', 'javascript',
-                  'jigsaw', 'jump', 'kernel', 'kx', 'l', 'latex',  'list',
-                  'll', 'load', 'long_list', 'ls', 'lsmagic', 'macro', 'magic',
-                  'matplotlib', 'n', 'next', 'p', 'parallel', 'pdef', 'pdoc',
-                  'pfile', 'pinfo', 'pinfo2', 'plot', 'pmap', 'pp', 'psource',
-                  'px', 'python', 'q', 'quit', 'r', 'reload_magics', 'restart',
-                  'return', 'retval', 'run', 'rv', 's', 'scheme', 'set',
+                  'cont', 'continue', 'd', 'disable',
+                  'display', 'down', 'download', 'edit', 'enable',
+                  'exit', 'help', 'html', 'ignore',
+                  'interact', 'j', 'javascript',
+                  'jump', 'l', 'latex',  'list',
+                  'll', 'load', 'long_list', 'ls', 'lsmagic', 'magic',
+                  'matplotlib', 'n', 'next', 'p', 'pdef', 'pdoc',
+                  'pfile', 'pinfo', 'pinfo2', 'plot', 'pp', 'psource',
+                  'python', 'q', 'quit', 'r', 'reload_magics', 'restart',
+                  'return', 'retval', 'rv', 's',
                   'shell', 'source', 'step', 'tbreak', 'u', 'unalias',
                   'undisplay', 'unt', 'until', 'up', 'w', 'whatis', 'where']:
         msg = "magic '%s' is not in line_magics" % magic
