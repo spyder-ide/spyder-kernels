@@ -79,7 +79,7 @@ def test_break_magic():
     if os.name == 'nt':
         script_path = osp.normcase(script_path)
 
-    kernel.get_magic('%break ' + script_path + ':2')
+    kernel.get_magic('%b ' + script_path + ':2')
     log_text = get_log_text(kernel)
     assert 'Blank or comment' in log_text
 
@@ -87,6 +87,19 @@ def test_break_magic():
     log_text = get_log_text(kernel)
     assert 'Breakpoint 1 at' in log_text
     assert script_path in log_text
+
+
+def test_down_magic():
+    """Test %down magic."""
+    kernel = get_kernel(kernel_class=IPdbKernel)
+
+    kernel.get_magic('%d')
+    log_text = get_log_text(kernel)
+    assert 'Newest frame' in log_text
+
+    kernel.get_magic('%d')
+    log_text = get_log_text(kernel)
+    assert 'Newest frame' in log_text
 
 
 def test_help():
