@@ -7,5 +7,5 @@
 # -----------------------------------------------------------------------------
 
 """
-Magics for the IPdbkernel
+Magics for the IPdbKernel
 """

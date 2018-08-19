@@ -14,6 +14,7 @@ Tests for spyder_kernels.ipdb.kernel.py
 """
 # Standart library imports
 import os
+import os.path as osp
 
 # Test library imports
 import pytest
@@ -24,7 +25,15 @@ from spyder_kernels.ipdb.kernel import IPdbKernel
 # Third party imports
 from metakernel.tests.utils import get_kernel, get_log_text
 
+# =============================================================================
+# Constants
+# =============================================================================
+FILES_PATH = osp.dirname(osp.realpath(__file__))
 
+
+# =============================================================================
+# Tests
+# =============================================================================
 def test_available_magics():
     """Check the magics available for the kernel."""
     kernel = get_kernel(kernel_class=IPdbKernel)
@@ -63,6 +72,23 @@ def test_shell_magic():
     os.remove('TEST.txt')
 
 
+def test_break_magic():
+    """Test %break magic."""
+    kernel = get_kernel(kernel_class=IPdbKernel)
+    script_path = osp.join(FILES_PATH, 'script.py')
+    if os.name == 'nt':
+        script_path = osp.normcase(script_path)
+
+    kernel.get_magic('%break ' + script_path + ':2')
+    log_text = get_log_text(kernel)
+    assert 'Blank or comment' in log_text
+
+    kernel.get_magic('%break ' + script_path + ':9')
+    log_text = get_log_text(kernel)
+    assert 'Breakpoint 1 at' in log_text
+    assert script_path in log_text
+
+
 def test_help():
     """Check availability of help information."""
     kernel = get_kernel(kernel_class=IPdbKernel)
@@ -74,8 +100,8 @@ def test_help():
         'payload'][0]['data']['text/plain']
 
     resp = kernel.get_help_on('what', 0)
-    assert resp == ("Sorry, no help is available"
-                    " on 'what'.", ("response was actually %s" % resp))
+    assert resp == "Sorry, no help is available on 'what'.", \
+                   ("response was actually %s" % resp)
 
 
 def test_complete():
@@ -90,6 +116,9 @@ def test_complete():
     comp = kernel.do_complete('%%', len('%%'))
     assert '%%file' in comp['matches']
     assert '%%html' in comp['matches']
+
+    comp = kernel.do_complete('imp', len('imp'))
+    assert comp['matches'] == ['import'], str(comp['matches'])
 
 
 def test_inspect():
@@ -108,7 +137,7 @@ def test_path_complete():
     if os.name != 'nt':
         assert comp['matches'] == ['ipython/']
     else:
-        assert comp['matches'] == ['ipython\\']
+        assert comp['matches'] == ['"ipython\\"']
 
     paths = [p for p in os.listdir(os.getcwd())
              if not p.startswith('.') and '-' not in p]
@@ -116,12 +145,19 @@ def test_path_complete():
     for path in paths:
         comp = kernel.do_complete(path, len(path) - 1)
 
-        if os.path.isdir(path):
+        if osp.isdir(path):
             path = path.split()[-1]
-            assert path + os.sep in comp['matches']
+            if os.name != 'nt':
+                assert path + os.sep in comp['matches']
+            else:
+                assert '"' + path + os.sep + '"' in comp['matches']
         else:
             path = path.split()[-1]
-            assert path in comp['matches'], (comp['matches'], path)
+            if os.name != 'nt':
+                assert path in comp['matches'], (comp['matches'], path)
+            else:
+                assert '"' + path + '"' in comp['matches'], (comp['matches'],
+                                                             path)
 
 
 def test_ls_path_complete():
@@ -131,7 +167,7 @@ def test_ls_path_complete():
         assert comp['matches'] == ['ipython/'], comp
     else:
         comp = kernel.do_complete('! dir ~/.ipytho', len('! dir ~/.ipytho'))
-        assert comp['matches'] == ['ipython\\'], comp
+        assert comp['matches'] == ['"ipython\\"'], comp
 
 
 def test_history():

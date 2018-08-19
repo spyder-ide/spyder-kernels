@@ -63,13 +63,9 @@ class IPdbKernel(MetaKernel):
         # stdout that provides a dummy flush() method and a write() method
         # that internally sends data using a function so that it can
         # be initialized to use self.send_response()
-        write_func = lambda s: self.send_response(self.iopub_socket,
-                                                  'stream',
-                                                  {'name': 'stdout',
-                                                   'text': s})
         sys.excepthook = functools.partial(BdbQuit_excepthook,
                                            excepthook=sys.excepthook)
-        self.debugger = Pdb(stdout=PhonyStdout(write_func))
+        self.debugger = Pdb(stdout=PhonyStdout(self.phony_stdout))
         self.debugger.reset()
         self.debugger.setup(sys._getframe().f_back, None)
 
@@ -78,6 +74,13 @@ class IPdbKernel(MetaKernel):
 
         self.input_transformer_manager = IPythonInputSplitter(
                                              line_input_checker=False)
+
+    def phony_stdout(self, text):
+        self.log.debug(text)
+        self.send_response(self.iopub_socket,
+                           'stream',
+                           {'name': 'stdout',
+                            'text': text})
 
     def do_execute_direct(self, code):
         """
