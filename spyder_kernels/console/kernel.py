@@ -138,12 +138,12 @@ class SpyderKernel(IPythonKernel):
             content = {}
         content['spyder_msg_type'] = spyder_msg_type
         msg = self.session.send(
-                self.iopub_socket,
-                'spyder_msg',
-                content=content,
-                buffers=[cloudpickle.dumps(data, protocol=PICKLE_PROTOCOL)],
-                parent=self._parent_header,
-            )
+            self.iopub_socket,
+            'spyder_msg',
+            content=content,
+            buffers=[cloudpickle.dumps(data, protocol=PICKLE_PROTOCOL)],
+            parent=self._parent_header,
+        )
         self.log.debug(msg)
 
     def get_value(self, name):
