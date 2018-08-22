@@ -61,9 +61,9 @@ def kernel(request):
                                       'minmax': False}
     # Teardown
 
-    def shutdown_kernel():
+    def reset_kernel():
         kernel.do_execute('reset -f', True)
-    request.addfinalizer(shutdown_kernel)
+    request.addfinalizer(reset_kernel)
     return kernel
 
 
@@ -75,9 +75,9 @@ def test_magics(kernel):
     line_magics = kernel.shell.magics_manager.magics['line']
     cell_magics = kernel.shell.magics_manager.magics['cell']
     for magic in ['alias', 'alias_magic', 'autocall', 'automagic', 'autosave',
-                  'bookmark', 'cd', 'clear', 'cls', 'colors',
-                  'config', 'connect_info', 'copy', 'ddir', 'debug',
-                  'dhist', 'dirs', 'doctest_mode', 'echo', 'ed', 'edit', 'env',
+                  'bookmark', 'cd', 'clear', 'colors',
+                  'config', 'connect_info', 'debug',
+                  'dhist', 'dirs', 'doctest_mode', 'ed', 'edit', 'env',
                   'gui', 'hist', 'history', 'killbgscripts', 'ldir', 'less',
                   'load', 'load_ext', 'loadpy', 'logoff', 'logon', 'logstart',
                   'logstate', 'logstop', 'ls', 'lsmagic', 'macro', 'magic',
@@ -86,16 +86,16 @@ def test_magics(kernel):
                   'pinfo2', 'popd', 'pprint', 'precision', 'profile', 'prun',
                   'psearch', 'psource', 'pushd', 'pwd', 'pycat', 'pylab',
                   'qtconsole', 'quickref', 'recall', 'rehashx', 'reload_ext',
-                  'ren', 'rep', 'rerun', 'reset', 'reset_selective', 'rmdir',
+                  'rep', 'rerun', 'reset', 'reset_selective', 'rmdir',
                   'run', 'save', 'sc', 'set_env', 'sx', 'system',
                   'tb', 'time', 'timeit', 'unalias', 'unload_ext',
                   'who', 'who_ls', 'whos', 'xdel', 'xmode']:
         msg = "magic '%s' is not in line_magics" % magic
         assert magic in line_magics, msg
 
-    for magic in ['!', 'HTML', 'SVG', 'bash', 'capture', 'cmd', 'debug',
-                  'file', 'html', 'javascript', 'js', 'latex', 'markdown',
-                  'perl', 'prun', 'pypy', 'python', 'python2', 'python3',
+    for magic in ['!', 'HTML', 'SVG', 'bash', 'capture', 'debug',
+                  'file', 'html', 'javascript', 'js', 'latex', 'perl',
+                  'prun', 'pypy', 'python', 'python2', 'python3',
                   'ruby', 'script', 'sh', 'svg', 'sx', 'system', 'time',
                   'timeit', 'writefile']:
         assert magic in cell_magics
@@ -110,8 +110,11 @@ def test_get_namespace_view(kernel):
     assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
                        'user_expressions': {}}
     nsview = kernel.get_namespace_view()
-    assert nsview == ("{'a': {'type': 'int', 'size': 1, 'color': "
-                      "'#0000ff', 'view': '1'}}")
+    assert "'a':" in nsview
+    assert "'type': 'int'" in nsview or "'type': u'int'" in nsview
+    assert "'size': 1" in nsview
+    assert "'color': '#0000ff'" in nsview
+    assert "'view': '1'" in nsview
 
 
 def test_get_var_properties(kernel):
@@ -122,11 +125,16 @@ def test_get_var_properties(kernel):
     assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
                        'user_expressions': {}}
     var_properties = kernel.get_var_properties()
-    assert var_properties == ("{'a': {'is_list': False, 'is_dict': False, "
-                              "'len': None, 'is_array': False, "
-                              "'is_image': False, 'is_data_frame': False, "
-                              "'is_series': False, 'array_shape': None, "
-                              "'array_ndim': None}}")
+    assert "'a'" in var_properties
+    assert "'is_list': False" in var_properties
+    assert "'is_dict': False" in var_properties
+    assert "'len': None" in var_properties
+    assert "'is_array': False" in var_properties
+    assert "'is_image': False" in var_properties
+    assert "'is_data_frame': False" in var_properties
+    assert "'is_series': False" in var_properties
+    assert "'array_shape': None" in var_properties
+    assert "'array_ndim': None" in var_properties
 
 
 def test_send_spyder_msg(kernel):
@@ -161,9 +169,10 @@ def test_set_value(kernel):
     PY2_frontend = False
     kernel.set_value(name, value, PY2_frontend)
     log_text = get_log_text(kernel)
-    assert ("'__builtin__': <module "
-            "'builtins' (built-in)>, '__builtins__': <module 'builtins' "
-            "(built-in)>, '_ih': [''], '_oh': {}") in log_text
+    assert "'__builtin__': <module " in log_text
+    assert "'__builtins__': <module " in log_text
+    assert "'_ih': ['']" in log_text
+    assert "'_oh': {}" in log_text
     assert "'a': 10" in log_text
 
 
@@ -174,11 +183,16 @@ def test_remove_value(kernel):
     assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
                        'user_expressions': {}}
     var_properties = kernel.get_var_properties()
-    assert var_properties == ("{'a': {'is_list': False, 'is_dict': False, "
-                              "'len': None, 'is_array': False, "
-                              "'is_image': False, 'is_data_frame': False, "
-                              "'is_series': False, 'array_shape': None, "
-                              "'array_ndim': None}}")
+    assert "'a'" in var_properties
+    assert "'is_list': False" in var_properties
+    assert "'is_dict': False" in var_properties
+    assert "'len': None" in var_properties
+    assert "'is_array': False" in var_properties
+    assert "'is_image': False" in var_properties
+    assert "'is_data_frame': False" in var_properties
+    assert "'is_series': False" in var_properties
+    assert "'array_shape': None" in var_properties
+    assert "'array_ndim': None" in var_properties
     kernel.remove_value(name)
     var_properties = kernel.get_var_properties()
     assert var_properties == '{}'
@@ -192,23 +206,29 @@ def test_copy_value(kernel):
     assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
                        'user_expressions': {}}
     var_properties = kernel.get_var_properties()
-    assert var_properties == ("{'a': {'is_list': False, 'is_dict': False, "
-                              "'len': None, 'is_array': False, "
-                              "'is_image': False, 'is_data_frame': False, "
-                              "'is_series': False, 'array_shape': None, "
-                              "'array_ndim': None}}")
+    assert "'a'" in var_properties
+    assert "'is_list': False" in var_properties
+    assert "'is_dict': False" in var_properties
+    assert "'len': None" in var_properties
+    assert "'is_array': False" in var_properties
+    assert "'is_image': False" in var_properties
+    assert "'is_data_frame': False" in var_properties
+    assert "'is_series': False" in var_properties
+    assert "'array_shape': None" in var_properties
+    assert "'array_ndim': None" in var_properties
     kernel.copy_value(orig_name, new_name)
     var_properties = kernel.get_var_properties()
-    assert var_properties == ("{'a': {'is_list': False, 'is_dict': False, "
-                              "'len': None, 'is_array': False, "
-                              "'is_image': False, 'is_data_frame': False, "
-                              "'is_series': False, 'array_shape': None, "
-                              "'array_ndim': None}, "
-                              "'b': {'is_list': False, 'is_dict': False, "
-                              "'len': None, 'is_array': False, "
-                              "'is_image': False, 'is_data_frame': False, "
-                              "'is_series': False, 'array_shape': None, "
-                              "'array_ndim': None}}")
+    assert "'a'" in var_properties
+    assert "'b'" in var_properties
+    assert "'is_list': False" in var_properties
+    assert "'is_dict': False" in var_properties
+    assert "'len': None" in var_properties
+    assert "'is_array': False" in var_properties
+    assert "'is_image': False" in var_properties
+    assert "'is_data_frame': False" in var_properties
+    assert "'is_series': False" in var_properties
+    assert "'array_shape': None" in var_properties
+    assert "'array_ndim': None" in var_properties
 
 
 def test_load_data(kernel):
@@ -217,11 +237,16 @@ def test_load_data(kernel):
     extention = '.spydata'
     kernel.load_data(namespace_file, extention)
     var_properties = kernel.get_var_properties()
-    assert var_properties == ("{'a': {'is_list': False, 'is_dict': False, "
-                              "'len': None, 'is_array': False, "
-                              "'is_image': False, 'is_data_frame': False, "
-                              "'is_series': False, 'array_shape': None, "
-                              "'array_ndim': None}}")
+    assert "'a'" in var_properties
+    assert "'is_list': False" in var_properties
+    assert "'is_dict': False" in var_properties
+    assert "'len': None" in var_properties
+    assert "'is_array': False" in var_properties
+    assert "'is_image': False" in var_properties
+    assert "'is_data_frame': False" in var_properties
+    assert "'is_series': False" in var_properties
+    assert "'array_shape': None" in var_properties
+    assert "'array_ndim': None" in var_properties
 
 
 def test_save_namespace(kernel):
@@ -238,22 +263,6 @@ def test_save_namespace(kernel):
     assert not error_message
     os.remove(namespace_file)
     assert not osp.isfile(namespace_file)
-
-
-# --- For Pdb
-def test_publish_pdb_state(kernel):
-    """
-    Test publishing Variable Explorer state and Pdb step through
-    send_spyder_msg.
-    """
-    # TODO: initialize _obj_pdb
-    pass
-
-
-def test_pdb_continue(kernel):
-    """Test pdb 'continue' message."""
-    # TODO: initialize _obj_pdb
-    pass
 
 
 # --- For the Help plugin
