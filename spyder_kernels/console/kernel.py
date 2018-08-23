@@ -137,13 +137,14 @@ class SpyderKernel(IPythonKernel):
         if content is None:
             content = {}
         content['spyder_msg_type'] = spyder_msg_type
-        self.session.send(
+        msg = self.session.send(
             self.iopub_socket,
             'spyder_msg',
             content=content,
             buffers=[cloudpickle.dumps(data, protocol=PICKLE_PROTOCOL)],
             parent=self._parent_header,
         )
+        self.log.debug(msg)
 
     def get_value(self, name):
         """Get the value of a variable"""
@@ -177,6 +178,7 @@ class SpyderKernel(IPythonKernel):
         # Deserialize and set value in namespace
         dvalue = cloudpickle.loads(svalue)
         ns[name] = dvalue
+        self.log.debug(ns)
 
     def remove_value(self, name):
         """Remove a variable"""
