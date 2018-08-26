@@ -17,7 +17,7 @@ https://github.com/lebedov/ipdbkernel
 import functools
 import sys
 
-from IPython.core.completer import Completer
+from IPython.core.completer import IPCompleter
 from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.debugger import BdbQuit_excepthook, Pdb
 from metakernel import MetaKernel
@@ -38,6 +38,23 @@ class PhonyStdout(object):
 
     def close(self):
         pass
+
+
+class DummyShell(object):
+    """Dummy shell to pass to IPCompleter."""
+
+    @property
+    def magics_manager(self):
+        """
+        Create a dummy magics manager with the interface
+        expected by IPCompleter.
+        """
+        class DummyMagicsManager(object):
+            def lsmagic(self):
+                return {'line': {}, 'cell': {}}
+
+        return DummyMagicsManager()
+
 
 
 class IPdbKernel(MetaKernel):
@@ -76,7 +93,10 @@ class IPdbKernel(MetaKernel):
         self.debugger.reset()
         self.debugger.setup(sys._getframe().f_back, None)
 
-        self.completer = Completer()
+        self.completer = IPCompleter(
+                shell=DummyShell(),
+                namespace=self._get_current_namespace()
+        )
         self.completer.limit_to__all__ = False
 
         self.input_transformer_manager = IPythonInputSplitter(
@@ -133,19 +153,12 @@ class IPdbKernel(MetaKernel):
         """
         Get completions from kernel based on info dict.
         """
-        code = info["code"]
+        code = info["code"].strip()
         if code[-1] == ' ':
             return []
 
-        self.completer.namespace = self.debugger.curframe.f_globals.copy()
-        self.completer.namespace.update(self.debugger.curframe.f_locals)
-
-        if "." in code:
-            matches = self.completer.attr_matches(code)
-        else:
-            matches = self.completer.global_matches(code)
-
-        return matches
+        self.completer.namespace = self._get_current_namespace()
+        return self.completer.complete(text=None, line_buffer=code)[1]
 
     def get_usage(self):
         """General Pdb help."""
@@ -156,6 +169,7 @@ class IPdbKernel(MetaKernel):
         cmd = info['code'].strip()
         return self.debugger.do_help(cmd)
 
+    # --- Private API
     def _remove_unneeded_magics(self):
         """Remove unnecessary magics from MetaKernel."""
         line_magics = ['activity', 'conversation', 'dot', 'get', 'include',
@@ -170,3 +184,15 @@ class IPdbKernel(MetaKernel):
 
         for cm in cell_magics:
             self.cell_magics.pop(cm)
+
+    def _get_current_namespace(self):
+        """Get current namespace."""
+        glbs = self.debugger.curframe.f_globals
+        lcls = self.debugger.curframe.f_locals
+
+        if glbs == lcls:
+            return glbs
+        else:
+            ns = glbs.copy()
+            ns.update(lcls)
+            return ns
