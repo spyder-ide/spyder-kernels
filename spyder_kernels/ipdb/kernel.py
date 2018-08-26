@@ -89,7 +89,7 @@ class IPdbKernel(MetaKernel):
         # be initialized to use self.send_response()
         sys.excepthook = functools.partial(BdbQuit_excepthook,
                                            excepthook=sys.excepthook)
-        self.debugger = Pdb(stdout=PhonyStdout(self.phony_stdout))
+        self.debugger = Pdb(stdout=PhonyStdout(self._phony_stdout))
         self.debugger.reset()
         self.debugger.setup(sys._getframe().f_back, None)
 
@@ -104,13 +104,7 @@ class IPdbKernel(MetaKernel):
 
         self._remove_unneeded_magics()
 
-    def phony_stdout(self, text):
-        self.log.debug(text)
-        self.send_response(self.iopub_socket,
-                           'stream',
-                           {'name': 'stdout',
-                            'text': text})
-
+    # --- MetaKernel API
     def do_execute_direct(self, code):
         """
         Execute code with the debugger.
@@ -196,3 +190,10 @@ class IPdbKernel(MetaKernel):
             ns = glbs.copy()
             ns.update(lcls)
             return ns
+
+    def _phony_stdout(self, text):
+        self.log.debug(text)
+        self.send_response(self.iopub_socket,
+                           'stream',
+                           {'name': 'stdout',
+                            'text': text})
