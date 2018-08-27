@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright (c) 2018- Spyder Project Contributors
+# Copyright (c) 2018- Spyder Kernels Contributors
 # Copyright (c) 2015, Lev Givon. All rights reserved.
 # Licensed under the terms of the BSD 3 clause license
 # -----------------------------------------------------------------------------
@@ -23,6 +23,7 @@ from IPython.core.debugger import BdbQuit_excepthook, Pdb
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
+from spyder_kernels.utils.module_completion import module_completion
 
 
 class PhonyStdout(object):
@@ -147,12 +148,18 @@ class IPdbKernel(MetaKernel):
         """
         Get completions from kernel based on info dict.
         """
-        code = info["code"].strip()
-        if code[-1] == ' ':
-            return []
+        code = info["code"]
 
+        # Update completer namespace before performing the
+        # completion
         self.completer.namespace = self._get_current_namespace()
-        return self.completer.complete(text=None, line_buffer=code)[1]
+
+        if code.startswith('import') or code.startswith('from'):
+            matches = module_completion(code)
+        else:
+            matches = self.completer.complete(text=None, line_buffer=code)[1]
+
+        return matches
 
     def get_usage(self):
         """General Pdb help."""
