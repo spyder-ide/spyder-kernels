@@ -23,6 +23,7 @@ from IPython.core.debugger import BdbQuit_excepthook, Pdb
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
+from spyder_kernels.base.kernel import BaseKernelMixIn
 from spyder_kernels.utils.module_completion import module_completion
 
 
@@ -57,7 +58,7 @@ class DummyShell(object):
         return DummyMagicsManager()
 
 
-class IPdbKernel(MetaKernel):
+class IPdbKernel(BaseKernelMixIn, MetaKernel):
     implementation = "IPdb Kernel"
     implementation_version = __version__
     language = "ipdb"

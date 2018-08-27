@@ -19,10 +19,10 @@ try:
 except ImportError:
     from io import StringIO
 
-from spyder_kernels.console.kernel import SpyderKernel
+from spyder_kernels.console.kernel import ConsoleKernel
 
 
-def get_kernel(kernel_class=SpyderKernel):
+def get_kernel(kernel_class=ConsoleKernel):
     """Get an instance of a kernel with the kernel class given."""
     log = logging.getLogger('test')
     log.setLevel(logging.DEBUG)
