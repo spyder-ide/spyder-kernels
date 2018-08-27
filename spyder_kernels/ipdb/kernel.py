@@ -112,7 +112,7 @@ class IPdbKernel(MetaKernel):
         """
         # Process command:
         line = self.debugger.precmd(code)
-        stop = self.debugger.onecmd(line)
+        stop = self.debugger.default(line)
         stop = self.debugger.postcmd(stop, line)
         if stop:
             self.debugger.postloop()

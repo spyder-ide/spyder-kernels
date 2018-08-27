@@ -148,6 +148,10 @@ def test_complete():
     comp = kernel.do_complete('x = ran', len('x = ran'))
     assert 'range' in comp['matches']
 
+    # Pdb commands should not be completed
+    comp = kernel.do_complete('retv', len('retv'))
+    assert comp['matches'] == []
+
 
 def test_inspect():
     """Check inspect."""
