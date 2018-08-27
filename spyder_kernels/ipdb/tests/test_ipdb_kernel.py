@@ -119,9 +119,12 @@ def test_help():
 def test_complete():
     """Check completion."""
     kernel = get_kernel(kernel_class=IPdbKernel)
+
+    # Line magics
     comp = kernel.do_complete('%connect_', len('%connect_'))
     assert comp['matches'] == ['%connect_info'], str(comp['matches'])
 
+    # Cell magics
     comp = kernel.do_complete('%%fil', len('%%fil'))
     assert comp['matches'] == ['%%file'], str(comp['matches'])
 
@@ -129,8 +132,21 @@ def test_complete():
     assert '%%file' in comp['matches']
     assert '%%html' in comp['matches']
 
+    # Regular completions
     comp = kernel.do_complete('imp', len('imp'))
     assert comp['matches'] == ['import'], str(comp['matches'])
+
+    # Module completions
+    comp = kernel.do_complete('import xm', len('import xm'))
+    assert 'xml' in comp['matches']
+
+    comp = kernel.do_complete('from numpy.linalg import ',
+                              len('from numpy.linalg import '))
+    assert 'norm' in comp['matches']
+
+    # Assignment completions
+    comp = kernel.do_complete('x = ran', len('x = ran'))
+    assert 'range' in comp['matches']
 
 
 def test_inspect():
@@ -147,7 +163,7 @@ def test_path_complete():
     kernel = get_kernel(kernel_class=IPdbKernel)
     comp = kernel.do_complete('~/.ipytho', len('~/.ipytho'))
     if os.name != 'nt':
-        assert comp['matches'] == ['ipython/']
+        assert 'ipython/' in comp['matches']
     else:
         assert comp['matches'] == ['"ipython\\"']
 
