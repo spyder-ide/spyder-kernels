@@ -17,13 +17,12 @@ import os
 import os.path as osp
 
 # Test library imports
+from metakernel.tests.utils import get_kernel, get_log_text
 import pytest
 
 # Local imports
 from spyder_kernels.ipdb.kernel import IPdbKernel
-
-# Third party imports
-from metakernel.tests.utils import get_kernel, get_log_text
+from spyder_kernels.py3compat import PY2
 
 # =============================================================================
 # Constants
@@ -119,9 +118,12 @@ def test_help():
 def test_complete():
     """Check completion."""
     kernel = get_kernel(kernel_class=IPdbKernel)
+
+    # Line magics
     comp = kernel.do_complete('%connect_', len('%connect_'))
     assert comp['matches'] == ['%connect_info'], str(comp['matches'])
 
+    # Cell magics
     comp = kernel.do_complete('%%fil', len('%%fil'))
     assert comp['matches'] == ['%%file'], str(comp['matches'])
 
@@ -129,8 +131,37 @@ def test_complete():
     assert '%%file' in comp['matches']
     assert '%%html' in comp['matches']
 
+    # Regular completions
     comp = kernel.do_complete('imp', len('imp'))
     assert comp['matches'] == ['import'], str(comp['matches'])
+
+    # Module completions
+    comp = kernel.do_complete('import xm', len('import xm'))
+    assert 'xml' in comp['matches']
+
+    comp = kernel.do_complete('from numpy.linalg import ',
+                              len('from numpy.linalg import '))
+    assert 'norm' in comp['matches']
+
+    # Assignment completions
+    comp = kernel.do_complete('x = ran', len('x = ran'))
+    assert 'range' in comp['matches']
+
+    # Pdb commands should not be completed
+    comp = kernel.do_complete('retv', len('retv'))
+    assert comp['matches'] == []
+
+    # Completion of function args
+    comp = kernel.do_complete('display(', len('display('))
+    kwargs = []
+    for c in comp['matches']:
+        if c.endswith('='):
+            kwargs.append(c)
+    if PY2:
+        # display doesn't have named args in PY2
+        assert kwargs == []
+    else:
+        assert kwargs != []
 
 
 def test_inspect():
@@ -147,7 +178,7 @@ def test_path_complete():
     kernel = get_kernel(kernel_class=IPdbKernel)
     comp = kernel.do_complete('~/.ipytho', len('~/.ipytho'))
     if os.name != 'nt':
-        assert comp['matches'] == ['ipython/']
+        assert 'ipython/' in comp['matches']
     else:
         assert comp['matches'] == ['"ipython\\"']
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright (c) 2018- Spyder Project Contributors
+# Copyright (c) 2018- Spyder Kernels Contributors
 # Copyright (c) 2015, Lev Givon. All rights reserved.
 # Licensed under the terms of the BSD 3 clause license
 # -----------------------------------------------------------------------------
@@ -17,12 +17,13 @@ https://github.com/lebedov/ipdbkernel
 import functools
 import sys
 
-from IPython.core.completer import Completer
+from IPython.core.completer import IPCompleter
 from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.debugger import BdbQuit_excepthook, Pdb
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
+from spyder_kernels.utils.module_completion import module_completion
 
 
 class PhonyStdout(object):
@@ -38,6 +39,22 @@ class PhonyStdout(object):
 
     def close(self):
         pass
+
+
+class DummyShell(object):
+    """Dummy shell to pass to IPCompleter."""
+
+    @property
+    def magics_manager(self):
+        """
+        Create a dummy magics manager with the interface
+        expected by IPCompleter.
+        """
+        class DummyMagicsManager(object):
+            def lsmagic(self):
+                return {'line': {}, 'cell': {}}
+
+        return DummyMagicsManager()
 
 
 class IPdbKernel(MetaKernel):
@@ -72,11 +89,14 @@ class IPdbKernel(MetaKernel):
         # be initialized to use self.send_response()
         sys.excepthook = functools.partial(BdbQuit_excepthook,
                                            excepthook=sys.excepthook)
-        self.debugger = Pdb(stdout=PhonyStdout(self.phony_stdout))
+        self.debugger = Pdb(stdout=PhonyStdout(self._phony_stdout))
         self.debugger.reset()
         self.debugger.setup(sys._getframe().f_back, None)
 
-        self.completer = Completer()
+        self.completer = IPCompleter(
+                shell=DummyShell(),
+                namespace=self._get_current_namespace()
+        )
         self.completer.limit_to__all__ = False
 
         self.input_transformer_manager = IPythonInputSplitter(
@@ -84,20 +104,14 @@ class IPdbKernel(MetaKernel):
 
         self._remove_unneeded_magics()
 
-    def phony_stdout(self, text):
-        self.log.debug(text)
-        self.send_response(self.iopub_socket,
-                           'stream',
-                           {'name': 'stdout',
-                            'text': text})
-
+    # --- MetaKernel API
     def do_execute_direct(self, code):
         """
         Execute code with the debugger.
         """
         # Process command:
         line = self.debugger.precmd(code)
-        stop = self.debugger.onecmd(line)
+        stop = self.debugger.default(line)
         stop = self.debugger.postcmd(stop, line)
         if stop:
             self.debugger.postloop()
@@ -134,16 +148,15 @@ class IPdbKernel(MetaKernel):
         Get completions from kernel based on info dict.
         """
         code = info["code"]
-        if code[-1] == ' ':
-            return []
 
-        self.completer.namespace = self.debugger.curframe.f_globals.copy()
-        self.completer.namespace.update(self.debugger.curframe.f_locals)
+        # Update completer namespace before performing the
+        # completion
+        self.completer.namespace = self._get_current_namespace()
 
-        if "." in code:
-            matches = self.completer.attr_matches(code)
+        if code.startswith('import') or code.startswith('from'):
+            matches = module_completion(code)
         else:
-            matches = self.completer.global_matches(code)
+            matches = self.completer.complete(text=None, line_buffer=code)[1]
 
         return matches
 
@@ -156,6 +169,7 @@ class IPdbKernel(MetaKernel):
         cmd = info['code'].strip()
         return self.debugger.do_help(cmd)
 
+    # --- Private API
     def _remove_unneeded_magics(self):
         """Remove unnecessary magics from MetaKernel."""
         line_magics = ['activity', 'conversation', 'dot', 'get', 'include',
@@ -170,3 +184,22 @@ class IPdbKernel(MetaKernel):
 
         for cm in cell_magics:
             self.cell_magics.pop(cm)
+
+    def _get_current_namespace(self):
+        """Get current namespace."""
+        glbs = self.debugger.curframe.f_globals
+        lcls = self.debugger.curframe.f_locals
+
+        if glbs == lcls:
+            return glbs
+        else:
+            ns = glbs.copy()
+            ns.update(lcls)
+            return ns
+
+    def _phony_stdout(self, text):
+        self.log.debug(text)
+        self.send_response(self.iopub_socket,
+                           'stream',
+                           {'name': 'stdout',
+                            'text': text})
