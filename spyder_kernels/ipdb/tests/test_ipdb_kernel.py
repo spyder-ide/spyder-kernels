@@ -152,6 +152,14 @@ def test_complete():
     comp = kernel.do_complete('retv', len('retv'))
     assert comp['matches'] == []
 
+    # Completion of funcion args
+    comp = kernel.do_complete('display(', len('display('))
+    kwargs = []
+    for c in comp['matches']:
+        if c.endswith('='):
+            kwargs.append(c)
+    assert kwargs != []
+
 
 def test_inspect():
     """Check inspect."""
