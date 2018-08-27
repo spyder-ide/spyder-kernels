@@ -17,13 +17,12 @@ import os
 import os.path as osp
 
 # Test library imports
+from metakernel.tests.utils import get_kernel, get_log_text
 import pytest
 
 # Local imports
 from spyder_kernels.ipdb.kernel import IPdbKernel
-
-# Third party imports
-from metakernel.tests.utils import get_kernel, get_log_text
+from spyder_kernels.py3compat import PY2
 
 # =============================================================================
 # Constants
@@ -152,13 +151,17 @@ def test_complete():
     comp = kernel.do_complete('retv', len('retv'))
     assert comp['matches'] == []
 
-    # Completion of funcion args
+    # Completion of function args
     comp = kernel.do_complete('display(', len('display('))
     kwargs = []
     for c in comp['matches']:
         if c.endswith('='):
             kwargs.append(c)
-    assert kwargs != []
+    if PY2:
+        # display doesn't have named args in PY2
+        assert kwargs == []
+    else:
+        assert kwargs != []
 
 
 def test_inspect():

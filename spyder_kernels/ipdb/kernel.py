@@ -57,7 +57,6 @@ class DummyShell(object):
         return DummyMagicsManager()
 
 
-
 class IPdbKernel(MetaKernel):
     implementation = "IPdb Kernel"
     implementation_version = __version__
