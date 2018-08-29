@@ -24,7 +24,7 @@ PICKLE_PROTOCOL = 2
 PY2 = sys.version[0] == '2'
 
 
-class BaseKernelMixIn:
+class BaseKernelMixIn(object):
     """Base Spyder kernel with methods to interact with Spyder."""
 
     namespace_view_settings = {}

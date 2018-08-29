@@ -14,7 +14,7 @@ Spyder kernel for Jupyter
 import pickle
 
 # Local imports
-from spyder_kernels.base.kernel import BaseKernelMixIn
+from spyder_kernels.kernelmixin import BaseKernelMixIn
 
 # Third-party imports
 from ipykernel.ipkernel import IPythonKernel
