@@ -17,7 +17,7 @@ import os.path as osp
 import pytest
 
 # Local imports
-from spyder_kernels.base.kernel import PICKLE_PROTOCOL
+from spyder_kernels.kernelmixin import PICKLE_PROTOCOL
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
