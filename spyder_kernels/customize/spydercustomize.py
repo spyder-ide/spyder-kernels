@@ -616,6 +616,17 @@ def _get_globals():
     ipython_shell = get_ipython()
     return ipython_shell.user_ns
 
+def run_umr():
+    global __umr__
+    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
+        if __umr__ is None:
+            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
+            if namelist is not None:
+                namelist = namelist.split(',')
+            __umr__ = UserModuleReloader(namelist=namelist)
+        else:
+            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
+            __umr__.run(verbose=verbose)
 
 def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     """
@@ -630,16 +641,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    global __umr__
-    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
-        if __umr__ is None:
-            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
-            if namelist is not None:
-                namelist = namelist.split(',')
-            __umr__ = UserModuleReloader(namelist=namelist)
-        else:
-            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
-            __umr__.run(verbose=verbose)
+    run_umr()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:
@@ -699,21 +701,9 @@ def runcell(cell_name, filename):
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    global __umr__
-    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
-        if __umr__ is None:
-            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
-            if namelist is not None:
-                namelist = namelist.split(',')
-            __umr__ = UserModuleReloader(namelist=namelist)
-        else:
-            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
-            __umr__.run(verbose=verbose)
-
+    run_umr()
     namespace = _get_globals()
     namespace['__file__'] = filename
-
-    from IPython.core.getipython import get_ipython
     ipython_shell = get_ipython()
     try:
         cell_code = ipython_shell.cell_code
