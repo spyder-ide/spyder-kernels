@@ -617,6 +617,7 @@ def _get_globals():
     return ipython_shell.user_ns
 
 def run_umr():
+    """Runs the user module reloader"""
     global __umr__
     if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
         if __umr__ is None:
