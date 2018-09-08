@@ -198,6 +198,26 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
             ns.update(lcls)
             return ns
 
+    def _get_reference_namespace(self, name):
+        """
+        Return namespace where reference name is defined
+
+        It returns the globals() if reference has not yet been defined
+        """
+        glbs = self._mglobals()
+        if self.debugger.curframe is None:
+            return glbs
+        else:
+            lcls = self.debugger.curframe.f_locals
+            if name in lcls:
+                return lcls
+            else:
+                return glbs
+
+    def _mglobals(self):
+        """Return current globals -- handles Pdb frames"""
+        return self.debugger.curframe.f_globals
+
     def _phony_stdout(self, text):
         self.log.debug(text)
         self.send_response(self.iopub_socket,

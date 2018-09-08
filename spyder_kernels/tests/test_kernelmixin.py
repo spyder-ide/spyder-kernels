@@ -39,7 +39,7 @@ FILES_PATH = os.path.dirname(os.path.realpath(__file__))
                 params=[IPdbKernel,
                         ConsoleKernel])
 def kernel(request):
-    """IPdb kernel fixture"""
+    """Kernel fixture"""
     # Get kernel instance
     kernel = get_kernel(kernel_class=request.param)
     kernel.namespace_view_settings = {'check_all': False,
