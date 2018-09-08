@@ -59,10 +59,6 @@ def ipdb_kernel(request):
                                                          'sctypeNA', 'typeNA',
                                                          'False_', 'True_'],
                                       'minmax': False}
-    # Teardown
-    def reset_kernel():
-        kernel.do_execute('reset -f', True)
-    request.addfinalizer(reset_kernel)
     return kernel
 
 
