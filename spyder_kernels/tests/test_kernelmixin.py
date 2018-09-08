@@ -147,10 +147,6 @@ def test_set_value(kernel):
     PY2_frontend = False
     kernel.set_value(name, value, PY2_frontend)
     log_text = get_log_text(kernel)
-    assert "'__builtin__': <module " in log_text
-    assert "'__builtins__': <module " in log_text
-    assert "'_ih': ['']" in log_text
-    assert "'_oh': {}" in log_text
     assert "'a': 10" in log_text
 
 
