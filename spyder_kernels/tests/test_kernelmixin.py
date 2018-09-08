@@ -17,6 +17,10 @@ import os.path as osp
 import pytest
 
 # Local imports
+from spyder_kernels.console.tests.test_console_kernel import (console_kernel
+                                                              as ck)
+from spyder_kernels.ipdb.tests.test_ipdb_kernel import ipdb_kernel as ik
+
 from spyder_kernels.kernelmixin import PICKLE_PROTOCOL
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_log_text
@@ -28,7 +32,8 @@ import cloudpickle
 # Constants
 # =============================================================================
 FILES_PATH = os.path.dirname(os.path.realpath(__file__))
-
+console__kernel = ck
+ipdb_kernel = ik
 
 # =============================================================================
 # Tests
