@@ -229,6 +229,9 @@ def test_load_data(kernel):
 def test_save_namespace(kernel):
     """Test saving the namespace into filename."""
     namespace_file = osp.join(FILES_PATH, 'save_data.spydata')
+    if osp.isfile(namespace_file):
+        os.remove(namespace_file)
+        assert not osp.isfile(namespace_file)
     execute = kernel.do_execute('b = 1', True)
     assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
                        'user_expressions': {}}
@@ -236,7 +239,7 @@ def test_save_namespace(kernel):
     assert osp.isfile(namespace_file)
     load_func = iofunctions.load_funcs['.spydata']
     data, error_message = load_func(namespace_file)
-    assert data == {'b': 1}
+    assert data['b'] == 1
     assert not error_message
     os.remove(namespace_file)
     assert not osp.isfile(namespace_file)
