@@ -68,6 +68,8 @@ def kernel(request):
     def reset_kernel():
         if request.param == ConsoleKernel:
             kernel.do_execute('reset -f', True)
+        else:
+            kernel.do_execute('%reset', True)
 
     request.addfinalizer(reset_kernel)
     return kernel

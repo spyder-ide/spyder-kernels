@@ -215,7 +215,7 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
                 return glbs
 
     def _mglobals(self):
-        """Return current globals -- handles Pdb frames"""
+        """Return current globals"""
         return self.debugger.curframe.f_globals
 
     def _phony_stdout(self, text):
