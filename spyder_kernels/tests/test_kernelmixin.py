@@ -22,6 +22,7 @@ from spyder_kernels.ipdb.kernel import IPdbKernel
 from spyder_kernels.kernelmixin import PICKLE_PROTOCOL
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
+from spyder_kernels.py3compat import PY2
 
 # Third-party imports
 import cloudpickle
@@ -248,20 +249,27 @@ def test_save_namespace(kernel):
 # --- For the Help plugin
 def test_is_defined(kernel):
     """Test method to tell if object is defined."""
-    obj = "debug"
+    obj = "eval"
     assert kernel.is_defined(obj)
 
 
 def test_get_doc(kernel):
     """Test to get object documentation dictionary."""
-    objtxt = 'help'
-    assert "Define the builtin 'help'" in kernel.get_doc(objtxt)['docstring']
+    objtxt = 'eval'
+    if PY2:
+        assert "Evaluate the source" in kernel.get_doc(objtxt)['docstring']
+    else:
+        assert "Evaluate the given source" in kernel.get_doc(
+                                                        objtxt)['docstring']
 
 
 def test_get_source(kernel):
     """Test to get object source."""
     objtxt = 'help'
-    assert 'class _Helper(object):' in kernel.get_source(objtxt)
+    if isinstance(kernel, ConsoleKernel):
+        assert 'class _Helper(object):' in kernel.get_source(objtxt)
+    else:
+        assert 'class HelpMagic(Magic):' in kernel.get_source(objtxt)
 
 
 if __name__ == "__main__":

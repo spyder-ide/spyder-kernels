@@ -149,7 +149,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         Get completions from kernel based on info dict.
         """
         code = info["code"]
-
         # Update completer namespace before performing the
         # completion
         self.completer.namespace = self._get_current_namespace()
@@ -226,7 +225,10 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
 
     def _mglobals(self):
         """Return current globals"""
-        return self.debugger.curframe.f_globals
+        if self.debugger.curframe is not None:
+            return self.debugger.curframe.f_globals
+        else:
+            return {}
 
     def _phony_stdout(self, text):
         self.log.debug(text)
