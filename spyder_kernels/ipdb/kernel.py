@@ -186,17 +186,27 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         for cm in cell_magics:
             self.cell_magics.pop(cm)
 
-    def _get_current_namespace(self):
+    def _get_current_namespace(self, with_magics=False):
         """Get current namespace."""
         glbs = self.debugger.curframe.f_globals
         lcls = self.debugger.curframe.f_locals
+        ns = {}
 
         if glbs == lcls:
-            return glbs
+            ns = glbs
         else:
             ns = glbs.copy()
             ns.update(lcls)
-            return ns
+        
+        # Add magics to ns so we can show help about them on the Help
+        # plugin
+        if with_magics:
+            line_magics = self.line_magics
+            cell_magics = self.cell_magics
+            ns.update(line_magics)
+            ns.update(cell_magics)
+        
+        return ns
 
     def _get_reference_namespace(self, name):
         """
