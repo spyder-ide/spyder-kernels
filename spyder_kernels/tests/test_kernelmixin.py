@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Tests for the kernelmixin.
+Tests for the kernel mixin.
 """
 
 # Standard library imports

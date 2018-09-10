@@ -7,12 +7,13 @@
 # -----------------------------------------------------------------------------
 
 """
-Base Spyder kernel
+Base kernel mixin
 """
 
 # Standard library imports
 import os
 import sys
+
 
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
