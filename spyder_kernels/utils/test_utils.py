@@ -7,10 +7,9 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
-try:
-    from jupyter_client import session as ss
-except ImportError:
-    from IPython.kernel.zmq import session as ss
+import os
+
+from jupyter_client import session as ss
 import zmq
 import logging
 
@@ -37,7 +36,8 @@ def get_kernel(kernel_class=ConsoleKernel):
     context = zmq.Context.instance()
     iopub_socket = context.socket(zmq.PUB)
 
-    kernel = kernel_class(session=ss.Session(), iopub_socket=iopub_socket,
+    kernel = kernel_class(session=ss.Session(),
+                          iopub_socket=iopub_socket,
                           log=log)
     return kernel
 
@@ -45,3 +45,10 @@ def get_kernel(kernel_class=ConsoleKernel):
 def get_log_text(kernel):
     """Get the log of the given kernel."""
     return kernel.log.handlers[0].stream.getvalue()
+
+
+def running_under_pytest():
+    """
+    Return True if currently running under pytest.
+    """
+    return bool(os.environ.get('SPYDER_KERNELS_PYTEST'))
