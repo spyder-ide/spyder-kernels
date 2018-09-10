@@ -31,11 +31,28 @@ FILES_PATH = osp.dirname(osp.realpath(__file__))
 
 
 # =============================================================================
+# Fixtures
+# =============================================================================
+@pytest.fixture
+def ipdb_kernel(request):
+    """IPdb kernel fixture"""
+    # Get kernel instance
+    kernel = get_kernel(kernel_class=IPdbKernel)
+
+    # Teardown
+    def reset_kernel():
+        kernel.do_execute('%reset', True)
+
+    request.addfinalizer(reset_kernel)
+    return kernel
+
+
+# =============================================================================
 # Tests
 # =============================================================================
-def test_available_magics():
+def test_available_magics(ipdb_kernel):
     """Check the magics available for the kernel."""
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = ipdb_kernel
     for magic in ['EOF', 'a', 'alias', 'args', 'b', 'break',
                   'bt', 'c', 'cd', 'cl', 'clear', 'commands', 'connect_info',
                   'cont', 'continue', 'd', 'disable',
@@ -57,9 +74,9 @@ def test_available_magics():
         assert magic in kernel.cell_magics
 
 
-def test_shell_magic():
+def test_shell_magic(ipdb_kernel):
     """Test %shell magic."""
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = ipdb_kernel
     with open('TEST.txt', 'wb'):
         pass
     if os.name != 'nt':
@@ -71,9 +88,9 @@ def test_shell_magic():
     os.remove('TEST.txt')
 
 
-def test_break_magic():
+def test_break_magic(ipdb_kernel):
     """Test %break magic."""
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = ipdb_kernel
     script_path = osp.join(FILES_PATH, 'script.py')
     if os.name == 'nt':
         script_path = osp.normcase(script_path)
@@ -88,9 +105,9 @@ def test_break_magic():
     assert script_path in log_text
 
 
-def test_down_magic():
+def test_down_magic(ipdb_kernel):
     """Test %down magic."""
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = ipdb_kernel
 
     kernel.get_magic('%d')
     log_text = get_log_text(kernel)
@@ -101,9 +118,9 @@ def test_down_magic():
     assert 'Newest frame' in log_text
 
 
-def test_help():
+def test_help(ipdb_kernel):
     """Check availability of help information."""
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = ipdb_kernel
     resp = kernel.get_help_on('%shell', 0)
     assert 'run the line as a shell command' in resp
 
@@ -115,9 +132,9 @@ def test_help():
     assert resp == None
 
 
-def test_complete():
+def test_complete(ipdb_kernel):
     """Check completion."""
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = ipdb_kernel
 
     # Line magics
     comp = kernel.do_complete('%connect_', len('%connect_'))
@@ -164,9 +181,9 @@ def test_complete():
         assert kwargs != []
 
 
-def test_inspect():
+def test_inspect(ipdb_kernel):
     """Check inspect."""
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = ipdb_kernel
     kernel.do_inspect('%lsmagic', len('%lsmagic'))
     log_text = get_log_text(kernel)
     assert "list the current line and cell magics" in log_text
@@ -174,8 +191,8 @@ def test_inspect():
     kernel.do_inspect('%lsmagic ', len('%lsmagic') + 1)
 
 
-def test_path_complete():
-    kernel = get_kernel(kernel_class=IPdbKernel)
+def test_path_complete(ipdb_kernel):
+    kernel = ipdb_kernel
     comp = kernel.do_complete('~/.ipytho', len('~/.ipytho'))
     if os.name != 'nt':
         assert 'ipython/' in comp['matches']
@@ -203,8 +220,8 @@ def test_path_complete():
                                                              path)
 
 
-def test_ls_path_complete():
-    kernel = get_kernel(kernel_class=IPdbKernel)
+def test_ls_path_complete(ipdb_kernel):
+    kernel = ipdb_kernel
     if os.name != 'nt':
         comp = kernel.do_complete('! ls ~/.ipytho', len('! ls ~/.ipytho'))
         assert comp['matches'] == ['ipython/'], comp
@@ -213,8 +230,8 @@ def test_ls_path_complete():
         assert comp['matches'] == ['"ipython\\"'], comp
 
 
-def test_history():
-    kernel = get_kernel(kernel_class=IPdbKernel)
+def test_history(ipdb_kernel):
+    kernel = ipdb_kernel
     if os.name != 'nt':
         kernel.do_execute('!ls', False)
     else:
@@ -231,7 +248,7 @@ def test_history():
         assert '!dir' in text
     assert '%cd' in text
 
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = ipdb_kernel
     kernel.do_history(None, None, None)
     if os.name != 'nt':
         assert '!ls' in ''.join(kernel.hist_cache)
@@ -240,8 +257,8 @@ def test_history():
     assert '%cd ~'
 
 
-def test_sticky_magics():
-    kernel = get_kernel(kernel_class=IPdbKernel)
+def test_sticky_magics(ipdb_kernel):
+    kernel = ipdb_kernel
     kernel.do_execute('%%%html\nhello', None)
     text = get_log_text(kernel)
 
@@ -253,8 +270,8 @@ def test_sticky_magics():
     assert 'html removed from session magics' in text
 
 
-def test_shell_partial_quote():
-    kernel = get_kernel(kernel_class=IPdbKernel)
+def test_shell_partial_quote(ipdb_kernel):
+    kernel = ipdb_kernel
     if os.name != 'nt':
         kernel.do_execute('%cd "/home/', False)
         text = get_log_text(kernel)

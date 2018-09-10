@@ -23,6 +23,7 @@ from IPython.core.debugger import BdbQuit_excepthook, Pdb
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
+from spyder_kernels.kernelmixin import BaseKernelMixIn
 from spyder_kernels.utils.module_completion import module_completion
 
 
@@ -57,7 +58,7 @@ class DummyShell(object):
         return DummyMagicsManager()
 
 
-class IPdbKernel(MetaKernel):
+class IPdbKernel(BaseKernelMixIn, MetaKernel):
     implementation = "IPdb Kernel"
     implementation_version = __version__
     language = "ipdb"
@@ -148,7 +149,6 @@ class IPdbKernel(MetaKernel):
         Get completions from kernel based on info dict.
         """
         code = info["code"]
-
         # Update completer namespace before performing the
         # completion
         self.completer.namespace = self._get_current_namespace()
@@ -185,17 +185,50 @@ class IPdbKernel(MetaKernel):
         for cm in cell_magics:
             self.cell_magics.pop(cm)
 
-    def _get_current_namespace(self):
+    def _get_current_namespace(self, with_magics=False):
         """Get current namespace."""
         glbs = self.debugger.curframe.f_globals
         lcls = self.debugger.curframe.f_locals
+        ns = {}
 
         if glbs == lcls:
-            return glbs
+            ns = glbs
         else:
             ns = glbs.copy()
             ns.update(lcls)
-            return ns
+        
+        # Add magics to ns so we can show help about them on the Help
+        # plugin
+        if with_magics:
+            line_magics = self.line_magics
+            cell_magics = self.cell_magics
+            ns.update(line_magics)
+            ns.update(cell_magics)
+        
+        return ns
+
+    def _get_reference_namespace(self, name):
+        """
+        Return namespace where reference name is defined
+
+        It returns the globals() if reference has not yet been defined
+        """
+        glbs = self._mglobals()
+        if self.debugger.curframe is None:
+            return glbs
+        else:
+            lcls = self.debugger.curframe.f_locals
+            if name in lcls:
+                return lcls
+            else:
+                return glbs
+
+    def _mglobals(self):
+        """Return current globals"""
+        if self.debugger.curframe is not None:
+            return self.debugger.curframe.f_globals
+        else:
+            return {}
 
     def _phony_stdout(self, text):
         self.log.debug(text)
