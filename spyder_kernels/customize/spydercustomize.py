@@ -11,11 +11,9 @@
 # Spyder consoles sitecustomize
 #
 
-import bdb
 from distutils.version import LooseVersion
 import io
 import os
-import os.path as osp
 import pdb
 import shlex
 import sys
@@ -24,6 +22,7 @@ import warnings
 
 from IPython.core.getipython import get_ipython
 
+from spyder_kernels.ipdb.spyderpdb import SpyderPdb
 
 # We are in Python 2?
 PY2 = sys.version[0] == '2'
@@ -213,10 +212,6 @@ else:
 #==============================================================================
 # IPython kernel adjustments
 #==============================================================================
-# Use ipydb as the debugger to patch on IPython consoles
-from IPython.core.debugger import Pdb as ipyPdb
-pdb.Pdb = ipyPdb
-
 # Patch unittest.main so that errors are printed directly in the console.
 # See http://comments.gmane.org/gmane.comp.python.ipython.devel/10557
 # Fixes Issue 1370
@@ -275,82 +270,7 @@ except:
 #==============================================================================
 # Pdb adjustments
 #==============================================================================
-class SpyderPdb(pdb.Pdb):
-
-    send_initial_notification = True
-    starting = True
-
-    # --- Methods overriden by us
-    def preloop(self):
-        """Ask Spyder for berkpoints before the first prompt is created."""
-        if self.starting:
-            get_ipython().kernel._ask_spyder_for_breakpoints()
-
-    # --- Methods defined by us
-    def set_spyder_breakpoints(self, breakpoints):
-        self.clear_all_breaks()
-        #------Really deleting all breakpoints:
-        for bp in bdb.Breakpoint.bpbynumber:
-            if bp:
-                bp.deleteMe()
-        bdb.Breakpoint.next = 1
-        bdb.Breakpoint.bplist = {}
-        bdb.Breakpoint.bpbynumber = [None]
-        #------
-        i = 0
-        for fname, data in list(breakpoints.items()):
-            if osp.isfile(fname):
-                for linenumber, condition in data:
-                    i += 1
-                    self.set_break(self.canonic(fname), linenumber,
-                                   cond=condition)
-
-        # Jump to first breakpoint.
-        # Fixes issue 2034
-        if self.starting:
-            # Only run this after a Pdb session is created
-            self.starting = False
-
-            # Get all breakpoints for the file we're going to debug
-            frame = self.curframe
-            lineno = frame.f_lineno
-            breaks = self.get_file_breaks(frame.f_code.co_filename)
-
-            # Do 'continue' if the first breakpoint is *not* placed
-            # where the debugger is going to land.
-            # Fixes issue 4681
-            if breaks and lineno != breaks[0] and osp.isfile(fname):
-                get_ipython().kernel.pdb_continue()
-
-    def notify_spyder(self, frame):
-        if not frame:
-            return
-
-        kernel = get_ipython().kernel
-
-        # Get filename and line number of the current frame
-        fname = self.canonic(frame.f_code.co_filename)
-        if PY2:
-            try:
-                fname = unicode(fname, "utf-8")
-            except TypeError:
-                pass
-        lineno = frame.f_lineno
-
-        # Set step of the current frame (if any)
-        step = {}
-        if isinstance(fname, basestring) and isinstance(lineno, int):
-            if osp.isfile(fname):
-                step = dict(fname=fname, lineno=lineno)
-
-        # Publish Pdb state so we can update the Variable Explorer
-        # and the Editor on the Spyder side
-        kernel._pdb_step = step
-        kernel.publish_pdb_state()
-
-
 pdb.Pdb = SpyderPdb
-
 
 #XXX: I know, this function is now also implemented as is in utils/misc.py but
 #     I'm kind of reluctant to import spyder in sitecustomize, even if this
