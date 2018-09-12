@@ -180,10 +180,16 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
                        'macro', 'processing', 'px', 'scheme', 'tutor']
 
         for lm in line_magics:
-            self.line_magics.pop(lm)
+            try:
+                self.line_magics.pop(lm)
+            except KeyError:
+                pass
 
         for cm in cell_magics:
-            self.cell_magics.pop(cm)
+            try:
+                self.cell_magics.pop(cm)
+            except:
+                pass
 
     def _get_current_namespace(self, with_magics=False):
         """Get current namespace."""
