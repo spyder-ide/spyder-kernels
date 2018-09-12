@@ -174,8 +174,8 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         """Remove unnecessary magics from MetaKernel."""
         line_magics = ['activity', 'conversation', 'dot', 'get', 'include',
                        'install', 'install_magic', 'jigsaw', 'kernel', 'kx',
-                       'macro', 'parallel', 'pmap', 'px', 'run', 'scheme',
-                       'set']
+                       'macro', 'parallel', 'plot', 'pmap', 'px', 'run',
+                       'scheme', 'set']
         cell_magics = ['activity', 'brain', 'conversation', 'debug', 'dot',
                        'macro', 'processing', 'px', 'scheme', 'tutor']
 
