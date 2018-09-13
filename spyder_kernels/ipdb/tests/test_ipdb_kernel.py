@@ -12,6 +12,7 @@
 """
 Tests for spyder_kernels.ipdb.kernel.py
 """
+
 # Standart library imports
 import os
 import os.path as osp
