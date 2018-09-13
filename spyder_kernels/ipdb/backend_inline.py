@@ -33,7 +33,7 @@ def get_image(figure):
     else:
         data = io.BytesIO()
 
-    figure.canvas.print_png(data)
+    figure.canvas.print_figure(data, bbox_inches='tight')
     metadata=_fetch_figure_metadata(figure)
 
     # TODO: Passing metadata is making qtconsole crash
