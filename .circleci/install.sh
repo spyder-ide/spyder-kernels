@@ -2,7 +2,7 @@
 
 export TRAVIS_OS_NAME="linux"
 export CONDA_DEPENDENCIES_FLAGS="--quiet"
-export CONDA_DEPENDENCIES="ipykernel cloudpickle nomkl numpy pandas scipy pytest pytest-cov metakernel"
+export CONDA_DEPENDENCIES="ipykernel cloudpickle nomkl numpy pandas scipy pytest pytest-cov metakernel matplotlib"
 export PIP_DEPENDENCIES="codecov"
 
 echo -e "PYTHON = $PYTHON_VERSION \n============"
