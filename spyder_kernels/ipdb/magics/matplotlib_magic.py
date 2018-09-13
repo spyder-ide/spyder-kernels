@@ -13,14 +13,13 @@ class MatplotlibMagic(Magic):
 
     def line_matplotlib(self, gui):
         """
-        Mosas
+        Matplotlib magic
+
+        You can set all backends you can with the IPython %Matplotlib
+        magic.
         """
-        from ipykernel.eventloops import enable_gui
-        from IPython.core.interactiveshell import InteractiveShell
-        
-        ipyshell = InteractiveShell()
-        ipyshell.enable_gui = enable_gui
-        ipyshell.enable_matplotlib(gui=gui)
+        gui, backend = self.kernel.ipyshell.enable_matplotlib(gui=gui)
+        self.kernel.mpl_gui = gui
 
 
 def register_magics(kernel):
