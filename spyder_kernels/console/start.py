@@ -273,10 +273,10 @@ def main():
 
     # Fire up the kernel instance.
     from ipykernel.kernelapp import IPKernelApp
-    from spyder_kernels.console.kernel import SpyderKernel
+    from spyder_kernels.console.kernel import ConsoleKernel
 
     kernel = IPKernelApp.instance()
-    kernel.kernel_class = SpyderKernel
+    kernel.kernel_class = ConsoleKernel
     try:
         kernel.config = kernel_config()
     except:
