@@ -14,8 +14,6 @@ ipykernel/pylab/backend_inline.py
 
 from ipykernel.pylab.backend_inline import _fetch_figure_metadata
 from IPython.display import Image
-import matplotlib
-from matplotlib._pylab_helpers import Gcf
 from metakernel.display import display
 
 from spyder_kernels.py3compat import io, PY2
@@ -45,6 +43,9 @@ def show():
     """
     Show all figures as PNG payloads sent to the Jupyter clients.
     """
+    import matplotlib
+    from matplotlib._pylab_helpers import Gcf
+
     try:
         for figure_manager in Gcf.get_all_fig_managers():
             display(get_image(figure_manager.canvas.figure))
