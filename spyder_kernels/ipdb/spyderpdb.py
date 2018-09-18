@@ -11,7 +11,7 @@ import pdb
 import os.path as osp
 
 # local library imports
-from spyder_kernels.py3compat import PY2
+from spyder_kernels.py3compat import PY2, PY3
 from spyder_kernels.utils.misc import monkeypatch_method
 
 # Use ipydb as the debugger to patch on IPython consoles
@@ -87,6 +87,11 @@ class SpyderPdb(pdb.Pdb):
 
         # Set step of the current frame (if any)
         step = {}
+        try:            
+            # Needed since basestring was removed in python 3
+            basestring
+        except NameError:
+            basestring = str
         if isinstance(fname, basestring) and isinstance(lineno, int):
             if osp.isfile(fname):
                 step = dict(fname=fname, lineno=lineno)
