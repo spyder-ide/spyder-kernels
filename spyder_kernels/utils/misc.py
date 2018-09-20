@@ -30,10 +30,6 @@ def fix_reference_name(name, blacklist=None):
 
 
 def monkeypatch_method(cls, patch_name):
-    # This function's code was inspired from the following thread:
-    # "[Python-Dev] Monkeypatching idioms -- elegant or ugly?"
-    # by Robert Brewer <fumanchu at aminus.org>
-    # (Tue Jan 15 19:13:25 CET 2008)
     """
     Add the decorated method to the given class; replace as needed.
 
@@ -41,6 +37,11 @@ def monkeypatch_method(cls, patch_name):
     be replaced, and a reference to the old method is created as
     cls._old<patch_name><name>. If the "_old_<patch_name>_<name>" attribute
     already exists, KeyError is raised.
+
+    This function's code was inspired from the following thread:
+    "[Python-Dev] Monkeypatching idioms -- elegant or ugly?"
+    by Robert Brewer <fumanchu at aminus.org>
+    (Tue Jan 15 19:13:25 CET 2008)
     """
     def decorator(func):
         fname = func.__name__
