@@ -21,12 +21,13 @@ from ipykernel.eventloops import enable_gui
 from IPython.core.completer import IPCompleter
 from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.interactiveshell import InteractiveShell
-from IPython.core.debugger import BdbQuit_excepthook, Pdb
+from IPython.core.debugger import BdbQuit_excepthook
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
 from spyder_kernels.ipdb import backend_inline
 from spyder_kernels.kernelmixin import BaseKernelMixIn
+from spyder_kernels.ipdb.spyderpdb import SpyderPdb
 from spyder_kernels.utils.module_completion import module_completion
 
 
@@ -87,13 +88,14 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
     def __init__(self, *args, **kwargs):
         super(IPdbKernel, self).__init__(*args, **kwargs)
 
-        # Instantiate IPython.core.debugger.Pdb here, pass it a phony
-        # stdout that provides a dummy flush() method and a write() method
+        # Instantiate spyder_kernels.ipdb.spyderpdb.SpyderPdb here,
+        # pass it a phony stdout that provides a dummy
+        # flush() method and a write() method
         # that internally sends data using a function so that it can
         # be initialized to use self.send_response()
         sys.excepthook = functools.partial(BdbQuit_excepthook,
                                            excepthook=sys.excepthook)
-        self.debugger = Pdb(stdout=PhonyStdout(self._phony_stdout))
+        self.debugger = SpyderPdb(stdout=PhonyStdout(self._phony_stdout))
         self.debugger.reset()
         self.debugger.setup(sys._getframe().f_back, None)
 
