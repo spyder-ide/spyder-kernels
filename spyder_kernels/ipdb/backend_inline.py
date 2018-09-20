@@ -26,16 +26,17 @@ def get_image(figure):
     The idea to get png/svg from a figure was taken from
     https://stackoverflow.com/a/12145161/438386
     """
+    # Print figure to a bytes stream
     if PY2:
         data = io.StringIO()
     else:
         data = io.BytesIO()
-
     figure.canvas.print_figure(data, bbox_inches='tight')
-    metadata=_fetch_figure_metadata(figure)
 
-    # TODO: Passing metadata is making qtconsole crash
-    img = Image(data=data.getvalue())
+    # Get figure metadata
+    metadata = _fetch_figure_metadata(figure)
+
+    img = Image(data=data.getvalue(), metadata=metadata)
     return img
 
 

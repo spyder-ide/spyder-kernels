@@ -75,3 +75,7 @@ def test_matplotlib_qt(qtconsole, qtbot):
 
     # Assert the previous command returns the object
     assert 'PyQt5.QtWidgets.QApplication object' in shell._control.toPlainText()
+
+
+if __name__ == "__main__":
+    pytest.main()
