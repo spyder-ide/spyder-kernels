@@ -4,6 +4,7 @@ export TRAVIS_OS_NAME="linux"
 export CONDA_DEPENDENCIES_FLAGS="--quiet"
 export CONDA_DEPENDENCIES="ipykernel cloudpickle nomkl numpy pandas scipy \
                            pexpect matplotlib qtconsole pytest pytest-cov"
+export PIP_DEPENDENCIES_FLAGS="-q"
 export PIP_DEPENDENCIES="codecov pytest-qt"
 
 echo -e "PYTHON = $PYTHON_VERSION \n============"
