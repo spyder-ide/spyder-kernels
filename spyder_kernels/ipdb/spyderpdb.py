@@ -74,7 +74,10 @@ class SpyderPdb(pdb.Pdb):
         if not frame:
             return
 
-        kernel = get_ipython().kernel
+        try:
+            kernel = get_ipython().kernel
+        except AttributeError:
+            return
 
         # Get filename and line number of the current frame
         fname = self.canonic(frame.f_code.co_filename)
@@ -87,7 +90,7 @@ class SpyderPdb(pdb.Pdb):
 
         # Set step of the current frame (if any)
         step = {}
-        try:            
+        try:
             # Needed since basestring was removed in python 3
             basestring
         except NameError:
@@ -153,8 +156,11 @@ def _cmdloop(self):
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def reset(self):
     self._old_Pdb_reset()
-    kernel = get_ipython().kernel
-    kernel._register_pdb_session(self)
+    try:
+        kernel = get_ipython().kernel
+        kernel._register_pdb_session(self)
+    except AttributeError:
+        pass
 
 
 #XXX: notify spyder on any pdb command (is that good or too lazy? i.e. is more

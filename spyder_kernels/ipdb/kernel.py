@@ -17,12 +17,15 @@ https://github.com/lebedov/ipdbkernel
 import functools
 import sys
 
+from ipykernel.eventloops import enable_gui
 from IPython.core.completer import IPCompleter
 from IPython.core.inputsplitter import IPythonInputSplitter
+from IPython.core.interactiveshell import InteractiveShell
 from IPython.core.debugger import BdbQuit_excepthook
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
+from spyder_kernels.ipdb import backend_inline
 from spyder_kernels.kernelmixin import BaseKernelMixIn
 from spyder_kernels.ipdb.spyderpdb import SpyderPdb
 from spyder_kernels.utils.module_completion import module_completion
@@ -96,14 +99,21 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         self.debugger.reset()
         self.debugger.setup(sys._getframe().f_back, None)
 
+        # Completer
         self.completer = IPCompleter(
                 shell=DummyShell(),
                 namespace=self._get_current_namespace()
         )
         self.completer.limit_to__all__ = False
 
+        # To detect if a line is complete
         self.input_transformer_manager = IPythonInputSplitter(
                                              line_input_checker=False)
+
+        # For the %matplotlib magic
+        self.ipyshell = InteractiveShell()
+        self.ipyshell.enable_gui = enable_gui
+        self.mpl_gui = None
 
         self._remove_unneeded_magics()
 
@@ -118,6 +128,8 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         stop = self.debugger.postcmd(stop, line)
         if stop:
             self.debugger.postloop()
+
+        self._show_inline_figures()
 
     def do_is_complete(self, code):
         """
@@ -176,16 +188,22 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         """Remove unnecessary magics from MetaKernel."""
         line_magics = ['activity', 'conversation', 'dot', 'get', 'include',
                        'install', 'install_magic', 'jigsaw', 'kernel', 'kx',
-                       'macro', 'parallel', 'pmap', 'px', 'run', 'scheme',
-                       'set']
+                       'macro', 'parallel', 'plot', 'pmap', 'px', 'run',
+                       'scheme', 'set']
         cell_magics = ['activity', 'brain', 'conversation', 'debug', 'dot',
                        'macro', 'processing', 'px', 'scheme', 'tutor']
 
         for lm in line_magics:
-            self.line_magics.pop(lm)
+            try:
+                self.line_magics.pop(lm)
+            except KeyError:
+                pass
 
         for cm in cell_magics:
-            self.cell_magics.pop(cm)
+            try:
+                self.cell_magics.pop(cm)
+            except:
+                pass
 
     def _get_current_namespace(self, with_magics=False):
         """Get current namespace."""
@@ -238,3 +256,8 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
                            'stream',
                            {'name': 'stdout',
                             'text': text})
+
+    def _show_inline_figures(self):
+        """Show Matplotlib inline figures."""
+        if self.mpl_gui == 'inline':
+            backend_inline.show()

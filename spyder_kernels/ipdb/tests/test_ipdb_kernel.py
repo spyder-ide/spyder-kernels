@@ -12,6 +12,7 @@
 """
 Tests for spyder_kernels.ipdb.kernel.py
 """
+
 # Standart library imports
 import os
 import os.path as osp
@@ -62,7 +63,7 @@ def test_available_magics(ipdb_kernel):
                   'jump', 'l', 'latex',  'list',
                   'll', 'load', 'long_list', 'ls', 'lsmagic', 'magic',
                   'matplotlib', 'n', 'next', 'p', 'pdef', 'pdoc',
-                  'pfile', 'pinfo', 'pinfo2', 'plot', 'pp', 'psource',
+                  'pfile', 'pinfo', 'pinfo2', 'pp', 'psource',
                   'python', 'q', 'quit', 'r', 'reload_magics', 'restart',
                   'return', 'retval', 'rv', 's',
                   'shell', 'source', 'step', 'tbreak', 'u', 'unalias',
