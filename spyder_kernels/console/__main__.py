@@ -6,6 +6,12 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
+import sys
+
 if __name__ == '__main__':
-    from spyder_kernels.console import start
-    start.main()
+    if sys.argv[-1] == 'install':
+        from spyder_kernels.console import install
+        install.main()
+    else:
+        from spyder_kernels.console import start
+        start.main()
