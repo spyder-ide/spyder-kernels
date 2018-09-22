@@ -3,8 +3,9 @@
 source $HOME/miniconda/etc/profile.d/conda.sh
 conda activate test
 
-# Install ipdb_kernel spec
+# Install kernelspec's
 pip install -e .
+python spyder_kernels/console install
 python spyder_kernels/ipdb install --user
 
 # Run tests

@@ -26,8 +26,9 @@ from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
 from spyder_kernels.ipdb import backend_inline
-from spyder_kernels.kernelmixin import BaseKernelMixIn
 from spyder_kernels.ipdb.spyderpdb import SpyderPdb
+from spyder_kernels.kernelmixin import BaseKernelMixIn
+from spyder_kernels.py3compat import builtins
 from spyder_kernels.utils.module_completion import module_completion
 
 
@@ -114,6 +115,9 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         self.ipyshell = InteractiveShell()
         self.ipyshell.enable_gui = enable_gui
         self.mpl_gui = None
+
+        # Add _get_kernel_
+        builtins._get_kernel_ = self._get_kernel_
 
         self._remove_unneeded_magics()
 
@@ -261,3 +265,7 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         """Show Matplotlib inline figures."""
         if self.mpl_gui == 'inline':
             backend_inline.show()
+
+    def _get_kernel_(self):
+        """To add _get_kernel_ function to builtins."""
+        return self
