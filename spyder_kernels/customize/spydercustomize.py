@@ -485,6 +485,15 @@ builtins.debugfile = debugfile
 
 
 #==============================================================================
+# Add a _get_kernel_ function to builtins to get the current kernel
+#==============================================================================
+def _get_kernel_():
+    return get_ipython().kernel
+
+builtins._get_kernel_ = _get_kernel_
+
+
+#==============================================================================
 # Restoring original PYTHONPATH
 #==============================================================================
 try:
