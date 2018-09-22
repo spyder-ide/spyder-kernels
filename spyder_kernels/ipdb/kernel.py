@@ -184,8 +184,11 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
         """Help for Pdb commands."""
-        cmd = info['code'].strip()
-        return self.debugger.do_help(cmd)
+        if none_on_fail:
+            return None
+        else:
+            cmd = info['code'].strip()
+            return self.debugger.do_help(cmd)
 
     # --- Private API
     def _remove_unneeded_magics(self):
