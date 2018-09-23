@@ -187,7 +187,7 @@ def test_inspect(ipdb_kernel):
     kernel = ipdb_kernel
     kernel.do_inspect('%lsmagic', len('%lsmagic'))
     log_text = get_log_text(kernel)
-    assert "list the current line and cell magics" in log_text
+    assert "List currently available magic functions" in log_text
 
     kernel.do_inspect('%lsmagic ', len('%lsmagic') + 1)
 
