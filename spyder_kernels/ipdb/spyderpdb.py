@@ -6,12 +6,14 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 # Standard library import
+from __future__ import print_function
+
 import bdb
 import pdb
 import os.path as osp
 
 # local library imports
-from spyder_kernels.py3compat import PY2, PY3
+from spyder_kernels.py3compat import PY2
 from spyder_kernels.utils.misc import monkeypatch_method
 
 # Use ipydb as the debugger to patch on IPython consoles
