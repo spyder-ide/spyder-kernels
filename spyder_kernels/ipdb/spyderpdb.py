@@ -6,12 +6,14 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 # Standard library import
+from __future__ import print_function
+
 import bdb
 import pdb
 import os.path as osp
 
 # local library imports
-from spyder_kernels.py3compat import PY2, PY3
+from spyder_kernels.py3compat import PY2
 from spyder_kernels.utils.misc import monkeypatch_method
 
 # Use ipydb as the debugger to patch on IPython consoles
@@ -33,6 +35,13 @@ class SpyderPdb(pdb.Pdb):
         """Ask Spyder for breakpoints before the first prompt is created."""
         if self.starting:
             get_ipython().kernel._ask_spyder_for_breakpoints()
+
+    def error(self, msg):
+        """
+        Error message (method defined for compatibility reasons with Python 2,
+        the same implementation is available in Python 3).
+        """
+        print('***', msg, file=self.stdout)
 
     # --- Methods defined by us
     def set_spyder_breakpoints(self, breakpoints):

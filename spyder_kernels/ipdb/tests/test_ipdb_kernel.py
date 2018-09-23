@@ -129,6 +129,10 @@ def test_help(ipdb_kernel):
     assert 'change current directory of session' in resp[
         'payload'][0]['data']['text/plain']
 
+    resp = kernel.do_execute('range?', False)
+    assert 'range(stop)' in resp[
+        'payload'][0]['data']['text/plain']
+
     resp = kernel.get_help_on('what', 0)
     assert resp == None
 
@@ -187,7 +191,7 @@ def test_inspect(ipdb_kernel):
     kernel = ipdb_kernel
     kernel.do_inspect('%lsmagic', len('%lsmagic'))
     log_text = get_log_text(kernel)
-    assert "list the current line and cell magics" in log_text
+    assert "List currently available magic functions" in log_text
 
     kernel.do_inspect('%lsmagic ', len('%lsmagic') + 1)
 
