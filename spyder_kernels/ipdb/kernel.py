@@ -22,6 +22,7 @@ from IPython.core.completer import IPCompleter
 from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.interactiveshell import InteractiveShell
 from IPython.core.debugger import BdbQuit_excepthook
+from IPython.utils.tokenutil import token_at_cursor
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
@@ -161,6 +162,27 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         if status == 'incomplete':
             r['indent'] = ' ' * indent_spaces
         return r
+
+    def do_inspect(self, code, cursor_pos, detail_level=0):
+        """
+        Object instrospection.
+        """
+        name = token_at_cursor(code, cursor_pos)
+        info = self.ipyshell.object_inspect(name)
+
+        reply_content = {'status': 'ok'}
+        reply_content['data'] = data = {}
+        reply_content['metadata'] = {}
+        reply_content['found'] = info['found']
+        if info['found']:
+            info_text = self.ipyshell.object_inspect_text(
+                name,
+                detail_level=detail_level,
+            )
+            data['text/plain'] = info_text
+            self.log.debug(str(info_text))
+
+        return reply_content
 
     def get_completions(self, info):
         """
