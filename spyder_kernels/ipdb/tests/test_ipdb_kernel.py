@@ -129,6 +129,10 @@ def test_help(ipdb_kernel):
     assert 'change current directory of session' in resp[
         'payload'][0]['data']['text/plain']
 
+    resp = kernel.do_execute('range?', False)
+    assert 'range(stop)' in resp[
+        'payload'][0]['data']['text/plain']
+
     resp = kernel.get_help_on('what', 0)
     assert resp == None
 

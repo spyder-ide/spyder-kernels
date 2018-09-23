@@ -210,7 +210,22 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
             return None
         else:
             cmd = info['code'].strip()
-            return self.debugger.do_help(cmd)
+            help_on = None
+            try:
+                try:
+                    getattr(self.debugger, 'help_' + cmd)
+                    help_on = self.debugger.do_help(cmd)
+                except AttributeError:
+                    getattr(self.debugger, 'do_' + cmd)
+                    help_on = self.debugger.do_help(cmd)
+            except AttributeError:
+                response = self.do_inspect(info['code'], info['help_pos'])
+                if 'data' in response:
+                    if 'text/plain' in response['data']:
+                        help_on = response['data']['text/plain']
+                if not help_on:
+                    self.debugger.error('No help for %r' % cmd)
+        return help_on
 
     # --- Private API
     def _remove_unneeded_magics(self):
