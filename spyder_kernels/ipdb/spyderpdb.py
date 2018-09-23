@@ -34,6 +34,13 @@ class SpyderPdb(pdb.Pdb):
         if self.starting:
             get_ipython().kernel._ask_spyder_for_breakpoints()
 
+    def error(self, msg):
+        """
+        Error message (method defined for compatibility reasons with Python 2,
+        the same implementation is available in Python 3).
+        """
+        print('***', msg, file=self.stdout)
+
     # --- Methods defined by us
     def set_spyder_breakpoints(self, breakpoints):
         self.clear_all_breaks()
