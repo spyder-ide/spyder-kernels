@@ -231,6 +231,13 @@ def test_ls_path_complete(ipdb_kernel):
         assert comp['matches'] == ['"ipython\\"'], comp
 
 
+@pytest.mark.skipif(os.name == 'nt', reason="Only for linux")
+def test_not_get_completitions_path(ipdb_kernel):
+    kernel = ipdb_kernel
+    comp = kernel.do_complete('/tm', len('/tm'))
+    assert len(comp['matches']) == 1
+
+
 def test_history(ipdb_kernel):
     kernel = ipdb_kernel
     if os.name != 'nt':
