@@ -16,6 +16,7 @@ Tests for spyder_kernels.ipdb.kernel.py
 # Standart library imports
 import os
 import os.path as osp
+import sys
 
 # Test library imports
 from metakernel.tests.utils import get_kernel, get_log_text
@@ -233,6 +234,14 @@ def test_ls_path_complete(ipdb_kernel):
     else:
         comp = kernel.do_complete('! dir ~/.ipytho', len('! dir ~/.ipytho'))
         assert comp['matches'] == ['"ipython\\"'], comp
+
+
+@pytest.mark.skipif(not sys.platform.startswith('linux'),
+                    reason="Only for linux")
+def test_not_get_completions_path(ipdb_kernel):
+    kernel = ipdb_kernel
+    comp = kernel.do_complete('/tm', len('/tm'))
+    assert len(comp['matches']) == 1
 
 
 def test_history(ipdb_kernel):

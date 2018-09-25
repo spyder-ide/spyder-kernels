@@ -64,6 +64,17 @@ class DummyShell(object):
         return DummyMagicsManager()
 
 
+class IPdbCompleter(IPCompleter):
+    """
+    Subclass of IPCompleter without file completions so they don't
+    interfere with the ones provided by MetaKernel.
+    """
+
+    def file_matches(self, text):
+        """Return and empty list to deactivate file matches."""
+        return []
+
+
 class IPdbKernel(BaseKernelMixIn, MetaKernel):
     implementation = "IPdb Kernel"
     implementation_version = __version__
@@ -102,7 +113,7 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         self.debugger.setup(sys._getframe().f_back, None)
 
         # Completer
-        self.completer = IPCompleter(
+        self.completer = IPdbCompleter(
                 shell=DummyShell(),
                 namespace=self._get_current_namespace()
         )
