@@ -64,7 +64,10 @@ class DummyShell(object):
 
 
 class IPdbCompleter(IPCompleter):
-    """Subclass of IPCompleter without file completions."""
+    """
+    Subclass of IPCompleter without file completions so they don't
+    interfere with the ones provided by MetaKernel.
+    """
 
     def file_matches(self, text):
         """Return and empty list to deactivate file matches."""
