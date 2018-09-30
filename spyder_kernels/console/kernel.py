@@ -155,3 +155,8 @@ class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
         from IPython.core.getipython import get_ipython
         get_ipython().run_line_magic('reload_ext', 'autoreload')
         get_ipython().run_line_magic('autoreload', '2')
+
+    def _get_connection_file(self):
+        """Get kernel's connection file."""
+        from ipykernel import get_connection_file
+        return get_connection_file()
