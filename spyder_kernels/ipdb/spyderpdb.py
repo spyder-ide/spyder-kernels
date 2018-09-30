@@ -5,20 +5,25 @@
 # Licensed under the terms of the MIT License
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
+
 # Standard library import
 from __future__ import print_function
-
 import bdb
 import pdb
 import os.path as osp
 
-# local library imports
+# Third-party imports
+from IPython.core.debugger import Pdb as ipyPdb
+from IPython import get_ipython
+from jupyter_client.manager import KernelManager
+
+# Local library imports
+from spyder_kernels.ipdb.kernelspec import IPdbKernelSpec
 from spyder_kernels.py3compat import PY2
 from spyder_kernels.utils.misc import monkeypatch_method
 
+
 # Use ipydb as the debugger to patch on IPython consoles
-from IPython.core.debugger import Pdb as ipyPdb
-from IPython import get_ipython
 pdb.Pdb = ipyPdb
 
 
@@ -112,6 +117,12 @@ class SpyderPdb(pdb.Pdb):
         # and the Editor on the Spyder side
         kernel._pdb_step = step
         kernel.publish_pdb_state()
+
+    def start_ipdb_kernel(self):
+        """Start IPdb kernel."""
+        self.ipdb_manager = KernelManager()
+        self.ipdb_manager._kernel_spec = IPdbKernelSpec()
+        self.ipdb_manager.start_kernel()
 
 
 @monkeypatch_method(pdb.Pdb, 'Pdb')
