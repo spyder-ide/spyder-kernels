@@ -11,6 +11,7 @@ Spyder kernel for Jupyter
 """
 
 # Standard library imports
+import json
 import pickle
 
 # Local imports
@@ -156,7 +157,9 @@ class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
         get_ipython().run_line_magic('reload_ext', 'autoreload')
         get_ipython().run_line_magic('autoreload', '2')
 
-    def _get_connection_file(self):
-        """Get kernel's connection file."""
+    def _get_connection_info(self):
+        """Get kernel's connection info."""
         from ipykernel import get_connection_file
-        return get_connection_file()
+        with open(get_connection_file()) as f:
+            info = json.load(f)
+        return info

@@ -41,35 +41,24 @@ class IPdbKernelSpec(KernelSpec):
     def env(self):
         """Env vars for the kernel."""
 
-        connection_file = get_ipython().kernel._get_connection_file()
+        info = get_ipython().kernel._get_connection_info()
 
         env_vars = {
-            'SPY_CONSOLE_CONNECTION_FILE': connection_file
+            'SPY_CONSOLE_SHELL_PORT': info['shell_port'],
+            'SPY_CONSOLE_IOPUB_PORT': info['iopub_port'],
+            'SPY_CONSOLE_STDIN_PORT': info['stdin_port'],
+            'SPY_CONSOLE_CONTROL_PORT': info['control_port'],
+            'SPY_CONSOLE_HB_PORT': info['hb_port'],
+            'SPY_CONSOLE_IP': info['ip'],
+            'SPY_CONSOLE_KEY': info['key'],
+            'SPY_CONSOLE_TRANSPORT': info['transport'],
+            'SPY_CONSOLE_SIGNATURE_SCHEME': info['signature_scheme'],
         }
 
         # Making all env_vars strings
         for key,var in iteritems(env_vars):
             if PY2:
-                # Try to convert vars first to utf-8.
-                try:
-                    unicode_var = to_text_string(var)
-                except UnicodeDecodeError:
-                    # TODO: Fix this by moving to_unicode_from_fs
-                    # from Spyder
-
-                    # If that fails, try to use the file system
-                    # encoding because one of our vars is our
-                    # PYTHONPATH, and that contains file system
-                    # directories
-                    #try:
-                    #    unicode_var = to_unicode_from_fs(var)
-                    #except:
-                        # If that also fails, make the var empty
-                        # to be able to start Spyder.
-                        # See https://stackoverflow.com/q/44506900/438386
-                        # for details.
-                    #    unicode_var = ''
-                    pass
+                unicode_var = to_text_string(var)
                 env_vars[key] = to_binary_string(unicode_var,
                                                  encoding='utf-8')
             else:
