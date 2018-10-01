@@ -15,6 +15,7 @@ https://github.com/lebedov/ipdbkernel
 """
 
 import functools
+import os
 import sys
 
 from ipykernel.eventloops import enable_gui
@@ -23,6 +24,7 @@ from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.interactiveshell import InteractiveShell
 from IPython.core.debugger import BdbQuit_excepthook
 from IPython.utils.tokenutil import token_at_cursor
+from jupyter_client.blocking.client import BlockingKernelClient
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
@@ -130,6 +132,15 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
 
         # Add _get_kernel_
         builtins._get_kernel_ = self._get_kernel_
+
+        # Create console client
+        try:
+            self.console_client = self._create_console_client()
+        except KeyError:
+            self.console_client = None
+
+        if self.console_client is not None:
+            self.console_client.start_channels()
 
         self._remove_unneeded_magics()
 
@@ -320,3 +331,30 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
     def _get_kernel_(self):
         """To add _get_kernel_ function to builtins."""
         return self
+
+    def _create_console_client(self):
+        """Create a kernel client connected to the console kernel."""
+        # Retrieve connection info from the environment
+        shell_port = int(os.environ['SPY_CONSOLE_SHELL_PORT'])
+        iopub_port = int(os.environ['SPY_CONSOLE_IOPUB_PORT'])
+        stdin_port = int(os.environ['SPY_CONSOLE_STDIN_PORT'])
+        control_port = int(os.environ['SPY_CONSOLE_CONTROL_PORT'])
+        hb_port = int(os.environ['SPY_CONSOLE_HB_PORT'])
+        ip = os.environ['SPY_CONSOLE_IP']
+        key = os.environ['SPY_CONSOLE_KEY']
+        transport = os.environ['SPY_CONSOLE_TRANSPORT']
+        signature_scheme = os.environ['SPY_CONSOLE_SIGNATURE_SCHEME']
+
+        info = dict(shell_port=shell_port,
+                    iopub_port=iopub_port,
+                    stdin_port=stdin_port,
+                    control_port=control_port,
+                    hb_port=hb_port,
+                    ip=ip,
+                    key=key,
+                    transport=transport,
+                    signature_scheme=signature_scheme)
+
+        client = BlockingKernelClient()
+        client.load_connection_info(info)
+        return client
