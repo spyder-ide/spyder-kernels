@@ -11,6 +11,7 @@ from __future__ import print_function
 import bdb
 import pdb
 import os.path as osp
+import sys
 
 # Third-party imports
 from IPython.core.debugger import Pdb as ipyPdb
@@ -117,6 +118,11 @@ class SpyderPdb(pdb.Pdb):
         # and the Editor on the Spyder side
         kernel._pdb_step = step
         kernel.publish_pdb_state()
+
+    def init(self):
+        """Our own initialization routine."""
+        self.reset()
+        self.setup(sys._getframe().f_back, None)
 
     def start_ipdb_kernel(self):
         """Start IPdb kernel."""

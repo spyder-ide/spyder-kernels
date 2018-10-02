@@ -333,28 +333,46 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         return self
 
     def _create_console_client(self):
-        """Create a kernel client connected to the console kernel."""
-        # Retrieve connection info from the environment
-        shell_port = int(os.environ['SPY_CONSOLE_SHELL_PORT'])
-        iopub_port = int(os.environ['SPY_CONSOLE_IOPUB_PORT'])
-        stdin_port = int(os.environ['SPY_CONSOLE_STDIN_PORT'])
-        control_port = int(os.environ['SPY_CONSOLE_CONTROL_PORT'])
-        hb_port = int(os.environ['SPY_CONSOLE_HB_PORT'])
-        ip = os.environ['SPY_CONSOLE_IP']
-        key = os.environ['SPY_CONSOLE_KEY']
-        transport = os.environ['SPY_CONSOLE_TRANSPORT']
-        signature_scheme = os.environ['SPY_CONSOLE_SIGNATURE_SCHEME']
+        """Create a kernel client connected to a console kernel."""
+        try:
+            # Retrieve connection info from the environment
+            shell_port = int(os.environ['SPY_CONSOLE_SHELL_PORT'])
+            iopub_port = int(os.environ['SPY_CONSOLE_IOPUB_PORT'])
+            stdin_port = int(os.environ['SPY_CONSOLE_STDIN_PORT'])
+            control_port = int(os.environ['SPY_CONSOLE_CONTROL_PORT'])
+            hb_port = int(os.environ['SPY_CONSOLE_HB_PORT'])
+            ip = os.environ['SPY_CONSOLE_IP']
+            key = os.environ['SPY_CONSOLE_KEY']
+            transport = os.environ['SPY_CONSOLE_TRANSPORT']
+            signature_scheme = os.environ['SPY_CONSOLE_SIGNATURE_SCHEME']
 
-        info = dict(shell_port=shell_port,
-                    iopub_port=iopub_port,
-                    stdin_port=stdin_port,
-                    control_port=control_port,
-                    hb_port=hb_port,
-                    ip=ip,
-                    key=key,
-                    transport=transport,
-                    signature_scheme=signature_scheme)
+            # Create info dict
+            info = dict(shell_port=shell_port,
+                        iopub_port=iopub_port,
+                        stdin_port=stdin_port,
+                        control_port=control_port,
+                        hb_port=hb_port,
+                        ip=ip,
+                        key=key,
+                        transport=transport,
+                        signature_scheme=signature_scheme)
 
-        client = BlockingKernelClient()
-        client.load_connection_info(info)
-        return client
+            # Create kernel client
+            kernel_client = BlockingKernelClient()
+            kernel_client.load_connection_info(info)
+            kernel_client.start_channels()
+        except KeyError:
+            # Create a console kernel to interact with, so this
+            # kernel can stand on its own.
+            # *Note*: This is useful for testing purposes only!
+            from jupyter_client.manager import KernelManager
+            kernel_manager = KernelManager(kernel_name='spyder_console')
+            kernel_manager.start_kernel()
+            kernel_client = kernel_manager.client()
+            kernel_client.start_channels()
+
+            # Register a Pdb instance so that PdbProxy can work
+            kernel_client.execute('import pdb; p=pdb.Pdb(); p.init()',
+                                  silent=True)
+
+        return kernel_client
