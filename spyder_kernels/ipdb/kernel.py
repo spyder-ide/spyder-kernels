@@ -29,7 +29,7 @@ from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
 from spyder_kernels.ipdb import backend_inline
-from spyder_kernels.ipdb.spyderpdb import SpyderPdb
+from spyder_kernels.ipdb.pdbproxy import PdbProxy
 from spyder_kernels.kernelmixin import BaseKernelMixIn
 from spyder_kernels.py3compat import builtins
 from spyder_kernels.utils.module_completion import module_completion
@@ -103,21 +103,15 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
     def __init__(self, *args, **kwargs):
         super(IPdbKernel, self).__init__(*args, **kwargs)
 
-        # Instantiate spyder_kernels.ipdb.spyderpdb.SpyderPdb here,
-        # pass it a phony stdout that provides a dummy
-        # flush() method and a write() method
-        # that internally sends data using a function so that it can
-        # be initialized to use self.send_response()
-        sys.excepthook = functools.partial(BdbQuit_excepthook,
-                                           excepthook=sys.excepthook)
-        self.debugger = SpyderPdb(stdout=PhonyStdout(self._phony_stdout))
-        self.debugger.reset()
-        self.debugger.setup(sys._getframe().f_back, None)
+        # Create Pdb proxy
+        console_kernel_client = self._create_console_kernel_client()
+        self.debugger = PdbProxy(console_kernel_client)
 
         # Completer
+        # TODO: Move completer to SpyderPdb
         self.completer = IPdbCompleter(
-                shell=DummyShell(),
-                namespace=self._get_current_namespace()
+            shell=DummyShell(),
+            namespace={}, #self._get_current_namespace()
         )
         self.completer.limit_to__all__ = False
 
@@ -126,21 +120,14 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
                                              line_input_checker=False)
 
         # For the %matplotlib magic
+        # TODO: Remove this?
         self.ipyshell = InteractiveShell()
         self.ipyshell.enable_gui = enable_gui
         self.mpl_gui = None
 
         # Add _get_kernel_
+        # TODO: Remove this?
         builtins._get_kernel_ = self._get_kernel_
-
-        # Create console client
-        try:
-            self.console_client = self._create_console_client()
-        except KeyError:
-            self.console_client = None
-
-        if self.console_client is not None:
-            self.console_client.start_channels()
 
         self._remove_unneeded_magics()
 
@@ -149,14 +136,14 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         """
         Execute code with the debugger.
         """
-        # Process command:
-        line = self.debugger.precmd(code)
-        stop = self.debugger.default(line)
-        stop = self.debugger.postcmd(stop, line)
-        if stop:
-            self.debugger.postloop()
+        # Process command
+        line = code.strip()
+        self.debugger.default(line)
+        self.debugger.postcmd(None, line)
 
-        self._show_inline_figures()
+        # Post command operations
+        # TODO: Fix inline figures
+        # self._show_inline_figures()
 
     def do_is_complete(self, code):
         """
@@ -332,7 +319,7 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         """To add _get_kernel_ function to builtins."""
         return self
 
-    def _create_console_client(self):
+    def _create_console_kernel_client(self):
         """Create a kernel client connected to a console kernel."""
         try:
             # Retrieve connection info from the environment
