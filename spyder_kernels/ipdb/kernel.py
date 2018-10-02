@@ -83,7 +83,7 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         self.input_transformer_manager = IPythonInputSplitter(
                                              line_input_checker=False)
 
-        # For the %matplotlib magic
+        # For module_completion and do_inspect
         self.ipyshell = InteractiveShell().instance()
         self.ipyshell.enable_gui = enable_gui
         self.mpl_gui = None
