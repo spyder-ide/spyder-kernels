@@ -75,3 +75,6 @@ class PdbProxy(object):
             self._execute(u'do_down("{}")'.format(arg), interactive=True)
         else:
             self._execute(u'do_down(None)', interactive=True)
+
+    def error(self, msg):
+        self._execute(u'error("{}")'.format(msg), interactive=True)
