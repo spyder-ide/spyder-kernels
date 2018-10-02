@@ -19,7 +19,6 @@ import os
 import sys
 
 from ipykernel.eventloops import enable_gui
-from IPython.core.completer import IPCompleter
 from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.interactiveshell import InteractiveShell
 from IPython.core.debugger import BdbQuit_excepthook
@@ -48,33 +47,6 @@ class PhonyStdout(object):
 
     def close(self):
         pass
-
-
-class DummyShell(object):
-    """Dummy shell to pass to IPCompleter."""
-
-    @property
-    def magics_manager(self):
-        """
-        Create a dummy magics manager with the interface
-        expected by IPCompleter.
-        """
-        class DummyMagicsManager(object):
-            def lsmagic(self):
-                return {'line': {}, 'cell': {}}
-
-        return DummyMagicsManager()
-
-
-class IPdbCompleter(IPCompleter):
-    """
-    Subclass of IPCompleter without file completions so they don't
-    interfere with the ones provided by MetaKernel.
-    """
-
-    def file_matches(self, text):
-        """Return and empty list to deactivate file matches."""
-        return []
 
 
 class IPdbKernel(BaseKernelMixIn, MetaKernel):
@@ -107,21 +79,12 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         console_kernel_client = self._create_console_kernel_client()
         self.debugger = PdbProxy(console_kernel_client)
 
-        # Completer
-        # TODO: Move completer to SpyderPdb
-        self.completer = IPdbCompleter(
-            shell=DummyShell(),
-            namespace={}, #self._get_current_namespace()
-        )
-        self.completer.limit_to__all__ = False
-
         # To detect if a line is complete
         self.input_transformer_manager = IPythonInputSplitter(
                                              line_input_checker=False)
 
         # For the %matplotlib magic
-        # TODO: Remove this?
-        self.ipyshell = InteractiveShell()
+        self.ipyshell = InteractiveShell().instance()
         self.ipyshell.enable_gui = enable_gui
         self.mpl_gui = None
 
@@ -194,18 +157,16 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         return reply_content
 
     def get_completions(self, info):
-        """
-        Get completions from kernel based on info dict.
-        """
+        """Get code completions."""
         code = info["code"]
-        # Update completer namespace before performing the
-        # completion
-        self.completer.namespace = self._get_current_namespace()
 
         if code.startswith('import') or code.startswith('from'):
             matches = module_completion(code)
         else:
-            matches = self.completer.complete(text=None, line_buffer=code)[1]
+            # We need to ask for completions twice to get the
+            # right completions through user_expressions
+            for _ in range(2):
+                matches = self.debugger._get_completions(code)
 
         return matches
 
@@ -257,28 +218,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
                 self.cell_magics.pop(cm)
             except:
                 pass
-
-    def _get_current_namespace(self, with_magics=False):
-        """Get current namespace."""
-        glbs = self.debugger.curframe.f_globals
-        lcls = self.debugger.curframe.f_locals
-        ns = {}
-
-        if glbs == lcls:
-            ns = glbs
-        else:
-            ns = glbs.copy()
-            ns.update(lcls)
-        
-        # Add magics to ns so we can show help about them on the Help
-        # plugin
-        if with_magics:
-            line_magics = self.line_magics
-            cell_magics = self.cell_magics
-            ns.update(line_magics)
-            ns.update(cell_magics)
-        
-        return ns
 
     def _get_reference_namespace(self, name):
         """
@@ -356,7 +295,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
             kernel_manager = KernelManager(kernel_name='spyder_console')
             kernel_manager.start_kernel()
             kernel_client = kernel_manager.client()
-            kernel_client.start_channels()
 
             # Register a Pdb instance so that PdbProxy can work
             kernel_client.execute('import pdb; p=pdb.Pdb(); p.init()',
