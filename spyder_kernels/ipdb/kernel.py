@@ -88,10 +88,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         self.ipyshell.enable_gui = enable_gui
         self.mpl_gui = None
 
-        # Add _get_kernel_
-        # TODO: Remove this?
-        builtins._get_kernel_ = self._get_kernel_
-
         self._remove_unneeded_magics()
 
     # --- MetaKernel API
@@ -253,10 +249,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         """Show Matplotlib inline figures."""
         if self.mpl_gui == 'inline':
             backend_inline.show()
-
-    def _get_kernel_(self):
-        """To add _get_kernel_ function to builtins."""
-        return self
 
     def _create_console_kernel_client(self):
         """Create a kernel client connected to a console kernel."""

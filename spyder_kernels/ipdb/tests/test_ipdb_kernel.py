@@ -297,13 +297,5 @@ def test_shell_partial_quote(ipdb_kernel):
         """ or volume label syntax is incorrect: '"/home/'""" in text, text
 
 
-def test_builtins(ipdb_kernel):
-    kernel = ipdb_kernel
-    kernel.do_execute('_get_kernel_', None)
-    text = get_log_text(kernel)
-
-    assert 'IPdbKernel._get_kernel_' in text
-
-
 if __name__ == "__main__":
     pytest.main()
