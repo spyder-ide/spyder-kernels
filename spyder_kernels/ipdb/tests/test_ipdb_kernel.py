@@ -284,6 +284,8 @@ def test_sticky_magics(ipdb_kernel):
     assert 'html removed from session magics' in text
 
 
+@pytest.mark.skipif(os.environ.get('CI', None) is None,
+                    reason="It's not meant to be run outside of CIs")
 def test_shell_partial_quote(ipdb_kernel):
     kernel = ipdb_kernel
     if os.name != 'nt':

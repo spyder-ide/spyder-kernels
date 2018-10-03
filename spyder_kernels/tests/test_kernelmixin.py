@@ -37,7 +37,9 @@ FILES_PATH = os.path.dirname(os.path.realpath(__file__))
 # Fixtures
 # =============================================================================
 @pytest.fixture(scope="module",
-                params=[IPdbKernel,
+                params=[# TODO: Determine what we need to move back
+                        # again to ConsoleKernel before restoring
+                        # IPdbKernel here.
                         ConsoleKernel])
 def kernel(request):
     """Kernel fixture"""
