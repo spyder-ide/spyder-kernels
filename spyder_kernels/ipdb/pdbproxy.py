@@ -91,6 +91,15 @@ class PdbProxy(object):
             print("We can't ask for confirmation in this kernel.\n"
                   "Please use '%reset -f' to reset your namespace.")
 
+    def _do_command(self, command, arg):
+        """
+        Method to execute a given Pdb comand with its respective arg.
+
+        Note: This is useful because almost all Pdb commands have a
+        single arg.
+        """
+        self._execute(u'{}({})'.format(command, arg), interactive=True)
+
     # --- Pdb API
     def default(self, line):
         self._execute(u'default("{}")'.format(line), interactive=True)
@@ -109,9 +118,3 @@ class PdbProxy(object):
         else:
             self._execute(u'do_break(None, {})'.format(temporary),
                           interactive=True)
-
-    def do_down(self, arg):
-        if arg:
-            self._execute(u'do_down("{}")'.format(arg), interactive=True)
-        else:
-            self._execute(u'do_down(None)', interactive=True)

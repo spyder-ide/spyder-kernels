@@ -26,7 +26,7 @@ class ListMagic(Magic):
         exception was originally raised or propagated is indicated by
         ">>", if it differs from the current line.
         """
-        self.kernel.debugger.do_list(arg)
+        self.kernel.debugger._do_command('do_list', arg)
     line_l = line_list
 
 
