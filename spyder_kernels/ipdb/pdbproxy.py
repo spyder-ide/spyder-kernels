@@ -11,13 +11,17 @@ Proxy to execute Pdb commands in a Pdb instance running in a
 different kernel.
 """
 
+from __future__ import print_function
 import ast
+import sys
+
 
 class PdbProxy(object):
 
     remote_pdb_obj = u'get_ipython().kernel._pdb_obj'
 
-    def __init__(self, kernel_client):
+    def __init__(self, parent, kernel_client):
+        self.parent = parent
         self.kernel_client = kernel_client
 
     # --- Custom API
@@ -30,7 +34,8 @@ class PdbProxy(object):
 
         pdb_cmd = self.remote_pdb_obj + u'.' + command
         if interactive:
-            kc_exec(pdb_cmd, store_history=False)
+            kc_exec(pdb_cmd, store_history=False,
+                    output_hook=self._output_hook)
         else:
             kc_exec(pdb_cmd, silent=True)
 
@@ -54,6 +59,27 @@ class PdbProxy(object):
                 return []
         except KeyError:
             return []
+
+    def _enable_matplotlib(self, gui):
+        """Set Matplotlib backend in the remote kernel."""
+        self.kernel_client.execute(u"%matplotlib {}".format(gui),
+                                   silent=True)
+
+    def _output_hook(self, msg):
+        """Output hook for execute_interactive."""
+        msg_type = msg['header']['msg_type']
+        content = msg['content']
+        if msg_type == 'stream':
+            stream = getattr(sys, content['name'])
+            stream.write(content['text'])
+        elif msg_type in ('display_data', 'execute_result'):
+            self.parent.send_response(
+                self.parent.iopub_socket,
+                msg_type,
+                content
+            )
+        elif msg_type == 'error':
+            print('\n'.join(content['traceback']), file=sys.stderr)
 
     # --- Pdb API
     def default(self, line):

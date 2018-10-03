@@ -18,7 +18,6 @@ import functools
 import os
 import sys
 
-from ipykernel.eventloops import enable_gui
 from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.interactiveshell import InteractiveShell
 from IPython.core.debugger import BdbQuit_excepthook
@@ -77,7 +76,8 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
 
         # Create Pdb proxy
         console_kernel_client = self._create_console_kernel_client()
-        self.debugger = PdbProxy(console_kernel_client)
+        self.debugger = PdbProxy(parent=self,
+                                 kernel_client=console_kernel_client)
 
         # To detect if a line is complete
         self.input_transformer_manager = IPythonInputSplitter(
@@ -85,8 +85,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
 
         # For module_completion and do_inspect
         self.ipyshell = InteractiveShell().instance()
-        self.ipyshell.enable_gui = enable_gui
-        self.mpl_gui = None
 
         self._remove_unneeded_magics()
 
@@ -99,10 +97,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         line = code.strip()
         self.debugger.default(line)
         self.debugger.postcmd(None, line)
-
-        # Post command operations
-        # TODO: Fix inline figures
-        # self._show_inline_figures()
 
     def do_is_complete(self, code):
         """
@@ -244,11 +238,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
                            'stream',
                            {'name': 'stdout',
                             'text': text})
-
-    def _show_inline_figures(self):
-        """Show Matplotlib inline figures."""
-        if self.mpl_gui == 'inline':
-            backend_inline.show()
 
     def _create_console_kernel_client(self):
         """Create a kernel client connected to a console kernel."""
