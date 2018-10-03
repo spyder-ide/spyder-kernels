@@ -20,32 +20,15 @@ import sys
 
 from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.interactiveshell import InteractiveShell
-from IPython.core.debugger import BdbQuit_excepthook
 from IPython.utils.tokenutil import token_at_cursor
 from jupyter_client.blocking.client import BlockingKernelClient
 from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
-from spyder_kernels.ipdb import backend_inline
 from spyder_kernels.ipdb.pdbproxy import PdbProxy
 from spyder_kernels.kernelmixin import BaseKernelMixIn
 from spyder_kernels.py3compat import builtins
 from spyder_kernels.utils.module_completion import module_completion
-
-
-class PhonyStdout(object):
-
-    def __init__(self, write_func):
-        self._write_func = write_func
-
-    def flush(self):
-        pass
-
-    def write(self, s):
-        self._write_func(s)
-
-    def close(self):
-        pass
 
 
 class IPdbKernel(BaseKernelMixIn, MetaKernel):
@@ -208,36 +191,6 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
                 self.cell_magics.pop(cm)
             except:
                 pass
-
-    def _get_reference_namespace(self, name):
-        """
-        Return namespace where reference name is defined
-
-        It returns the globals() if reference has not yet been defined
-        """
-        glbs = self._mglobals()
-        if self.debugger.curframe is None:
-            return glbs
-        else:
-            lcls = self.debugger.curframe.f_locals
-            if name in lcls:
-                return lcls
-            else:
-                return glbs
-
-    def _mglobals(self):
-        """Return current globals"""
-        if self.debugger.curframe is not None:
-            return self.debugger.curframe.f_globals
-        else:
-            return {}
-
-    def _phony_stdout(self, text):
-        self.log.debug(text)
-        self.send_response(self.iopub_socket,
-                           'stream',
-                           {'name': 'stdout',
-                            'text': text})
 
     def _create_console_kernel_client(self):
         """Create a kernel client connected to a console kernel."""
