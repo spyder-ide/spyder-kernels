@@ -40,7 +40,7 @@ def test_matplotlib_inline(qtconsole, qtbot):
         shell.execute("%matplotlib inline")
 
     # Make a plot
-    with qtbot.waitSignal(shell.executed):
+    with qtbot.waitSignal(shell.executed, timeout=5000):
         shell.execute("import matplotlib.pyplot as plt; plt.plot(range(10))")
 
     # Assert that there's a plot in the console
@@ -61,7 +61,7 @@ def test_matplotlib_qt(qtconsole, qtbot):
         shell.execute("%matplotlib qt")
 
     # Make a plot
-    with qtbot.waitSignal(shell.executed):
+    with qtbot.waitSignal(shell.executed, timeout=5000):
         shell.execute("import matplotlib.pyplot as plt; plt.plot(range(10))")
 
     # Assert we have three prompts in the console, meaning that the
