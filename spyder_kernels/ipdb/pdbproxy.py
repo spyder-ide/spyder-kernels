@@ -35,9 +35,10 @@ class PdbProxy(object):
         pdb_cmd = self.remote_pdb_obj + u'.' + command
         if interactive:
             kc_exec(pdb_cmd, store_history=False,
-                    output_hook=self._output_hook)
+                    output_hook=self._output_hook,
+                    allow_stdin=False)
         else:
-            kc_exec(pdb_cmd, silent=True)
+            kc_exec(pdb_cmd, silent=True, allow_stdin=False)
 
     def _get_completions(self, code):
         """Get code completions from our Pdb instance."""
@@ -81,6 +82,15 @@ class PdbProxy(object):
         elif msg_type == 'error':
             print('\n'.join(content['traceback']), file=sys.stderr)
 
+    def _reset_namespace(self, arg):
+        if arg:
+            self.kernel_client.execute_interactive(
+                u"%reset {}".format(arg),
+                store_history=False)
+        else:
+            print("We can't ask for confirmation in this kernel.\n"
+                  "Please use '%reset -f' to reset your namespace.")
+
     # --- Pdb API
     def default(self, line):
         self._execute(u'default("{}")'.format(line), interactive=True)
@@ -88,6 +98,10 @@ class PdbProxy(object):
     def postcmd(self, stop, line):
         self._execute(u'postcmd(None, "{}")'.format(line))
 
+    def error(self, msg):
+        self._execute(u'error("{}")'.format(msg), interactive=True)
+
+    # --- Pdb commands
     def do_break(self, arg=None, temporary=0):
         if arg:
             self._execute(u'do_break("{}", {})'.format(arg, temporary),
@@ -101,6 +115,3 @@ class PdbProxy(object):
             self._execute(u'do_down("{}")'.format(arg), interactive=True)
         else:
             self._execute(u'do_down(None)', interactive=True)
-
-    def error(self, msg):
-        self._execute(u'error("{}")'.format(msg), interactive=True)
