@@ -277,5 +277,28 @@ def test_get_source(kernel):
     assert 'class _Helper(object):' in kernel.get_source(objtxt)
 
 
+# --- Other stuff
+def test_output_from_c_libraries(kernel, capsys):
+    """Test that the wurlitzer extension is working."""
+    # This code was taken from the Wurlitzer demo
+    code = """
+import ctypes
+libc = ctypes.CDLL(None)
+libc.printf(('Hello from C\\n').encode('utf8'))
+"""
+
+    # Without Wurlitzer there's not output generated
+    # by the kernel
+    reply = kernel.do_execute(code, True)
+    captured = capsys.readouterr()
+    assert captured.out == ''
+
+    # With Wurlitzer we have the expected output
+    kernel._load_wurlitzer()
+    reply = kernel.do_execute(code, True)
+    captured = capsys.readouterr()
+    assert captured.out == "Hello from C\n"
+
+
 if __name__ == "__main__":
     pytest.main()
