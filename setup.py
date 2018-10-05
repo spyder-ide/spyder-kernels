@@ -52,7 +52,8 @@ def get_version(module='spyder_kernels'):
 REQUIREMENTS = ['ipykernel>=4.8.2',
                 'pyzmq>=17',
                 'jupyter-client>=5.2.3',
-                'cloudpickle']
+                'cloudpickle',
+                'wurlitzer']
 
 
 setup(

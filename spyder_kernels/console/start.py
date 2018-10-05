@@ -122,6 +122,10 @@ def kernel_config():
     spy_cfg.IPKernelApp.exec_lines.append(
         "get_ipython().kernel._load_autoreload_magic()")
 
+    # Load wurlitzer extension
+    spy_cfg.IPKernelApp.exec_lines.append(
+        "get_ipython().kernel._load_wurlitzer()")
+
     # Default inline backend configuration
     # This is useful to have when people doesn't
     # use our config system to configure the
