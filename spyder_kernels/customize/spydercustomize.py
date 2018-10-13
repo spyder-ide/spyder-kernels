@@ -618,7 +618,7 @@ def _get_globals():
 
 
 def run_umr():
-    """Runs the user module reloader"""
+    """Run the user module reloader."""
     global __umr__
     if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
         if __umr__ is None:
