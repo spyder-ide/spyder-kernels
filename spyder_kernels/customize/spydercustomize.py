@@ -684,7 +684,7 @@ def runcell(cellname, filename):
     """
     Run a code cell from an editor as a file.
 
-    Currently looks for code in in a `ipython` property called `cell_code`.
+    Currently looks for code in an `ipython` property called `cell_code`.
     This property must be set by the editor prior to calling this function.
     This function deletes the contents of `cell_code` upon completion.
 
