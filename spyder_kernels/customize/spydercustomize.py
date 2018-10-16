@@ -282,7 +282,7 @@ class SpyderPdb(pdb.Pdb):
 
     # --- Methods overriden by us
     def preloop(self):
-        """Ask Spyder for berkpoints before the first prompt is created."""
+        """Ask Spyder for breakpoints before the first prompt is created."""
         if self.starting:
             get_ipython().kernel._ask_spyder_for_breakpoints()
 
@@ -608,13 +608,27 @@ if "SPYDER_EXCEPTHOOK" in os.environ:
     set_post_mortem()
 
 
-#==============================================================================
+# ==============================================================================
 # runfile and debugfile commands
-#==============================================================================
+# ==============================================================================
 def _get_globals():
     """Return current namespace"""
     ipython_shell = get_ipython()
     return ipython_shell.user_ns
+
+
+def run_umr():
+    """Run the user module reloader."""
+    global __umr__
+    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
+        if __umr__ is None:
+            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
+            if namelist is not None:
+                namelist = namelist.split(',')
+            __umr__ = UserModuleReloader(namelist=namelist)
+        else:
+            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
+            __umr__.run(verbose=verbose)
 
 
 def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
@@ -630,16 +644,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    global __umr__
-    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
-        if __umr__ is None:
-            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
-            if namelist is not None:
-                namelist = namelist.split(',')
-            __umr__ = UserModuleReloader(namelist=namelist)
-        else:
-            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
-            __umr__.run(verbose=verbose)
+    run_umr()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:
@@ -671,7 +676,46 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     sys.argv = ['']
     namespace.pop('__file__')
 
+
 builtins.runfile = runfile
+
+
+def runcell(cellname, filename):
+    """
+    Run a code cell from an editor as a file.
+
+    Currently looks for code in an `ipython` property called `cell_code`.
+    This property must be set by the editor prior to calling this function.
+    This function deletes the contents of `cell_code` upon completion.
+
+    Parameters
+    ----------
+    cellname : str
+        Used as a reference in the history log of which
+        cell was run with the fuction. This variable is not used.
+    filename : str
+        Needed to allow for proper traceback links.
+    """
+    try:
+        filename = filename.decode('utf-8')
+    except (UnicodeError, TypeError, AttributeError):
+        # UnicodeError, TypeError --> eventually raised in Python 2
+        # AttributeError --> systematically raised in Python 3
+        pass
+    run_umr()
+    ipython_shell = get_ipython()
+    try:
+        cell_code = ipython_shell.cell_code
+    except AttributeError:
+        _print("--Run Cell Error--\n"
+               "Please use only through Spyder's Editor; "
+               "shouldn't be called manually from the console")
+        return
+    ipython_shell.run_cell(cell_code)
+    del ipython_shell.cell_code
+
+
+builtins.runcell = runcell
 
 
 def debugfile(filename, args=None, wdir=None, post_mortem=False):
@@ -689,6 +733,7 @@ def debugfile(filename, args=None, wdir=None, post_mortem=False):
     if os.name == 'nt':
         filename = filename.replace('\\', '/')
     debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
+
 
 builtins.debugfile = debugfile
 
