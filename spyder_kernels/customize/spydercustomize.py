@@ -713,7 +713,7 @@ def runcell(cellname, filename):
         return
 
     # Trigger `post_execute` to exit the additional pre-execution.
-    # See spyder #7310.
+    # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
 
     ipython_shell.run_cell(cell_code)
