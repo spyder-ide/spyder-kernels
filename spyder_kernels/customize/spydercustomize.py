@@ -230,6 +230,13 @@ class IPyTesProgram(TestProgram):
         TestProgram.__init__(self, *args, **kwargs)
 unittest.main = IPyTesProgram
 
+# Ignore some IPython/ipykernel warnings
+try:
+    warnings.filterwarnings(action='ignore', category=DeprecationWarning,
+                            module='ipykernel.ipkernel')
+except:
+    pass
+
 
 #==============================================================================
 # Pandas adjustments
