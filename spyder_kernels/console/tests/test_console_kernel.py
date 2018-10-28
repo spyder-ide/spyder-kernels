@@ -278,6 +278,7 @@ def test_get_source(kernel):
 
 
 # --- Other stuff
+@pytest.mark.skipif(os.name == 'nt', reason="Doesn't work on Windows")
 def test_output_from_c_libraries(kernel, capsys):
     """Test that the wurlitzer extension is working."""
     # This code was taken from the Wurlitzer demo
