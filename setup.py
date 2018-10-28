@@ -53,7 +53,7 @@ REQUIREMENTS = ['ipykernel>=4.8.2',
                 'pyzmq>=17',
                 'jupyter-client>=5.2.3',
                 'cloudpickle',
-                'wurlitzer']
+                'wurlitzer;platform_system!="Windows"']
 
 
 setup(
