@@ -10,10 +10,12 @@ Tests for the console kernel.
 """
 
 # Standard library imports
+import ast
 import os
 import os.path as osp
 
 # Test imports
+from ipykernel.tests.test_embed_kernel import setup_kernel
 import pytest
 
 # Local imports
@@ -28,6 +30,7 @@ import cloudpickle
 # Constants
 # =============================================================================
 FILES_PATH = os.path.dirname(os.path.realpath(__file__))
+TIMEOUT = 15
 
 
 # =============================================================================
@@ -299,6 +302,29 @@ libc.printf(('Hello from C\\n').encode('utf8'))
     reply = kernel.do_execute(code, True)
     captured = capsys.readouterr()
     assert captured.out == "Hello from C\n"
+
+
+def test_cwd_in_sys_path():
+    """
+    Test that cwd stays as the first element in sys.path after the
+    kernel has started.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        msg_id = client.execute("import sys; sys_path = sys.path",
+                                user_expressions={'output':'sys_path'})
+        reply = client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Transform sys.path value obtained through user_expressions
+        # to a real value
+        user_expressions = reply['content']['user_expressions']
+        sys_path_value = user_expressions['output']['data']['text/plain']
+        sys_path = ast.literal_eval(sys_path_value)
+
+        # Assert the first value of sys_path is an empty string
+        assert sys_path[0] == ''
 
 
 if __name__ == "__main__":

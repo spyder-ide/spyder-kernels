@@ -11,7 +11,6 @@ environment:
     CONDA_DEPENDENCIES_FLAGS: "--quiet"
     CONDA_DEPENDENCIES: >
       ipykernel cloudpickle numpy pandas scipy pytest pytest-cov
-    PIP_DEPENDENCIES: "wurlitzer"
 
   matrix:
     - PYTHON_VERSION: "2.7"
@@ -35,6 +34,7 @@ install:
   - "powershell ci-helpers/appveyor/install-miniconda.ps1"
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "activate test"
+  - "pip install -e ."
 
 build: false
 
