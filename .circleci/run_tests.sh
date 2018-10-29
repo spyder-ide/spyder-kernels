@@ -1,7 +1,9 @@
 #!/bin/bash
 
-export PATH="$HOME/miniconda/bin:$PATH"
-source activate test
+source $HOME/miniconda/etc/profile.d/conda.sh
+conda activate test
+
+pip install -e .
 
 pytest -x -vv --cov=spyder_kernels spyder_kernels
 
