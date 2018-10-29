@@ -279,6 +279,35 @@ except:
     pass
 
 
+# =============================================================================
+# Multiprocessing adjustments
+# =============================================================================
+# This patch is only needed on Windows and Python 3
+if os.name == 'nt' and not PY2:
+    # This could fail with changes in Python itself, so we protect it
+    # with a try/except
+    try:
+        import multiprocessing.spawn
+        _old_preparation_data = multiprocessing.spawn.get_preparation_data
+
+        def _patched_preparation_data(name):
+            """
+            Patched get_preparation_data to work when all variables are
+            removed before execution.
+            """
+            try:
+                return _old_preparation_data(name)
+            except AttributeError:
+                main_module = sys.modules['__main__']
+                # Any string for __spec__ does the job
+                main_module.__spec__ = ''
+                return _old_preparation_data(name)
+
+        multiprocessing.spawn.get_preparation_data = _patched_preparation_data
+    except Exception:
+        pass
+
+
 #==============================================================================
 # Pdb adjustments
 #==============================================================================

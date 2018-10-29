@@ -10,13 +10,16 @@ Tests for the console kernel.
 """
 
 # Standard library imports
+import ast
 import os
 import os.path as osp
 
 # Test imports
+from ipykernel.tests.test_embed_kernel import setup_kernel
 import pytest
 
 # Local imports
+from spyder_kernels.py3compat import PY3, to_text_string
 from spyder_kernels.console.kernel import PICKLE_PROTOCOL
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
@@ -28,6 +31,7 @@ import cloudpickle
 # Constants
 # =============================================================================
 FILES_PATH = os.path.dirname(os.path.realpath(__file__))
+TIMEOUT = 15
 
 
 # =============================================================================
@@ -299,6 +303,67 @@ libc.printf(('Hello from C\\n').encode('utf8'))
     reply = kernel.do_execute(code, True)
     captured = capsys.readouterr()
     assert captured.out == "Hello from C\n"
+
+
+def test_cwd_in_sys_path():
+    """
+    Test that cwd stays as the first element in sys.path after the
+    kernel has started.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        msg_id = client.execute("import sys; sys_path = sys.path",
+                                user_expressions={'output':'sys_path'})
+        reply = client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Transform value obtained through user_expressions
+        user_expressions = reply['content']['user_expressions']
+        str_value = user_expressions['output']['data']['text/plain']
+        value = ast.literal_eval(str_value)
+
+        # Assert the first value of sys_path is an empty string
+        assert value[0] == ''
+
+
+@pytest.mark.skipif(not (os.name == 'nt' and PY3),
+                    reason="Only meant for Windows and Python 3")
+def test_multiprocessing(tmpdir):
+    """
+    Test that multiprocessing works on Windows and Python 3.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Remove all variables
+        client.execute("%reset -f")
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Write multiprocessing code to a file
+        code = """
+from multiprocessing import Pool
+
+def f(x):
+    return x*x
+
+if __name__ == '__main__':
+    with Pool(5) as p:
+        result = p.map(f, [1, 2, 3])
+"""
+        p = tmpdir.join("mp-test.py")
+        p.write(code)
+
+        # Run code
+        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that the `result` variable is defined
+        client.inspect('result')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
 
 
 if __name__ == "__main__":
