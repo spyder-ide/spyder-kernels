@@ -508,5 +508,7 @@ class SpyderKernel(IPythonKernel):
 
     def _load_wurlitzer(self):
         """Load wurlitzer extension."""
-        from IPython.core.getipython import get_ipython
-        get_ipython().run_line_magic('reload_ext', 'wurlitzer')
+        # Wurlitzer has no effect on Windows
+        if not os.name == 'nt':
+            from IPython.core.getipython import get_ipython
+            get_ipython().run_line_magic('reload_ext', 'wurlitzer')
