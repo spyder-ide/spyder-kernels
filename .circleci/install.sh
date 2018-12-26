@@ -10,10 +10,11 @@ conda create -y -n test python=$PYTHON_VERSION
 conda activate test
 
 # Install dependencies
-conda install -y -q --file requirements.txt
+conda install -y -q --file requirements/posix.txt
 
 # Install test dependencies
-conda install -y -q nomkl numpy pandas scipy pytest pytest-cov mock
+conda install -y -q nomkl
+conda install -y -q --file requirements/tests.txt
 
 # Install codecov
 pip install -q codecov
