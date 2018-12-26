@@ -369,5 +369,33 @@ if __name__ == '__main__':
         assert content['found']
 
 
+def test_runcell(tmpdir):
+    """Test the runcell command."""
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Write code with a cell to a file
+        code = u"result = 10"
+        p = tmpdir.join("cell-test.py")
+        p.write(code)
+
+        # Attach cell_code to the IPython shell instance to simulate
+        # that the code was sent from Spyder's Editor
+        client.execute(u"get_ipython().cell_code = '{}'".format(code))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Execute runcell
+        client.execute(u"runcell('', r'{}')".format(to_text_string(p)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that the `result` variable is defined
+        client.inspect('result')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        print(msg['content'])
+        content = msg['content']
+        assert content['found']
+
+
 if __name__ == "__main__":
     pytest.main()
