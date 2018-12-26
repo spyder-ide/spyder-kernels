@@ -1,5 +1,31 @@
 # History of changes
 
+## Version 1.2 (2018-12-26)
+
+### New features
+* Add the `runcell` command to run cells from Spyder's editor
+  without pasting their contents in the console.
+* This release also contains all features and fixes present in
+  version 0.3.
+
+### Issues Closed
+
+* [Issue 57](https://github.com/spyder-ide/spyder-kernels/issues/57) - Add a test for runcell ([PR 70](https://github.com/spyder-ide/spyder-kernels/pull/70))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 70](https://github.com/spyder-ide/spyder-kernels/pull/70) - PR: Add a test for the runcell command ([57](https://github.com/spyder-ide/spyder-kernels/issues/57))
+* [PR 69](https://github.com/spyder-ide/spyder-kernels/pull/69) - PR: Start testing in macOS
+* [PR 67](https://github.com/spyder-ide/spyder-kernels/pull/67) - PR: Drop using ci-helpers in our CIs
+* [PR 58](https://github.com/spyder-ide/spyder-kernels/pull/58) - PR: runcell trigger post_execute before run_cell to end the run_cell pre_execute
+* [PR 7](https://github.com/spyder-ide/spyder-kernels/pull/7) - PR: Add runcell to spydercustomize
+
+In this release 5 pull requests were closed.
+
+----
+
 ## Version 1.1 (2018-08-11)
 
 ### Issues Closed
