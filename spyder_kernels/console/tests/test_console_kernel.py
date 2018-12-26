@@ -16,6 +16,7 @@ import os.path as osp
 
 # Test imports
 from ipykernel.tests.test_embed_kernel import setup_kernel
+import IPython
 import pytest
 
 # Local imports
@@ -305,6 +306,8 @@ libc.printf(('Hello from C\\n').encode('utf8'))
     assert captured.out == "Hello from C\n"
 
 
+@pytest.mark.skipif(IPython.__version__ >= '7.2.0',
+                    reason="This problem was fixed in IPython 7.2+")
 def test_cwd_in_sys_path():
     """
     Test that cwd stays as the first element in sys.path after the
