@@ -138,6 +138,7 @@ def test_help(ipdb_kernel):
     assert resp == None
 
 
+@pytest.mark.xfail
 def test_complete(ipdb_kernel):
     """Check completion."""
     kernel = ipdb_kernel
@@ -284,6 +285,7 @@ def test_sticky_magics(ipdb_kernel):
     assert 'html removed from session magics' in text
 
 
+@pytest.mark.xfail
 def test_shell_partial_quote(ipdb_kernel):
     kernel = ipdb_kernel
     if os.name != 'nt':

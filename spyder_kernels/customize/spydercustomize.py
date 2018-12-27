@@ -225,6 +225,13 @@ class IPyTesProgram(TestProgram):
         TestProgram.__init__(self, *args, **kwargs)
 unittest.main = IPyTesProgram
 
+# Ignore some IPython/ipykernel warnings
+try:
+    warnings.filterwarnings(action='ignore', category=DeprecationWarning,
+                            module='ipykernel.ipkernel')
+except:
+    pass
+
 
 #==============================================================================
 # Pandas adjustments
@@ -265,6 +272,35 @@ try:
                             message=".*invalid value encountered in.*")
 except:
     pass
+
+
+# =============================================================================
+# Multiprocessing adjustments
+# =============================================================================
+# This patch is only needed on Windows and Python 3
+if os.name == 'nt' and not PY2:
+    # This could fail with changes in Python itself, so we protect it
+    # with a try/except
+    try:
+        import multiprocessing.spawn
+        _old_preparation_data = multiprocessing.spawn.get_preparation_data
+
+        def _patched_preparation_data(name):
+            """
+            Patched get_preparation_data to work when all variables are
+            removed before execution.
+            """
+            try:
+                return _old_preparation_data(name)
+            except AttributeError:
+                main_module = sys.modules['__main__']
+                # Any string for __spec__ does the job
+                main_module.__spec__ = ''
+                return _old_preparation_data(name)
+
+        multiprocessing.spawn.get_preparation_data = _patched_preparation_data
+    except Exception:
+        pass
 
 
 #==============================================================================
@@ -399,13 +435,27 @@ if "SPYDER_EXCEPTHOOK" in os.environ:
     set_post_mortem()
 
 
-#==============================================================================
+# ==============================================================================
 # runfile and debugfile commands
-#==============================================================================
+# ==============================================================================
 def _get_globals():
     """Return current namespace"""
     ipython_shell = get_ipython()
     return ipython_shell.user_ns
+
+
+def run_umr():
+    """Run the user module reloader."""
+    global __umr__
+    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
+        if __umr__ is None:
+            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
+            if namelist is not None:
+                namelist = namelist.split(',')
+            __umr__ = UserModuleReloader(namelist=namelist)
+        else:
+            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
+            __umr__.run(verbose=verbose)
 
 
 def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
@@ -421,16 +471,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    global __umr__
-    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
-        if __umr__ is None:
-            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
-            if namelist is not None:
-                namelist = namelist.split(',')
-            __umr__ = UserModuleReloader(namelist=namelist)
-        else:
-            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
-            __umr__.run(verbose=verbose)
+    run_umr()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:
@@ -462,7 +503,51 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     sys.argv = ['']
     namespace.pop('__file__')
 
+
 builtins.runfile = runfile
+
+
+def runcell(cellname, filename):
+    """
+    Run a code cell from an editor as a file.
+
+    Currently looks for code in an `ipython` property called `cell_code`.
+    This property must be set by the editor prior to calling this function.
+    This function deletes the contents of `cell_code` upon completion.
+
+    Parameters
+    ----------
+    cellname : str
+        Used as a reference in the history log of which
+        cell was run with the fuction. This variable is not used.
+    filename : str
+        Needed to allow for proper traceback links.
+    """
+    try:
+        filename = filename.decode('utf-8')
+    except (UnicodeError, TypeError, AttributeError):
+        # UnicodeError, TypeError --> eventually raised in Python 2
+        # AttributeError --> systematically raised in Python 3
+        pass
+    run_umr()
+    ipython_shell = get_ipython()
+    try:
+        cell_code = ipython_shell.cell_code
+    except AttributeError:
+        _print("--Run Cell Error--\n"
+               "Please use only through Spyder's Editor; "
+               "shouldn't be called manually from the console")
+        return
+
+    # Trigger `post_execute` to exit the additional pre-execution.
+    # See Spyder PR #7310.
+    ipython_shell.events.trigger('post_execute')
+
+    ipython_shell.run_cell(cell_code)
+    del ipython_shell.cell_code
+
+
+builtins.runcell = runcell
 
 
 def debugfile(filename, args=None, wdir=None, post_mortem=False):
@@ -480,6 +565,7 @@ def debugfile(filename, args=None, wdir=None, post_mortem=False):
     if os.name == 'nt':
         filename = filename.replace('\\', '/')
     debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
+
 
 builtins.debugfile = debugfile
 

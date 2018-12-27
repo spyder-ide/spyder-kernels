@@ -16,9 +16,11 @@ To release a new version of spyder-kernels on PyPI:
 
 * git add . && git commit -m 'Release X.X.X'
 
-* python setup.py sdist upload
+* python setup.py sdist
 
-* python setup.py bdist_wheel upload
+* python setup.py bdist_wheel
+
+* twine upload dist/*
 
 * git tag -a vX.X.X -m 'Release X.X.X'
 

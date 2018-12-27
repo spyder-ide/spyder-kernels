@@ -1,5 +1,31 @@
 # History of changes
 
+## Version 1.2 (2018-12-26)
+
+### New features
+* Add the `runcell` command to run cells from Spyder's editor
+  without pasting their contents in the console.
+* This release also contains all features and fixes present in
+  version 0.3.
+
+### Issues Closed
+
+* [Issue 57](https://github.com/spyder-ide/spyder-kernels/issues/57) - Add a test for runcell ([PR 70](https://github.com/spyder-ide/spyder-kernels/pull/70))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 70](https://github.com/spyder-ide/spyder-kernels/pull/70) - PR: Add a test for the runcell command ([57](https://github.com/spyder-ide/spyder-kernels/issues/57))
+* [PR 69](https://github.com/spyder-ide/spyder-kernels/pull/69) - PR: Start testing in macOS
+* [PR 67](https://github.com/spyder-ide/spyder-kernels/pull/67) - PR: Drop using ci-helpers in our CIs
+* [PR 58](https://github.com/spyder-ide/spyder-kernels/pull/58) - PR: runcell trigger post_execute before run_cell to end the run_cell pre_execute
+* [PR 7](https://github.com/spyder-ide/spyder-kernels/pull/7) - PR: Add runcell to spydercustomize
+
+In this release 5 pull requests were closed.
+
+----
+
 ## Version 1.1 (2018-08-11)
 
 ### Issues Closed
@@ -37,6 +63,38 @@ Sister release for 0.2.4
 ## Version 1.0.0 (2018-06-24)
 
 Initial release for Spyder 4
+
+----
+
+## Version 0.3 (2018-11-23)
+
+### New features
+* Add Wurlitzer as a new dependency on Posix systems.
+* Add tests for the console kernel.
+
+### Issues Closed
+
+* [Issue 62](https://github.com/spyder-ide/spyder-kernels/issues/62) - Add support for AppVeyor ([PR 63](https://github.com/spyder-ide/spyder-kernels/pull/63))
+* [Issue 60](https://github.com/spyder-ide/spyder-kernels/issues/60) - Only load Wurlitzer in Posix systems ([PR 64](https://github.com/spyder-ide/spyder-kernels/pull/64))
+* [Issue 23](https://github.com/spyder-ide/spyder-kernels/issues/23) - Add tests for the console kernel ([PR 37](https://github.com/spyder-ide/spyder-kernels/pull/37))
+
+In this release 3 issues were closed.
+
+### Pull Requests Merged
+
+* [PR 64](https://github.com/spyder-ide/spyder-kernels/pull/64) - PR: Don't load Wurlitzer extension on Windows because it has no effect there ([60](https://github.com/spyder-ide/spyder-kernels/issues/60))
+* [PR 63](https://github.com/spyder-ide/spyder-kernels/pull/63) - PR: Test on Windows with Appveyor ([62](https://github.com/spyder-ide/spyder-kernels/issues/62))
+* [PR 61](https://github.com/spyder-ide/spyder-kernels/pull/61) - PR: Patch multiprocessing to make it work when all variables are removed ([8128](https://github.com/spyder-ide/spyder/issues/8128))
+* [PR 59](https://github.com/spyder-ide/spyder-kernels/pull/59) - PR: Filter deprecation warnings in ipykernel ([8103](https://github.com/spyder-ide/spyder/issues/8103))
+* [PR 56](https://github.com/spyder-ide/spyder-kernels/pull/56) - PR: Add Wurlitzer to Readme
+* [PR 55](https://github.com/spyder-ide/spyder-kernels/pull/55) - PR: Exclude all tests from our tarballs
+* [PR 54](https://github.com/spyder-ide/spyder-kernels/pull/54) - PR: Add the Wurlitzer package to capture stdout/stderr from C libraries ([3777](https://github.com/spyder-ide/spyder/issues/3777))
+* [PR 53](https://github.com/spyder-ide/spyder-kernels/pull/53) - PR: Remove current working directory from sys.path before starting the console kernel ([8007](https://github.com/spyder-ide/spyder/issues/8007))
+* [PR 37](https://github.com/spyder-ide/spyder-kernels/pull/37) - PR: Initial tests for the console kernel ([23](https://github.com/spyder-ide/spyder-kernels/issues/23))
+* [PR 36](https://github.com/spyder-ide/spyder-kernels/pull/36) - PR: Make tests to really fail in CircleCI
+* [PR 21](https://github.com/spyder-ide/spyder-kernels/pull/21) - PR: Add AUTHORS.txt in MANIFEST.in to include in package
+
+In this release 11 pull requests were closed.
 
 ----
 

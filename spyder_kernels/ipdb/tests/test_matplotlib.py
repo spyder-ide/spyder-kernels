@@ -6,6 +6,7 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
+from flaky import flaky
 from qtconsole.qtconsoleapp import JupyterQtConsoleApp
 import pytest
 
@@ -26,6 +27,7 @@ def qtconsole(qtbot):
     return console
 
 
+@flaky(max_runs=3)
 def test_matplotlib_inline(qtconsole, qtbot):
     """Test that %matplotlib inline is working."""
     window = qtconsole.window
@@ -47,6 +49,7 @@ def test_matplotlib_inline(qtconsole, qtbot):
     assert shell._control.toHtml().count('img src') == 1
 
 
+@flaky(max_runs=3)
 def test_matplotlib_qt(qtconsole, qtbot):
     """Test that %matplotlib qt is working."""
     window = qtconsole.window
