@@ -12,6 +12,7 @@ Spyder kernel for Jupyter
 
 # Standard library imports
 import pickle
+import os
 
 # Local imports
 from spyder_kernels.kernelmixin import BaseKernelMixIn
@@ -155,3 +156,10 @@ class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
         from IPython.core.getipython import get_ipython
         get_ipython().run_line_magic('reload_ext', 'autoreload')
         get_ipython().run_line_magic('autoreload', '2')
+
+    def _load_wurlitzer(self):
+        """Load wurlitzer extension."""
+        # Wurlitzer has no effect on Windows
+        if not os.name == 'nt':
+            from IPython.core.getipython import get_ipython
+            get_ipython().run_line_magic('reload_ext', 'wurlitzer')

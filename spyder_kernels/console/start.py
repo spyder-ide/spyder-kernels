@@ -27,6 +27,13 @@ def import_spydercustomize():
     parent = osp.dirname(here)
     customize_dir = osp.join(parent, 'customize')
 
+    # Remove current directory from sys.path to prevent kernel
+    # crashes when people name Python files or modules with
+    # the same name as standard library modules.
+    # See spyder-ide/spyder#8007
+    while '' in sys.path:
+        sys.path.remove('')
+
     # Import our customizations
     site.addsitedir(customize_dir)
     import spydercustomize
@@ -114,6 +121,10 @@ def kernel_config():
     # Load %autoreload magic
     spy_cfg.IPKernelApp.exec_lines.append(
         "get_ipython().kernel._load_autoreload_magic()")
+
+    # Load wurlitzer extension
+    spy_cfg.IPKernelApp.exec_lines.append(
+        "get_ipython().kernel._load_wurlitzer()")
 
     # Default inline backend configuration
     # This is useful to have when people doesn't
@@ -264,12 +275,15 @@ def main():
     __doc__ = ''
     __name__ = '__main__'
 
-    # Add current directory to sys.path (like for any standard Python interpreter
-    # executed in interactive mode):
-    sys.path.insert(0, '')
-
     # Import our customizations into the kernel
     import_spydercustomize()
+
+    # Remove current directory from sys.path to prevent kernel
+    # crashes when people name Python files or modules with
+    # the same name as standard library modules.
+    # See spyder-ide/spyder#8007
+    while '' in sys.path:
+        sys.path.remove('')
 
     # Fire up the kernel instance.
     from ipykernel.kernelapp import IPKernelApp

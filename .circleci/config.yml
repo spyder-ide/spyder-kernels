@@ -12,13 +12,12 @@ main: &main
             sudo apt-get -qq update
             sudo apt-get install libegl1-mesa
       - run:
-          command: ./.circleci/install.sh
+          command: ./ci/install.sh
       - run:
-          command: ./.circleci/run_tests.sh
+          command: ./ci/runtests.sh
 
 jobs:
   python2.7:
-    python2.7:
     <<: *main
     environment:
       - PYTHON_VERSION: "2.7"
@@ -28,9 +27,15 @@ jobs:
     environment:
       - PYTHON_VERSION: "3.6"
 
+  python3.7:
+    <<: *main
+    environment:
+      - PYTHON_VERSION: "3.7"
+
 workflows:
   version: 2
   build_and_test:
     jobs:
       - python2.7
       - python3.6
+      - python3.7

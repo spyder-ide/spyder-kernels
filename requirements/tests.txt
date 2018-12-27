@@ -1,0 +1,9 @@
+numpy
+pandas
+scipy
+matplotlib
+qtconsole
+pytest
+pytest-cov
+pytest-qt
+mock

@@ -10,19 +10,24 @@ Tests for the console kernel.
 """
 
 # Standard library imports
+import ast
 import os
 
 # Test imports
+from ipykernel.tests.test_embed_kernel import setup_kernel
+import IPython
 import pytest
 
 # Local imports
 from spyder_kernels.utils.test_utils import get_kernel
+from spyder_kernels.py3compat import PY3, to_text_string
 
 
 # =============================================================================
 # Constants
 # =============================================================================
 FILES_PATH = os.path.dirname(os.path.realpath(__file__))
+TIMEOUT = 15
 
 
 # =============================================================================
@@ -78,7 +83,7 @@ def test_magics(console_kernel):
                   'logstate', 'logstop', 'ls', 'lsmagic', 'macro', 'magic',
                   'matplotlib', 'mkdir', 'more', 'notebook', 'page',
                   'pastebin', 'pdb', 'pdef', 'pdoc', 'pfile', 'pinfo',
-                  'pinfo2', 'popd', 'pprint', 'precision', 'profile', 'prun',
+                  'pinfo2', 'popd', 'pprint', 'precision', 'prun',
                   'psearch', 'psource', 'pushd', 'pwd', 'pycat', 'pylab',
                   'qtconsole', 'quickref', 'recall', 'rehashx', 'reload_ext',
                   'rep', 'rerun', 'reset', 'reset_selective', 'rmdir',
@@ -94,6 +99,121 @@ def test_magics(console_kernel):
                   'ruby', 'script', 'sh', 'svg', 'sx', 'system', 'time',
                   'timeit', 'writefile']:
         assert magic in cell_magics
+
+
+# --- Other stuff
+@pytest.mark.skipif(os.name == 'nt', reason="Doesn't work on Windows")
+def test_output_from_c_libraries(console_kernel, capsys):
+    """Test that the wurlitzer extension is working."""
+    # This code was taken from the Wurlitzer demo
+    code = """
+import ctypes
+libc = ctypes.CDLL(None)
+libc.printf(('Hello from C\\n').encode('utf8'))
+"""
+
+    # Without Wurlitzer there's not output generated
+    # by the kernel
+    reply = console_kernel.do_execute(code, True)
+    captured = capsys.readouterr()
+    assert captured.out == ''
+
+    # With Wurlitzer we have the expected output
+    kernel._load_wurlitzer()
+    reply = console_kernel.do_execute(code, True)
+    captured = capsys.readouterr()
+    assert captured.out == "Hello from C\n"
+
+
+@pytest.mark.skipif(IPython.__version__ >= '7.2.0',
+                    reason="This problem was fixed in IPython 7.2+")
+def test_cwd_in_sys_path():
+    """
+    Test that cwd stays as the first element in sys.path after the
+    kernel has started.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        msg_id = client.execute("import sys; sys_path = sys.path",
+                                user_expressions={'output':'sys_path'})
+        reply = client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Transform value obtained through user_expressions
+        user_expressions = reply['content']['user_expressions']
+        str_value = user_expressions['output']['data']['text/plain']
+        value = ast.literal_eval(str_value)
+
+        # Assert the first value of sys_path is an empty string
+        assert value[0] == ''
+
+
+@pytest.mark.skipif(not (os.name == 'nt' and PY3),
+                    reason="Only meant for Windows and Python 3")
+def test_multiprocessing(tmpdir):
+    """
+    Test that multiprocessing works on Windows and Python 3.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Remove all variables
+        client.execute("%reset -f")
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Write multiprocessing code to a file
+        code = """
+from multiprocessing import Pool
+
+def f(x):
+    return x*x
+
+if __name__ == '__main__':
+    with Pool(5) as p:
+        result = p.map(f, [1, 2, 3])
+"""
+        p = tmpdir.join("mp-test.py")
+        p.write(code)
+
+        # Run code
+        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that the `result` variable is defined
+        client.inspect('result')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
+
+
+def test_runcell(tmpdir):
+    """Test the runcell command."""
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Write code with a cell to a file
+        code = u"result = 10"
+        p = tmpdir.join("cell-test.py")
+        p.write(code)
+
+        # Attach cell_code to the IPython shell instance to simulate
+        # that the code was sent from Spyder's Editor
+        client.execute(u"get_ipython().cell_code = '{}'".format(code))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Execute runcell
+        client.execute(u"runcell('', r'{}')".format(to_text_string(p)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that the `result` variable is defined
+        client.inspect('result')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        print(msg['content'])
+        content = msg['content']
+        assert content['found']
 
 
 if __name__ == "__main__":

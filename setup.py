@@ -53,7 +53,8 @@ REQUIREMENTS = ['metakernel',
                 'ipykernel>=4.8.2',
                 'pyzmq>=17',
                 'jupyter-client>=5.2.3',
-                'cloudpickle']
+                'cloudpickle',
+                'wurlitzer;platform_system!="Windows"']
 
 
 setup(
@@ -67,7 +68,7 @@ setup(
     author_email="spyderlib@googlegroups.com",
     description="Jupyter kernels for Spyder's console",
     long_description="\n".join(DOCLINES[4:]),
-    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    packages=find_packages(exclude=['docs']),
     install_requires=REQUIREMENTS,
     include_package_data=True,
     classifiers=['Development Status :: 5 - Production/Stable',
