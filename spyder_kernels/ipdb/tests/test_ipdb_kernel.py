@@ -36,16 +36,10 @@ FILES_PATH = osp.dirname(osp.realpath(__file__))
 # Fixtures
 # =============================================================================
 @pytest.fixture
-def ipdb_kernel(request):
+def ipdb_kernel():
     """IPdb kernel fixture"""
     # Get kernel instance
     kernel = get_kernel(kernel_class=IPdbKernel)
-
-    # Teardown
-    def reset_kernel():
-        kernel.do_execute('%reset', True)
-
-    request.addfinalizer(reset_kernel)
     return kernel
 
 
