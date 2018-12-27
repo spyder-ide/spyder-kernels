@@ -2,4 +2,4 @@ include AUTHORS.txt
 include CHANGELOG.md
 include LICENSE.txt
 include README.md
-recursive-include spyder_kernels/utils/tests *.mat *.spydata *.npz
+recursive-exclude * */tests/*.*

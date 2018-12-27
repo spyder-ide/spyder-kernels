@@ -138,6 +138,7 @@ def test_help(ipdb_kernel):
     assert resp == None
 
 
+@pytest.mark.xfail
 def test_complete(ipdb_kernel):
     """Check completion."""
     kernel = ipdb_kernel
