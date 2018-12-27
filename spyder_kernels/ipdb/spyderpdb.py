@@ -157,7 +157,10 @@ class SpyderPdb(pdb.Pdb):
             shell=DummyShell(),
             namespace=self._get_current_namespace()
         )
-        self.completer.limit_to__all__ = False
+
+        # If Jedi is activated completions stop to work!
+        if not PY2:
+            self.completer.use_jedi = False
 
     def start_ipdb_kernel(self):
         """Start IPdb kernel."""
