@@ -29,7 +29,7 @@ install:
   - "conda install -q -y --file requirements/windows.txt"
   - "conda install -q -y -c spyder-ide --file requirements/tests.txt"
   # Install metakernel from master to verify that it doesn't break us
-  - "conda install -q -y pexpect"
+  - "conda install -q -y --no-deps pexpect"
   - "pip install -q --no-deps git+https://github.com/Calysto/metakernel.git"
   # # Install kernelspec's
   - "pip install -e ."
