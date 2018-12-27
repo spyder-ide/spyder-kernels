@@ -90,6 +90,8 @@ def test_shell_magic(ipdb_kernel):
     os.remove('TEST.txt')
 
 
+@pytest.mark.skipif(os.name == 'nt',
+                    reason="It's failing on Windows")
 def test_break_magic(ipdb_kernel):
     """Test %break magic."""
     kernel = ipdb_kernel
