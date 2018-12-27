@@ -85,8 +85,6 @@ def test_get_namespace_view(kernel):
     Test the namespace view of the kernel.
     """
     execute = kernel.do_execute('a = 1', True)
-    assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
-                       'user_expressions': {}}
     nsview = kernel.get_namespace_view()
     assert "'a':" in nsview
     assert "'type': 'int'" in nsview or "'type': u'int'" in nsview
@@ -100,8 +98,6 @@ def test_get_var_properties(kernel):
     Test the properties fo the variables in the namespace.
     """
     execute = kernel.do_execute('a = 1', True)
-    assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
-                       'user_expressions': {}}
     var_properties = kernel.get_var_properties()
     assert "'a'" in var_properties
     assert "'is_list': False" in var_properties
@@ -129,10 +125,7 @@ def test_send_spyder_msg(kernel):
 def test_get_value(kernel):
     """Test getting the value of a variable."""
     name = 'a'
-
     execute = kernel.do_execute("a = 1", True)
-    assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
-                       'user_expressions': {}}
     # Check data type send
     kernel.get_value(name)
     log_text = get_log_text(kernel)
@@ -142,10 +135,7 @@ def test_get_value(kernel):
 def test_set_value(kernel):
     """Test setting the value of a variable."""
     name = 'a'
-
     execute = kernel.do_execute('a = 0', True)
-    assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
-                       'user_expressions': {}}
     value = [cloudpickle.dumps(10, protocol=PICKLE_PROTOCOL)]
     PY2_frontend = False
     kernel.set_value(name, value, PY2_frontend)
@@ -156,10 +146,7 @@ def test_set_value(kernel):
 def test_remove_value(kernel):
     """Test the removal of a variable."""
     name = 'a'
-
     execute = kernel.do_execute('a = 1', True)
-    assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
-                       'user_expressions': {}}
     var_properties = kernel.get_var_properties()
     assert "'a'" in var_properties
     assert "'is_list': False" in var_properties
@@ -181,8 +168,6 @@ def test_copy_value(kernel):
     orig_name = 'a'
     new_name = 'b'
     execute = kernel.do_execute('a = 1', True)
-    assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
-                       'user_expressions': {}}
     var_properties = kernel.get_var_properties()
     assert "'a'" in var_properties
     assert "'is_list': False" in var_properties
@@ -234,8 +219,6 @@ def test_save_namespace(kernel):
         os.remove(namespace_file)
         assert not osp.isfile(namespace_file)
     execute = kernel.do_execute('b = 1', True)
-    assert execute == {'execution_count': 0, 'payload': [], 'status': 'ok',
-                       'user_expressions': {}}
     kernel.save_namespace(namespace_file)
     assert osp.isfile(namespace_file)
     load_func = iofunctions.load_funcs['.spydata']

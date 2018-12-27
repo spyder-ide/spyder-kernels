@@ -119,7 +119,7 @@ libc.printf(('Hello from C\\n').encode('utf8'))
     assert captured.out == ''
 
     # With Wurlitzer we have the expected output
-    kernel._load_wurlitzer()
+    console_kernel._load_wurlitzer()
     reply = console_kernel.do_execute(code, True)
     captured = capsys.readouterr()
     assert captured.out == "Hello from C\n"
