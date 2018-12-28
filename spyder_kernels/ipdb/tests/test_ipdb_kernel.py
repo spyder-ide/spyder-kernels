@@ -26,6 +26,14 @@ import pytest
 from spyder_kernels.ipdb.kernel import IPdbKernel
 from spyder_kernels.py3compat import PY2
 
+
+# =============================================================================
+# Skip on Linux/Windows and our CIs because these tests time out too frequently
+# =============================================================================
+if os.environ.get('CI', None) is not None and not sys.platform == 'darwin':
+    pytestmark = pytest.mark.skip
+
+
 # =============================================================================
 # Constants
 # =============================================================================
