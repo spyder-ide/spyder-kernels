@@ -15,6 +15,8 @@ from __future__ import print_function
 import ast
 import sys
 
+from spyder_kernels.py3compat import to_text_string
+
 
 class PdbProxy(object):
 
@@ -40,26 +42,59 @@ class PdbProxy(object):
         else:
             kc_exec(pdb_cmd, silent=True, allow_stdin=False)
 
-    def _get_completions(self, code):
-        """Get code completions from our Pdb instance."""
-        # Ask for completions to the debugger
-        cmd = (u'__spy_matches__ = ' + self.remote_pdb_obj + u'.' +
-               u'_get_completions("{}")'.format(code))
+    def _silent_exec_method(self, method, args=None):
+        """
+        Silently execute a method of our remote Pdb instance and get its
+        response.
+
+        Parameters
+        ----------
+        method: string
+            Method name
+        args: string
+            Args to be passed to the method (optional)
+        """
+        method = to_text_string(method)
+
+        # Pass args to the method call, if any
+        if args is not None:
+            args = to_text_string(args)
+            method_call = method + u'("{}")'.format(args)
+        else:
+            method_call = method + u'()'
+
+        # Ask the remote instance to execute the method call
+        cmd = (u'__dbg_response__ = ' + self.remote_pdb_obj + u'.' +
+               method_call)
         msg_id = self.kernel_client.execute(cmd,
                     silent=True,
-                    user_expressions={'output':'__spy_matches__'})
+                    user_expressions={'output':'__dbg_response__'})
 
-        # Get completions from the reply
+        # Get response
         reply = self.kernel_client.get_shell_msg(msg_id)
         user_expressions = reply['content']['user_expressions']
         try:
-            str_matches = user_expressions['output']['data']['text/plain']
+            return user_expressions['output']['data']['text/plain']
+        except KeyError:
+            return None
+
+    def _get_completions(self, code):
+        """
+        Get code completions from our Pdb instance.
+
+        Parameters
+        ----------
+        code: string
+            Code to get completions for.
+        """
+        response = self._silent_exec_method('_get_completions', code)
+        if response is None:
+            return []
+        else:
             try:
-                return ast.literal_eval(str_matches)
+                return ast.literal_eval(response)
             except Exception:
                 return []
-        except KeyError:
-            return []
 
     def _enable_matplotlib(self, gui):
         """Set Matplotlib backend in the remote kernel."""
