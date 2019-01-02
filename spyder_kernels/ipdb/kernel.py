@@ -27,12 +27,10 @@ from metakernel import MetaKernel
 
 from spyder_kernels._version import __version__
 from spyder_kernels.ipdb.pdbproxy import PdbProxy
-from spyder_kernels.kernelmixin import BaseKernelMixIn
-from spyder_kernels.py3compat import builtins
 from spyder_kernels.utils.module_completion import module_completion
 
 
-class IPdbKernel(BaseKernelMixIn, MetaKernel):
+class IPdbKernel(MetaKernel):
     implementation = "IPdb Kernel"
     implementation_version = __version__
     language = "ipdb"
