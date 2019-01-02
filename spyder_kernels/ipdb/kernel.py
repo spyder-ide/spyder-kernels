@@ -58,7 +58,7 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
         "name": "ipdb_kernel",
     }
 
-    def __init__(self, *args, testing=False, **kwargs):
+    def __init__(self, testing=False, *args, **kwargs):
         super(IPdbKernel, self).__init__(*args, **kwargs)
         self.testing = testing
 

@@ -25,7 +25,7 @@ from ipykernel.ipkernel import IPythonKernel
 class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
     """Spyder kernel for Jupyter"""
 
-    def __init__(self, *args, testing=False, **kwargs):
+    def __init__(self, testing=False, *args, **kwargs):
         super(ConsoleKernel, self).__init__(*args, **kwargs)
 
         self._pdb_obj = None
