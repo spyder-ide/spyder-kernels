@@ -18,8 +18,7 @@ class MatplotlibMagic(Magic):
         You can set all backends you can with the IPython %matplotlib
         magic.
         """
-        gui, backend = self.kernel.ipyshell.enable_matplotlib(gui=gui)
-        self.kernel.mpl_gui = gui
+        self.kernel.debugger._enable_matplotlib(gui)
 
 
 def register_magics(kernel):

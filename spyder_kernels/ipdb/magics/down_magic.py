@@ -16,7 +16,7 @@ class DownMagic(Magic):
         Move the current frame count (default one) levels down in the
         stack trace (to a newer frame).
         """
-        self.kernel.debugger.do_down(arg)
+        self.kernel.debugger._do_command(u'do_down', arg)
     line_d = line_down
 
 

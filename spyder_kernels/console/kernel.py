@@ -11,6 +11,7 @@ Spyder kernel for Jupyter
 """
 
 # Standard library imports
+import json
 import pickle
 import os
 
@@ -24,13 +25,16 @@ from ipykernel.ipkernel import IPythonKernel
 class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
     """Spyder kernel for Jupyter"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, testing=False, *args, **kwargs):
         super(ConsoleKernel, self).__init__(*args, **kwargs)
 
         self._pdb_obj = None
         self._pdb_step = None
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
+
+        # To test this kernel with the IPdb one
+        self.testing_ipdb = os.environ.get('SPY_TEST_IPDB_KERNEL') is not None
 
     @property
     def _pdb_frame(self):
@@ -102,7 +106,10 @@ class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
 
     def _ask_spyder_for_breakpoints(self):
         if self._pdb_obj:
-            self.send_spyder_msg('set_breakpoints')
+            if not self.testing_ipdb:
+                self.send_spyder_msg('set_breakpoints')
+            else:
+                self._pdb_obj.starting = False
 
     # --- For Matplotlib
     def _set_mpl_backend(self, backend, pylab=False):
@@ -163,3 +170,10 @@ class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
         if not os.name == 'nt':
             from IPython.core.getipython import get_ipython
             get_ipython().run_line_magic('reload_ext', 'wurlitzer')
+
+    def _get_connection_info(self):
+        """Get kernel's connection info."""
+        from ipykernel import get_connection_file
+        with open(get_connection_file()) as f:
+            info = json.load(f)
+        return info

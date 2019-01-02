@@ -12,9 +12,6 @@ import sys
 # Metakernel imports
 from metakernel import Magic
 
-# Local imports
-from spyder_kernels.utils.test_utils import running_under_pytest
-
 
 class ResetMagic(Magic):
 
@@ -25,13 +22,8 @@ class ResetMagic(Magic):
         Reset the global namespace.
         """
         if self.kernel.debugger:
-            self.kernel.debugger.reset()
-            self.kernel.debugger.setup(sys._getframe().f_back, None)
+            self.kernel.debugger._reset_namespace(arg)
 
 
 def register_magics(kernel):
-    # This is only useful for our tests
-    if running_under_pytest():
-        kernel.register_magics(ResetMagic)
-    else:
-        pass
+    kernel.register_magics(ResetMagic)

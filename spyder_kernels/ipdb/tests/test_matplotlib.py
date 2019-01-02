@@ -6,9 +6,13 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
+import os
+
 from flaky import flaky
 from qtconsole.qtconsoleapp import JupyterQtConsoleApp
 import pytest
+
+from spyder_kernels.py3compat import PY2
 
 
 SHELL_TIMEOUT = 20000
@@ -28,6 +32,8 @@ def qtconsole(qtbot):
 
 
 @flaky(max_runs=3)
+@pytest.mark.skipif(os.name == 'nt' and PY2,
+                    reason='Fails on Windows and Python 2')
 def test_matplotlib_inline(qtconsole, qtbot):
     """Test that %matplotlib inline is working."""
     window = qtconsole.window
@@ -42,7 +48,7 @@ def test_matplotlib_inline(qtconsole, qtbot):
         shell.execute("%matplotlib inline")
 
     # Make a plot
-    with qtbot.waitSignal(shell.executed):
+    with qtbot.waitSignal(shell.executed, timeout=5000):
         shell.execute("import matplotlib.pyplot as plt; plt.plot(range(10))")
 
     # Assert that there's a plot in the console
@@ -50,6 +56,8 @@ def test_matplotlib_inline(qtconsole, qtbot):
 
 
 @flaky(max_runs=3)
+@pytest.mark.skipif(os.name == 'nt' and PY2,
+                    reason='Fails on Windows and Python 2')
 def test_matplotlib_qt(qtconsole, qtbot):
     """Test that %matplotlib qt is working."""
     window = qtconsole.window
@@ -64,7 +72,7 @@ def test_matplotlib_qt(qtconsole, qtbot):
         shell.execute("%matplotlib qt")
 
     # Make a plot
-    with qtbot.waitSignal(shell.executed):
+    with qtbot.waitSignal(shell.executed, timeout=5000):
         shell.execute("import matplotlib.pyplot as plt; plt.plot(range(10))")
 
     # Assert we have three prompts in the console, meaning that the

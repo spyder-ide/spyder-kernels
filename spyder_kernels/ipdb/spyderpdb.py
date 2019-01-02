@@ -5,21 +5,55 @@
 # Licensed under the terms of the MIT License
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
+
 # Standard library import
 from __future__ import print_function
-
 import bdb
 import pdb
 import os.path as osp
+import sys
 
-# local library imports
+# Third-party imports
+from IPython.core.completer import IPCompleter
+from IPython.core.debugger import Pdb as ipyPdb
+from IPython import get_ipython
+from jupyter_client.manager import KernelManager
+
+# Local library imports
+from spyder_kernels.ipdb.kernelspec import IPdbKernelSpec
 from spyder_kernels.py3compat import PY2
 from spyder_kernels.utils.misc import monkeypatch_method
 
+
 # Use ipydb as the debugger to patch on IPython consoles
-from IPython.core.debugger import Pdb as ipyPdb
-from IPython import get_ipython
 pdb.Pdb = ipyPdb
+
+
+class DummyShell(object):
+    """Dummy shell to pass to IPCompleter."""
+
+    @property
+    def magics_manager(self):
+        """
+        Create a dummy magics manager with the interface
+        expected by IPCompleter.
+        """
+        class DummyMagicsManager(object):
+            def lsmagic(self):
+                return {'line': {}, 'cell': {}}
+
+        return DummyMagicsManager()
+
+
+class PdbCompleter(IPCompleter):
+    """
+    Subclass of IPCompleter without file completions so they don't
+    interfere with the ones provided by MetaKernel.
+    """
+
+    def file_matches(self, text):
+        """Return and empty list to deactivate file matches."""
+        return []
 
 
 class SpyderPdb(pdb.Pdb):
@@ -30,12 +64,7 @@ class SpyderPdb(pdb.Pdb):
     send_initial_notification = True
     starting = True
 
-    # --- Methods overriden by us
-    def preloop(self):
-        """Ask Spyder for breakpoints before the first prompt is created."""
-        if self.starting:
-            get_ipython().kernel._ask_spyder_for_breakpoints()
-
+    # --- Public API (overriden by us)
     def error(self, msg):
         """
         Error message (method defined for compatibility reasons with Python 2,
@@ -43,7 +72,7 @@ class SpyderPdb(pdb.Pdb):
         """
         print('***', msg, file=self.stdout)
 
-    # --- Methods defined by us
+    # --- Public API (defined by us)
     def set_spyder_breakpoints(self, breakpoints):
         self.clear_all_breaks()
         #------Really deleting all breakpoints:
@@ -112,6 +141,57 @@ class SpyderPdb(pdb.Pdb):
         # and the Editor on the Spyder side
         kernel._pdb_step = step
         kernel.publish_pdb_state()
+
+    def init(self):
+        """Our own initialization routine."""
+        self.reset()
+        self.setup(sys._getframe().f_back, None)
+
+        # Completer
+        self.completer = PdbCompleter(
+            shell=DummyShell(),
+            namespace=self._get_current_namespace()
+        )
+
+        # If Jedi is activated completions stop to work!
+        if not PY2:
+            self.completer.use_jedi = False
+
+        # Ask Spyder to send us its saved breakpoints
+        get_ipython().kernel._ask_spyder_for_breakpoints()
+
+    def start_ipdb_kernel(self):
+        """Start IPdb kernel."""
+        self.ipdb_manager = KernelManager()
+        self.ipdb_manager._kernel_spec = IPdbKernelSpec()
+        self.ipdb_manager.start_kernel()
+
+    # --- Private API (defined by us)
+    def _get_completions(self, code):
+        """Get completions using the current frame namespace."""
+        # Update completer namespace before performing the
+        # completion
+        self.completer.namespace = self._get_current_namespace()
+        matches = self.completer.complete(text=None, line_buffer=code)[1]
+        return matches
+
+    def _get_current_namespace(self):
+        """Get current namespace."""
+        glbs = self.curframe.f_globals
+        lcls = self.curframe.f_locals
+        ns = {}
+
+        if glbs == lcls:
+            ns = glbs
+        else:
+            ns = glbs.copy()
+            ns.update(lcls)
+
+        return ns
+
+    def _is_ready(self):
+        """Check if the Pdb instance is ready to start debugging."""
+        return not self.starting
 
 
 @monkeypatch_method(pdb.Pdb, 'Pdb')
