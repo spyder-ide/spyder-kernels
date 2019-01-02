@@ -18,10 +18,8 @@ try:
 except ImportError:
     from io import StringIO
 
-from spyder_kernels.console.kernel import ConsoleKernel
 
-
-def get_kernel(kernel_class=ConsoleKernel):
+def get_kernel(kernel_class, testing=False):
     """Get an instance of a kernel with the kernel class given."""
     log = logging.getLogger('test')
     log.setLevel(logging.DEBUG)
@@ -38,7 +36,7 @@ def get_kernel(kernel_class=ConsoleKernel):
 
     kernel = kernel_class(session=ss.Session(),
                           iopub_socket=iopub_socket,
-                          log=log)
+                          log=log, testing=testing)
     return kernel
 
 

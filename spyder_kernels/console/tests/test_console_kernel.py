@@ -19,6 +19,7 @@ import IPython
 import pytest
 
 # Local imports
+from spyder_kernels.console.kernel import ConsoleKernel
 from spyder_kernels.utils.test_utils import get_kernel
 from spyder_kernels.py3compat import PY3, to_text_string
 
@@ -37,7 +38,7 @@ TIMEOUT = 15
 def console_kernel(request):
     """Console kernel fixture"""
     # Get kernel instance
-    kernel = get_kernel()
+    kernel = get_kernel(kernel_class=ConsoleKernel)
     kernel.namespace_view_settings = {'check_all': False,
                                       'exclude_private': True,
                                       'exclude_uppercase': True,

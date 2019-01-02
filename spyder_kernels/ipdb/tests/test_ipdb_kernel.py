@@ -19,12 +19,12 @@ import os.path as osp
 import sys
 
 # Test library imports
-from metakernel.tests.utils import get_kernel, get_log_text
 import pytest
 
 # Local imports
 from spyder_kernels.ipdb.kernel import IPdbKernel
 from spyder_kernels.py3compat import PY2
+from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
 
 # =============================================================================
@@ -47,7 +47,7 @@ FILES_PATH = osp.dirname(osp.realpath(__file__))
 def ipdb_kernel():
     """IPdb kernel fixture"""
     # Get kernel instance
-    kernel = get_kernel(kernel_class=IPdbKernel)
+    kernel = get_kernel(kernel_class=IPdbKernel, testing=True)
     return kernel
 
 
