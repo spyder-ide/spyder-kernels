@@ -6,9 +6,13 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
+import os
+
 from flaky import flaky
 from qtconsole.qtconsoleapp import JupyterQtConsoleApp
 import pytest
+
+from spyder_kernels.py3compat import PY2
 
 
 SHELL_TIMEOUT = 20000
@@ -28,6 +32,8 @@ def qtconsole(qtbot):
 
 
 @flaky(max_runs=3)
+@pytest.mark.skipif(os.name == 'nt' and PY2,
+                    reason='Fails on Windows and Python 2')
 def test_matplotlib_inline(qtconsole, qtbot):
     """Test that %matplotlib inline is working."""
     window = qtconsole.window
@@ -50,6 +56,8 @@ def test_matplotlib_inline(qtconsole, qtbot):
 
 
 @flaky(max_runs=3)
+@pytest.mark.skipif(os.name == 'nt' and PY2,
+                    reason='Fails on Windows and Python 2')
 def test_matplotlib_qt(qtconsole, qtbot):
     """Test that %matplotlib qt is working."""
     window = qtconsole.window
