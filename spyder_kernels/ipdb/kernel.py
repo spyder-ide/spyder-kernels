@@ -242,8 +242,14 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
             # kernel can stand on its own.
             # *Note*: This is useful for testing purposes only!
             from jupyter_client.manager import KernelManager
+
+            # Set environment
+            env = os.environ.copy()
+            env['SPY_TEST_IPDB_KERNEL'] = 'True'
+
+            # Create kernel
             kernel_manager = KernelManager(kernel_name='spyder_console')
-            kernel_manager.start_kernel(env={'SPY_TEST_IPDB_KERNEL': 'True'})
+            kernel_manager.start_kernel(env=env)
             kernel_client = kernel_manager.client()
 
             # Register a Pdb instance so that PdbProxy can work
