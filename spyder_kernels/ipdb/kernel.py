@@ -17,6 +17,7 @@ https://github.com/lebedov/ipdbkernel
 import functools
 import os
 import sys
+import time
 
 from IPython.core.inputsplitter import IPythonInputSplitter
 from IPython.core.interactiveshell import InteractiveShell
@@ -68,6 +69,21 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
 
         # For module_completion and do_inspect
         self.ipyshell = InteractiveShell().instance()
+
+        # Wait for ~3 sec to see if the kernel is ready
+        is_ready = False
+        for _ in range(15):
+            if self.debugger._is_ready():
+                is_ready = True
+                break
+            else:
+                time.sleep(0.2)
+                continue
+
+        if not is_ready:
+            # TODO: Replace this by a message printed in the console
+            # kernel
+            raise RuntimeError('Kernel is not ready')
 
         self._remove_unneeded_magics()
 
@@ -227,7 +243,7 @@ class IPdbKernel(BaseKernelMixIn, MetaKernel):
             # *Note*: This is useful for testing purposes only!
             from jupyter_client.manager import KernelManager
             kernel_manager = KernelManager(kernel_name='spyder_console')
-            kernel_manager.start_kernel()
+            kernel_manager.start_kernel(env={'SPY_TEST_IPDB_KERNEL': 'True'})
             kernel_client = kernel_manager.client()
 
             # Register a Pdb instance so that PdbProxy can work

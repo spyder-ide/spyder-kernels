@@ -33,6 +33,9 @@ class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
 
+        # To test this kernel with the IPdb one
+        self.testing_ipdb = os.environ.get('SPY_TEST_IPDB_KERNEL') is not None
+
     @property
     def _pdb_frame(self):
         """Return current Pdb frame if there is any"""
@@ -103,7 +106,10 @@ class ConsoleKernel(BaseKernelMixIn, IPythonKernel):
 
     def _ask_spyder_for_breakpoints(self):
         if self._pdb_obj:
-            self.send_spyder_msg('set_breakpoints')
+            if not self.testing_ipdb:
+                self.send_spyder_msg('set_breakpoints')
+            else:
+                self._pdb_obj.starting = False
 
     # --- For Matplotlib
     def _set_mpl_backend(self, backend, pylab=False):

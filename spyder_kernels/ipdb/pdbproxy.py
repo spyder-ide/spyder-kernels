@@ -96,6 +96,19 @@ class PdbProxy(object):
             except Exception:
                 return []
 
+    def _is_ready(self):
+        """
+        Check if the remote Pdb instance is ready to start debugging.
+        """
+        response = self._silent_exec_method('_is_ready')
+        if response is None:
+            return False
+        else:
+            try:
+                return ast.literal_eval(response)
+            except Exception:
+                return False
+
     def _enable_matplotlib(self, gui):
         """Set Matplotlib backend in the remote kernel."""
         self.kernel_client.execute(u"%matplotlib {}".format(gui),

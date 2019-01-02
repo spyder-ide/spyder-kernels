@@ -65,11 +65,6 @@ class SpyderPdb(pdb.Pdb):
     starting = True
 
     # --- Public API (overriden by us)
-    def preloop(self):
-        """Ask Spyder for breakpoints before the first prompt is created."""
-        if self.starting:
-            get_ipython().kernel._ask_spyder_for_breakpoints()
-
     def error(self, msg):
         """
         Error message (method defined for compatibility reasons with Python 2,
@@ -162,6 +157,9 @@ class SpyderPdb(pdb.Pdb):
         if not PY2:
             self.completer.use_jedi = False
 
+        # Ask Spyder to send us its saved breakpoints
+        get_ipython().kernel._ask_spyder_for_breakpoints()
+
     def start_ipdb_kernel(self):
         """Start IPdb kernel."""
         self.ipdb_manager = KernelManager()
@@ -190,6 +188,10 @@ class SpyderPdb(pdb.Pdb):
             ns.update(lcls)
 
         return ns
+
+    def _is_ready(self):
+        """Check if the Pdb instance is ready to start debugging."""
+        return not self.starting
 
 
 @monkeypatch_method(pdb.Pdb, 'Pdb')
