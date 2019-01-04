@@ -328,7 +328,7 @@ def collections_display(value, level):
 def value_to_display(value, minmax=False, level=0):
     """Convert value for display purpose"""
     # To save current Numpy threshold
-    np_threshold = FakeObject
+    np_printoptions = FakeObject
 
     try:
         numeric_numpy_types = (int64, int32, int16, int8,
@@ -336,8 +336,8 @@ def value_to_display(value, minmax=False, level=0):
                                float64, float32, float16,
                                complex128, complex64, bool_)
         if ndarray is not FakeObject:
-            # Save threshold
-            np_threshold = get_printoptions().get('threshold')
+            # Save printoptions
+            np_printoptions = get_printoptions()
             # Set max number of elements to show for Numpy arrays
             # in our display
             set_printoptions(threshold=10)
@@ -451,9 +451,9 @@ def value_to_display(value, minmax=False, level=0):
             ellipses = u' ...'
         display = display[:70].rstrip() + ellipses
 
-    # Restore Numpy threshold
-    if np_threshold is not FakeObject:
-        set_printoptions(threshold=np_threshold)
+    # Restore Numpy printoptions
+    if np_printoptions is not FakeObject:
+        set_printoptions(**np_printoptions)
 
     return display
 
