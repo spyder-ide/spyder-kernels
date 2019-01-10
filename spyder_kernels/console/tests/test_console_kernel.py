@@ -27,6 +27,7 @@ from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
 # Third-party imports
 import cloudpickle
+import numpy as np
 
 # =============================================================================
 # Constants
@@ -396,6 +397,61 @@ def test_runcell(tmpdir):
         content = msg['content']
         assert content['found']
 
+def test_np_threshold(kernel):
+    """Test that setting Numpy threshold doesn't make the Variable Explorer slow."""
+cmd = "from spyder_kernels.console import start; start.main()"
+
+with setup_kernel(cmd) as client:
+
+    # Set Numpy threshold, suppress and formatter
+    client.execute("""
+                   import numpy as np;
+                   np.set_printoptions(
+                       threshold=np.nan,
+                       suppress=True,
+                       formatter={'float_kind':'{:0.2f}'.format})
+                   """)
+    client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+    # Create a big Numpy array and an array to check decimal format
+    client.execute("""
+                   x = np.random.rand(75000,5);
+                   a = np.array([123412341234.123412341234])
+                   """)
+    client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+    # Assert that NumPy threshold, suppress and formatter
+    # are the same as the ones set by the user
+    client.execute("""
+                   t = np.get_printoptions()['threshold'];
+                   s = np.get_printoptions()['suppress'];
+                   f = np.get_printoptions()['formatter']
+                   """)
+    client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+    # Check correct decimal format
+    client.inspect('a')
+    msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+    content = msg['content']['data']['text/plain']
+    assert "123412341234.12" in content
+
+    # Check threshold value
+    client.inspect('t')
+    msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+    content = msg['content']['data']['text/plain']
+    assert "nan" in content
+
+    # Check suppress value
+    client.inspect('s')
+    msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+    content = msg['content']['data']['text/plain']
+    assert "True" in content
+
+    # Check formatter
+    client.inspect('f')
+    msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+    content = msg['content']['data']['text/plain']
+    assert "{'float_kind': <built-in method format of str object" in content
 
 if __name__ == "__main__":
     pytest.main()
