@@ -327,7 +327,7 @@ def collections_display(value, level):
 
 def value_to_display(value, minmax=False, level=0):
     """Convert value for display purpose"""
-    # To save current Numpy threshold
+    # To save current Numpy printoptions
     np_printoptions = FakeObject
 
     try:
