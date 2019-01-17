@@ -740,6 +740,7 @@ def runcell(cellname, filename):
         pass
     run_umr()
     ipython_shell = get_ipython()
+    ipython_shell.run_cell('__file__ = "{}"'.format(filename) , silent=True)
     try:
         cell_code = ipython_shell.cell_code
     except AttributeError:
