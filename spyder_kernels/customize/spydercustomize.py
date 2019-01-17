@@ -740,7 +740,8 @@ def runcell(cellname, filename):
         pass
     run_umr()
     ipython_shell = get_ipython()
-    ipython_shell.run_cell('__file__ = "{}"'.format(filename) , silent=True)
+    namespace = _get_globals()
+    namespace['__file__'] = filename
     try:
         cell_code = ipython_shell.cell_code
     except AttributeError:
@@ -754,6 +755,7 @@ def runcell(cellname, filename):
     ipython_shell.events.trigger('post_execute')
 
     ipython_shell.run_cell(cell_code)
+    namespace.pop('__file__')
     del ipython_shell.cell_code
 
 
