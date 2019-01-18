@@ -376,7 +376,7 @@ def test_runcell(tmpdir):
 
     with setup_kernel(cmd) as client:
         # Write code with a cell to a file
-        code = u"result = 10"
+        code = "result = 10;print(__file__)"
         p = tmpdir.join("cell-test.py")
         p.write(code)
 
@@ -387,7 +387,9 @@ def test_runcell(tmpdir):
 
         # Execute runcell
         client.execute(u"runcell('', r'{}')".format(to_text_string(p)))
-        client.get_shell_msg(block=True, timeout=TIMEOUT)
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        print(msg['content'])
+        assert "cell-tests.py" in msg['content']
 
         # Verify that the `result` variable is defined
         client.inspect('result')
@@ -395,6 +397,14 @@ def test_runcell(tmpdir):
         print(msg['content'])
         content = msg['content']
         assert content['found']
+
+        # Verify that the `__file__` variable is undefined
+        client.inspect('__file__')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        print(msg['content'])
+        content = msg['content']
+        assert not content['found']
+
 
 def test_np_threshold(kernel):
     """Test that setting Numpy threshold doesn't make the Variable Explorer slow."""
