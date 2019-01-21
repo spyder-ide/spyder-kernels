@@ -376,7 +376,7 @@ def test_runcell(tmpdir):
 
     with setup_kernel(cmd) as client:
         # Write code with a cell to a file
-        code = "result = 10;print(__file__)"
+        code = u"result = 10; fname = __file__"
         p = tmpdir.join("cell-test.py")
         p.write(code)
 
@@ -387,9 +387,7 @@ def test_runcell(tmpdir):
 
         # Execute runcell
         client.execute(u"runcell('', r'{}')".format(to_text_string(p)))
-        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
-        print(msg['content'])
-        assert "cell-tests.py" in msg['content']
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
 
         # Verify that the `result` variable is defined
         client.inspect('result')
@@ -397,6 +395,13 @@ def test_runcell(tmpdir):
         print(msg['content'])
         content = msg['content']
         assert content['found']
+
+        # Verify that the `fname` variable is `cell-test.py`
+        client.inspect('fname')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        print(msg['content'])
+        content = msg['content']
+        assert "cell-test.py" in content['data']['text/plain']
 
         # Verify that the `__file__` variable is undefined
         client.inspect('__file__')
