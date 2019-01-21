@@ -392,21 +392,18 @@ def test_runcell(tmpdir):
         # Verify that the `result` variable is defined
         client.inspect('result')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
-        print(msg['content'])
         content = msg['content']
         assert content['found']
 
         # Verify that the `fname` variable is `cell-test.py`
         client.inspect('fname')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
-        print(msg['content'])
         content = msg['content']
         assert "cell-test.py" in content['data']['text/plain']
 
         # Verify that the `__file__` variable is undefined
         client.inspect('__file__')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
-        print(msg['content'])
         content = msg['content']
         assert not content['found']
 
