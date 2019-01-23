@@ -356,14 +356,9 @@ def load_dictionary(filename):
         with tarfile.open(filename, "r") as tar:
             tar.extractall()
         pickle_filename = glob.glob('*.pickle')[0]
-        try:
-            # Old format (Spyder 2.0-2.1 for Python 2)
-            with open(pickle_filename, 'U') as fdesc:
-                data = pickle.loads(fdesc.read())
-        except (pickle.PickleError, TypeError, UnicodeDecodeError):
-            # New format (Spyder >=2.2 for Python 2 and Python 3)
-            with open(pickle_filename, 'rb') as fdesc:
-                data = pickle.loads(fdesc.read())
+        # 'New' format (Spyder >=2.2 for Python 2 and Python 3)
+        with open(pickle_filename, 'rb') as fdesc:
+            data = pickle.loads(fdesc.read())
         saved_arrays = {}
         if load_array is not None:
             # Loading numpy arrays saved with np.save
