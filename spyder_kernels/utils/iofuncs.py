@@ -27,6 +27,7 @@ import json
 import inspect
 import dis
 import copy
+import glob
 
 # Third party imports
 # - If pandas fails to import here (for any reason), Spyder
@@ -352,10 +353,9 @@ def load_dictionary(filename):
     data = None
     error_message = None
     try:
-        tar = tarfile.open(filename, "r")
-        tar.extractall()
-        data_file = osp.basename(filename)
-        pickle_filename = osp.splitext(data_file)[0]+'.pickle'
+        with tarfile.open(filename, "r") as tar:
+            tar.extractall()
+        pickle_filename = glob.glob('*.pickle')[0]
         try:
             # Old format (Spyder 2.0-2.1 for Python 2)
             with open(pickle_filename, 'U') as fdesc:
