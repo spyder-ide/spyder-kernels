@@ -379,13 +379,16 @@ def load_dictionary(filename):
                         data[name].insert(index, arr)
             except KeyError:
                 pass
-    except (EOFError, ValueError) as error:
+    # Except AttributeError from e.g. trying to load function no longer present
+    except (AttributeError, EOFError, ValueError) as error:
         error_message = to_text_string(error)
-    os.chdir(old_cwd)
-    try:
-        shutil.rmtree(tmp_folder)
-    except OSError as error:
-        error_message = to_text_string(error)
+    # To ensure working dir gets changed back and temp dir wiped no matter what
+    finally:
+        os.chdir(old_cwd)
+        try:
+            shutil.rmtree(tmp_folder)
+        except OSError as error:
+            error_message = to_text_string(error)
     return data, error_message
 
 
