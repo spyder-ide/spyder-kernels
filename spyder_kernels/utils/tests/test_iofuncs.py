@@ -116,6 +116,26 @@ def test_spydata_import(spydata_file_name, spydata_values):
     assert valid
 
 
+def test_spydata_import_witherror():
+    """
+    Test that import fails gracefully with a fn not present in the namespace.
+
+    Checks that the error is caught, the message is passed back,
+    and the current working directory is restored afterwards.
+    """
+    original_cwd = os.getcwd()
+    path = os.path.join(LOCATION, 'export_data_withfunction.spydata')
+    data, error = iofuncs.load_dictionary(path)
+    # Hack to workaround Python 2
+    assert error
+    try:
+        assert isinstance(error, str)
+    except AssertionError:
+        assert isinstance(error, unicode)  # analysis:ignore
+    assert data is None
+    assert os.getcwd() == original_cwd
+
+
 @pytest.mark.skipif(iofuncs.load_matlab is None, reason="SciPy required")
 def test_matlabstruct():
     """Test support for matlab stlye struct."""
