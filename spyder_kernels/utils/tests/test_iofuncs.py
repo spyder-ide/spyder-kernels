@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Tests for iofuncs.py
+Tests for iofuncs.py.
 """
 
 # Standard library imports
@@ -28,7 +28,7 @@ LOCATION = os.path.realpath(os.path.join(os.getcwd(),
 
 
 # =============================================================================
-# Fixtures
+# ---- Fixtures
 # =============================================================================
 @pytest.fixture
 def spydata_values():
@@ -71,7 +71,7 @@ def real_values():
 
 
 # =============================================================================
-# Tests
+# ---- Tests
 # =============================================================================
 @pytest.mark.skipif(iofuncs.load_matlab is None, reason="SciPy required")
 def test_matlab_import(real_values):
@@ -92,14 +92,18 @@ def test_matlab_import(real_values):
     assert valid
 
 
-def test_spydata_import(spydata_values):
+@pytest.mark.parametrize('spydata_file_name', ['export_data.spydata',
+                                               'export_data_renamed.spydata'])
+def test_spydata_import(spydata_file_name, spydata_values):
     """
     Test spydata handling and variable importing.
 
     This test loads all the variables contained inside a spydata tar
     container and compares them against their static values.
+    It tests both a file with the original name, and one that has been renamed
+    in order to catch Issue #9 .
     """
-    path = os.path.join(LOCATION, 'export_data.spydata')
+    path = os.path.join(LOCATION, spydata_file_name)
     data, error = iofuncs.load_dictionary(path)
     assert error is None
     valid = True
