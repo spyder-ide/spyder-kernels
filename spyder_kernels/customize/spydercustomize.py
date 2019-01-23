@@ -738,7 +738,6 @@ def runcell(cellname, filename):
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    run_umr()
     ipython_shell = get_ipython()
     namespace = _get_globals()
     namespace['__file__'] = filename
