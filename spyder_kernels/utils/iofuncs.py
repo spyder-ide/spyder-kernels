@@ -370,11 +370,13 @@ def save_dictionary(data, filename):
                     raise RuntimeError('No supported objects to save')
                 pickle.dump(data_filtered, fdesc, protocol=2)
 
-        tar = tarfile.open(filename, "w")
-        for fname in [pickle_filename]+[fn for fn in list(saved_arrays.values())]:
-            tar.add(osp.basename(fname))
-            os.remove(fname)
-        tar.close()
+        # Use PAX (POSIX.1-2001) format instead of default GNU.
+        # This improves interoperability and UTF-8/long variable name support.
+        with tarfile.open(filename, "w", format=tarfile.PAX_FORMAT) as tar:
+            for fname in ([pickle_filename]
+                          + [fn for fn in list(saved_arrays.values())]):
+                tar.add(osp.basename(fname))
+                os.remove(fname)
     except (RuntimeError, pickle.PicklingError, TypeError) as error:
         error_message = to_text_string(error)
     else:
