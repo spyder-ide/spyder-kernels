@@ -317,39 +317,64 @@ def save_dictionary(data, filename):
             # Saving numpy arrays with np.save
             arr_fname = osp.splitext(filename)[0]
             for name in list(data.keys()):
-                if isinstance(data[name], np.ndarray) and data[name].size > 0:
-                    # Saving arrays at data root
-                    fname = __save_array(data[name], arr_fname,
-                                       len(saved_arrays))
-                    saved_arrays[(name, None)] = osp.basename(fname)
-                    data.pop(name)
-                elif isinstance(data[name], (list, dict)):
-                    # Saving arrays nested in lists or dictionaries
-                    if isinstance(data[name], list):
-                        iterator = enumerate(data[name])
-                    else:
-                        iterator = iter(list(data[name].items()))
-                    to_remove = []
-                    for index, value in iterator:
-                        if isinstance(value, np.ndarray) and value.size > 0:
-                            fname = __save_array(value, arr_fname,
-                                               len(saved_arrays))
-                            saved_arrays[(name, index)] = osp.basename(fname)
-                            to_remove.append(index)
-                    for index in sorted(to_remove, reverse=True):
-                        data[name].pop(index)
+                try:
+                    if isinstance(data[name],
+                                  np.ndarray) and data[name].size > 0:
+                        # Save arrays at data root
+                        fname = __save_array(data[name], arr_fname,
+                                             len(saved_arrays))
+                        saved_arrays[(name, None)] = osp.basename(fname)
+                        data.pop(name)
+                    elif isinstance(data[name], (list, dict)):
+                        # Save arrays nested in lists or dictionaries
+                        if isinstance(data[name], list):
+                            iterator = enumerate(data[name])
+                        else:
+                            iterator = iter(list(data[name].items()))
+                        to_remove = []
+                        for index, value in iterator:
+                            if isinstance(value,
+                                          np.ndarray) and value.size > 0:
+                                fname = __save_array(value, arr_fname,
+                                                     len(saved_arrays))
+                                saved_arrays[(name, index)] = (
+                                    osp.basename(fname))
+                                to_remove.append(index)
+                        for index in sorted(to_remove, reverse=True):
+                            data[name].pop(index)
+                except (RuntimeError, pickle.PicklingError, TypeError,
+                        AttributeError, IndexError):
+                    # If an array can't be saved with numpy for some reason,
+                    # leave the object intact and try to save it normally.
+                    pass
             if saved_arrays:
                 data['__saved_arrays__'] = saved_arrays
-        pickle_filename = osp.splitext(filename)[0]+'.pickle'
+
+        pickle_filename = osp.splitext(filename)[0] + '.pickle'
+        # Attempt to pickle everything.
+        # If pickling fails, iterate through to eliminate problem objs & retry.
         with open(pickle_filename, 'w+b') as fdesc:
-            pickle.dump(data, fdesc, 2)
+            try:
+                pickle.dump(data, fdesc, protocol=2)
+            except (pickle.PicklingError, AttributeError, TypeError,
+                    ImportError, IndexError):
+                data_filtered = {}
+                for obj_name, obj_value in data.items():
+                    try:
+                        pickle.dumps(obj_value, protocol=2)
+                    except Exception:
+                        skipped_keys.append(obj_name)
+                    else:
+                        data_filtered[obj_name] = obj_value
+                if not data_filtered:
+                    raise RuntimeError('No supported objects to save')
+                pickle.dump(data_filtered, fdesc, protocol=2)
+
         tar = tarfile.open(filename, "w")
         for fname in [pickle_filename]+[fn for fn in list(saved_arrays.values())]:
             tar.add(osp.basename(fname))
             os.remove(fname)
         tar.close()
-        if saved_arrays:
-            data.pop('__saved_arrays__')
     except (RuntimeError, pickle.PicklingError, TypeError) as error:
         error_message = to_text_string(error)
     else:
