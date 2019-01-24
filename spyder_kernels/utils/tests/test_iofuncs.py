@@ -136,6 +136,22 @@ def test_spydata_import_witherror():
     assert os.getcwd() == original_cwd
 
 
+def test_spydata_import_missing_file():
+    """
+    Test that import fails properly when file is missing, and resets the cwd.
+    """
+    original_cwd = os.getcwd()
+    path = os.path.join(LOCATION, 'non_existant_path_2019-01-23.spydata')
+    try:
+        iofuncs.load_dictionary(path)
+    except IOError:
+        pass
+    else:
+        # Fail if exception did not occur when it should
+        assert False
+    assert os.getcwd() == original_cwd
+
+
 @pytest.mark.skipif(iofuncs.load_matlab is None, reason="SciPy required")
 def test_matlabstruct():
     """Test support for matlab stlye struct."""
