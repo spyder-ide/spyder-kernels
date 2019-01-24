@@ -22,6 +22,7 @@ import os.path as osp
 import tarfile
 import tempfile
 import shutil
+import types
 import warnings
 import json
 import inspect
@@ -289,14 +290,27 @@ def save_dictionary(data, filename):
     old_cwd = getcwd()
     os.chdir(osp.dirname(filename))
     error_message = None
+    skipped_keys = []
+    data_copy = {}
 
     try:
         # Copy dictionary before modifying it to fix #6689
-        try:
-            data = copy.deepcopy(data)
-        # Fall back to non-deep copying for dicts with objs not supporting it
-        except NotImplementedError:
-            data = copy.copy(data)
+        for obj_name, obj_value in data.items():
+            # Skip modules, since they can't be pickled, users virtually never
+            # would want them to be and so they don't show up in the skip list.
+            # Skip callables, since they are only pickled by reference and thus
+            # must already be present in the user's environment anyway.
+            if not (callable(obj_value) or isinstance(obj_value,
+                                                      types.ModuleType)):
+                # If an object cannot be deepcopied, then it cannot be pickled.
+                # Ergo, we skip it and list it later.
+                try:
+                    data_copy[obj_name] = copy.deepcopy(obj_value)
+                except Exception:
+                    skipped_keys.append(obj_name)
+        data = data_copy
+        if not data:
+            raise RuntimeError('No supported objects to save')
 
         saved_arrays = {}
         if load_array is not None:
@@ -338,6 +352,10 @@ def save_dictionary(data, filename):
             data.pop('__saved_arrays__')
     except (RuntimeError, pickle.PicklingError, TypeError) as error:
         error_message = to_text_string(error)
+    else:
+        if skipped_keys:
+            error_message = ('Some objects could not be saved: '
+                             + ', '.join(skipped_keys))
     finally:
         os.chdir(old_cwd)
     return error_message
