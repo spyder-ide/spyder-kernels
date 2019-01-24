@@ -290,16 +290,14 @@ def save_dictionary(data, filename):
     os.chdir(osp.dirname(filename))
     error_message = None
 
-    # Copy dictionary before modifying to fix #6689
     try:
-        data = copy.deepcopy(data)
-    except NotImplementedError:
+        # Copy dictionary before modifying it to fix #6689
         try:
+            data = copy.deepcopy(data)
+        # Fall back to non-deep copying for dicts with objs not supporting it
+        except NotImplementedError:
             data = copy.copy(data)
-        except Exception:
-            data = data
 
-    try:
         saved_arrays = {}
         if load_array is not None:
             # Saving numpy arrays with np.save
@@ -340,7 +338,8 @@ def save_dictionary(data, filename):
             data.pop('__saved_arrays__')
     except (RuntimeError, pickle.PicklingError, TypeError) as error:
         error_message = to_text_string(error)
-    os.chdir(old_cwd)
+    finally:
+        os.chdir(old_cwd)
     return error_message
 
 
