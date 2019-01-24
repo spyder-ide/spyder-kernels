@@ -357,7 +357,7 @@ def save_dictionary(data, filename):
             try:
                 pickle.dump(data, fdesc, protocol=2)
             except (pickle.PicklingError, AttributeError, TypeError,
-                    ImportError, IndexError):
+                    ImportError, IndexError, RuntimeError):
                 data_filtered = {}
                 for obj_name, obj_value in data.items():
                     try:
@@ -381,6 +381,7 @@ def save_dictionary(data, filename):
         error_message = to_text_string(error)
     else:
         if skipped_keys:
+            skipped_keys.sort()
             error_message = ('Some objects could not be saved: '
                              + ', '.join(skipped_keys))
     finally:
