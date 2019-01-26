@@ -19,6 +19,7 @@ from ipykernel.tests.test_embed_kernel import setup_kernel
 import IPython
 import pytest
 
+
 # Local imports
 from spyder_kernels.py3compat import PY3, to_text_string
 from spyder_kernels.console.kernel import PICKLE_PROTOCOL
@@ -27,6 +28,7 @@ from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
 # Third-party imports
 import cloudpickle
+import IPython
 
 # =============================================================================
 # Constants
