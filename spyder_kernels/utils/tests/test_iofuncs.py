@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Tests for iofuncs.py
+Tests for iofuncs.py.
 """
 
 # Standard library imports
@@ -28,7 +28,7 @@ LOCATION = os.path.realpath(os.path.join(os.getcwd(),
 
 
 # =============================================================================
-# Fixtures
+# ---- Fixtures
 # =============================================================================
 @pytest.fixture
 def spydata_values():
@@ -71,7 +71,7 @@ def real_values():
 
 
 # =============================================================================
-# Tests
+# ---- Tests
 # =============================================================================
 @pytest.mark.skipif(iofuncs.load_matlab is None, reason="SciPy required")
 def test_matlab_import(real_values):
@@ -92,14 +92,18 @@ def test_matlab_import(real_values):
     assert valid
 
 
-def test_spydata_import(spydata_values):
+@pytest.mark.parametrize('spydata_file_name', ['export_data.spydata',
+                                               'export_data_renamed.spydata'])
+def test_spydata_import(spydata_file_name, spydata_values):
     """
     Test spydata handling and variable importing.
 
     This test loads all the variables contained inside a spydata tar
     container and compares them against their static values.
+    It tests both a file with the original name, and one that has been renamed
+    in order to catch Issue #9 .
     """
-    path = os.path.join(LOCATION, 'export_data.spydata')
+    path = os.path.join(LOCATION, spydata_file_name)
     data, error = iofuncs.load_dictionary(path)
     assert error is None
     valid = True
@@ -110,6 +114,42 @@ def test_spydata_import(spydata_values):
             valid = valid and all([np.all(obj1 == obj2) for obj1, obj2 in
                                    zip(spydata_values[var], data[var])])
     assert valid
+
+
+def test_spydata_import_witherror():
+    """
+    Test that import fails gracefully with a fn not present in the namespace.
+
+    Checks that the error is caught, the message is passed back,
+    and the current working directory is restored afterwards.
+    """
+    original_cwd = os.getcwd()
+    path = os.path.join(LOCATION, 'export_data_withfunction.spydata')
+    data, error = iofuncs.load_dictionary(path)
+    # Hack to workaround Python 2
+    assert error
+    try:
+        assert isinstance(error, str)
+    except AssertionError:
+        assert isinstance(error, unicode)  # analysis:ignore
+    assert data is None
+    assert os.getcwd() == original_cwd
+
+
+def test_spydata_import_missing_file():
+    """
+    Test that import fails properly when file is missing, and resets the cwd.
+    """
+    original_cwd = os.getcwd()
+    path = os.path.join(LOCATION, 'non_existant_path_2019-01-23.spydata')
+    try:
+        iofuncs.load_dictionary(path)
+    except IOError:
+        pass
+    else:
+        # Fail if exception did not occur when it should
+        assert False
+    assert os.getcwd() == original_cwd
 
 
 @pytest.mark.skipif(iofuncs.load_matlab is None, reason="SciPy required")

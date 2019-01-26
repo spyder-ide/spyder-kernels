@@ -27,6 +27,7 @@ import json
 import inspect
 import dis
 import copy
+import glob
 
 # Third party imports
 # - If pandas fails to import here (for any reason), Spyder
@@ -352,18 +353,12 @@ def load_dictionary(filename):
     data = None
     error_message = None
     try:
-        tar = tarfile.open(filename, "r")
-        tar.extractall()
-        data_file = osp.basename(filename)
-        pickle_filename = osp.splitext(data_file)[0]+'.pickle'
-        try:
-            # Old format (Spyder 2.0-2.1 for Python 2)
-            with open(pickle_filename, 'U') as fdesc:
-                data = pickle.loads(fdesc.read())
-        except (pickle.PickleError, TypeError, UnicodeDecodeError):
-            # New format (Spyder >=2.2 for Python 2 and Python 3)
-            with open(pickle_filename, 'rb') as fdesc:
-                data = pickle.loads(fdesc.read())
+        with tarfile.open(filename, "r") as tar:
+            tar.extractall()
+        pickle_filename = glob.glob('*.pickle')[0]
+        # 'New' format (Spyder >=2.2 for Python 2 and Python 3)
+        with open(pickle_filename, 'rb') as fdesc:
+            data = pickle.loads(fdesc.read())
         saved_arrays = {}
         if load_array is not None:
             # Loading numpy arrays saved with np.save
@@ -379,13 +374,16 @@ def load_dictionary(filename):
                         data[name].insert(index, arr)
             except KeyError:
                 pass
-    except (EOFError, ValueError) as error:
+    # Except AttributeError from e.g. trying to load function no longer present
+    except (AttributeError, EOFError, ValueError) as error:
         error_message = to_text_string(error)
-    os.chdir(old_cwd)
-    try:
-        shutil.rmtree(tmp_folder)
-    except OSError as error:
-        error_message = to_text_string(error)
+    # To ensure working dir gets changed back and temp dir wiped no matter what
+    finally:
+        os.chdir(old_cwd)
+        try:
+            shutil.rmtree(tmp_folder)
+        except OSError as error:
+            error_message = to_text_string(error)
     return data, error_message
 
 
