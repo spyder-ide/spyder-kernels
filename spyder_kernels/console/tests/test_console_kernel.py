@@ -18,6 +18,7 @@ import os.path as osp
 from ipykernel.tests.test_embed_kernel import setup_kernel
 import pytest
 
+
 # Local imports
 from spyder_kernels.py3compat import PY3, to_text_string
 from spyder_kernels.console.kernel import PICKLE_PROTOCOL
@@ -26,6 +27,7 @@ from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
 # Third-party imports
 import cloudpickle
+import IPython
 
 # =============================================================================
 # Constants
@@ -305,6 +307,8 @@ libc.printf(('Hello from C\\n').encode('utf8'))
     assert captured.out == "Hello from C\n"
 
 
+@pytest.mark.skipif(IPython.__version__ >= '7.2.0',
+                    reason="This problem was fixed in IPython 7.2+")
 def test_cwd_in_sys_path():
     """
     Test that cwd stays as the first element in sys.path after the
