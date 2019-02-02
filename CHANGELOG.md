@@ -1,5 +1,28 @@
 # History of changes
 
+## Version 0.4 (2019-02-02)
+
+### New features
+* This release fixes several important issues that prevented
+  saving the current namespace to work as expected.
+
+### Issues Closed
+
+* [Issue 75](https://github.com/spyder-ide/spyder-kernels/issues/75) - Namespace serialization silently fails if any object is unserializable, e.g. a Python module ([PR 81](https://github.com/spyder-ide/spyder-kernels/pull/81))
+* [Issue 9](https://github.com/spyder-ide/spyder-kernels/issues/9) - Spydata files won't import if the original filename is changed ([PR 80](https://github.com/spyder-ide/spyder-kernels/pull/80))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+* [PR 82](https://github.com/spyder-ide/spyder-kernels/pull/82) - PR: Enclose calls to load wurlitzer and autoreload in try/except's ([8668](https://github.com/spyder-ide/spyder/issues/8668))
+* [PR 81](https://github.com/spyder-ide/spyder-kernels/pull/81) - PR: Fix and improve saving of Spyder namespace with many types of objects ([75](https://github.com/spyder-ide/spyder-kernels/issues/75))
+* [PR 80](https://github.com/spyder-ide/spyder-kernels/pull/80) - PR: Fix loading Spydata file with changed filename and other edge-cases in load_dict ([9](https://github.com/spyder-ide/spyder-kernels/issues/9))
+
+In this release 3 pull requests were closed.
+
+----
+
 ## Version 0.3 (2018-11-23)
 
 ### New features
