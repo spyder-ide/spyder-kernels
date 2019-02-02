@@ -4,9 +4,9 @@ To release a new version of spyder-kernels on PyPI:
 
 * Close the respective milestone in GitHub
 
-* git checkout master
+* git checkout 0.x
 
-* git fetch upstream && get merge upstream/master
+* git fetch upstream && get merge upstream/0.x
 
 * git clean -xfdi
 
