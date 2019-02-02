@@ -502,12 +502,21 @@ class SpyderKernel(IPythonKernel):
     def _load_autoreload_magic(self):
         """Load %autoreload magic."""
         from IPython.core.getipython import get_ipython
-        get_ipython().run_line_magic('reload_ext', 'autoreload')
-        get_ipython().run_line_magic('autoreload', '2')
+        try:
+            get_ipython().run_line_magic('reload_ext', 'autoreload')
+            get_ipython().run_line_magic('autoreload', '2')
+        except Exception:
+            pass
 
     def _load_wurlitzer(self):
         """Load wurlitzer extension."""
         # Wurlitzer has no effect on Windows
         if not os.name == 'nt':
             from IPython.core.getipython import get_ipython
-            get_ipython().run_line_magic('reload_ext', 'wurlitzer')
+            # Enclose this in a try/except because if it fails the
+            # console will be totally unusable.
+            # Fixes spyder-ide/spyder#8668
+            try:
+                get_ipython().run_line_magic('reload_ext', 'wurlitzer')
+            except Exception:
+                pass
