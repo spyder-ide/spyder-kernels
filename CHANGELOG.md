@@ -1,5 +1,29 @@
 # History of changes
 
+## Version 1.3.0 (2019-02-02)
+
+### New features
+* Make runcell set __file__ to the path of the file containing the cell
+* This release also contains all features and fixes present in version
+  0.4.
+
+### Issues Closed
+
+* [Issue 78](https://github.com/spyder-ide/spyder-kernels/issues/78) - Nopython jit of numba is not working in runcell ([PR 79](https://github.com/spyder-ide/spyder-kernels/pull/79))
+* [Issue 76](https://github.com/spyder-ide/spyder-kernels/issues/76) - Detect the name of the file currently running the cell ([PR 77](https://github.com/spyder-ide/spyder-kernels/pull/77))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+* [PR 79](https://github.com/spyder-ide/spyder-kernels/pull/79) - PR: Remove user module reloader from runcell ([78](https://github.com/spyder-ide/spyder-kernels/issues/78))
+* [PR 77](https://github.com/spyder-ide/spyder-kernels/pull/77) - PR: Have runcell set __file__ to the path of the file containing the cell  ([76](https://github.com/spyder-ide/spyder-kernels/issues/76))
+* [PR 72](https://github.com/spyder-ide/spyder-kernels/pull/72) - PR: Fix numpy printoptions format ([7885](https://github.com/spyder-ide/spyder/issues/7885))
+
+In this release 3 pull requests were closed.
+
+----
+
 ## Version 1.2 (2018-12-26)
 
 ### New features
