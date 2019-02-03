@@ -17,6 +17,7 @@ import io
 import os
 import os.path as osp
 import pdb
+import re
 import shlex
 import sys
 import sysconfig
@@ -588,6 +589,8 @@ class UserModuleReloader(object):
         for modname, module in list(sys.modules.items()):
             if modname not in self.previous_modules:
                 modpath = getattr(module, '__file__', None)
+
+                # Skip module according to different criteria
                 if modpath is None:
                     # *module* is a C module that is statically linked into the
                     # interpreter. There is no way to know its path, so we
@@ -598,9 +601,21 @@ class UserModuleReloader(object):
                     # standard library or installed to site-packages,
                     # just modules created by the user.
                     continue
+                elif not os.name == 'nt':
+                    # Module paths containing the strings below can be ihherited
+                    # from the default Linux installation or Homebrew in a
+                    # virtualenv.
+                    patterns = [r'^/usr/lib.*', r'^/usr/local/lib.*',
+                                r'^/usr/.*/dist-packages/.*']
+                    if [p for p in patterns if re.search(p, modpath)]:
+                        continue
+
+                # Reload module
                 if not self.is_module_blacklisted(modname, modpath):
                     log.append(modname)
                     del sys.modules[modname]
+
+        # Report reloaded modules
         if verbose and log:
             _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"\
                    % ("Reloaded modules", ": "+", ".join(log)))
