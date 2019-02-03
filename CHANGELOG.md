@@ -90,6 +90,17 @@ Initial release for Spyder 4
 
 ----
 
+## Version 0.4.1 (2019-02-03)
+
+### Pull Requests Merged
+
+* [PR 84](https://github.com/spyder-ide/spyder-kernels/pull/84) - PR: Better way to skip standard library and site-packages modules from UMR
+* [PR 83](https://github.com/spyder-ide/spyder-kernels/pull/83) - PR: Blacklist tensorflow from the UMR ([8697](https://github.com/spyder-ide/spyder/issues/8697))
+
+In this release 2 pull requests were closed.
+
+----
+
 ## Version 0.4 (2019-02-02)
 
 ### New features
