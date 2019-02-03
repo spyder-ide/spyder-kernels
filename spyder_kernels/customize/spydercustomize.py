@@ -19,6 +19,7 @@ import os.path as osp
 import pdb
 import shlex
 import sys
+import sysconfig
 import time
 import warnings
 
@@ -551,6 +552,20 @@ class UserModuleReloader(object):
         self.pathlist = pathlist
         self.previous_modules = list(sys.modules.keys())
 
+    @property
+    def skip_paths(self):
+        """Python library paths to be skipped from module reloading."""
+        try:
+            paths = sysconfig.get_paths()
+            lib_paths = [paths['stdlib'],
+                         paths['purelib'],
+                         paths['scripts'],
+                         paths['data']]
+
+            return lib_paths
+        except Exception:
+            return []
+
     def is_module_blacklisted(self, modname, modpath):
         if HAS_CYTHON:
             # Don't return cached inline compiled .PYX files
@@ -577,6 +592,11 @@ class UserModuleReloader(object):
                     # *module* is a C module that is statically linked into the
                     # interpreter. There is no way to know its path, so we
                     # choose to ignore it.
+                    continue
+                elif any([p in modpath for p in self.skip_paths]):
+                    # We don't want to reload modules that belong to the
+                    # standard library or installed to site-packages,
+                    # just modules created by the user.
                     continue
                 if not self.is_module_blacklisted(modname, modpath):
                     log.append(modname)
