@@ -539,7 +539,8 @@ class UserModuleReloader(object):
         # pytorch: see issue 7041
         # fastmat: see issue 7190
         # pythoncom: see issue 7190
-        other_modules = ['pytorch', 'pythoncom']
+        # tensorflow: see issue 8697
+        other_modules = ['pytorch', 'pythoncom', 'tensorflow']
         if PY2:
             py2_modules = ['astropy', 'fastmat']
             other_modules = other_modules + py2_modules
