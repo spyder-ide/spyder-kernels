@@ -596,8 +596,11 @@ class UserModuleReloader(object):
             # Module paths containing the strings below can be ihherited
             # from the default Linux installation or Homebrew in a
             # virtualenv.
-            patterns = [r'^/usr/lib.*', r'^/usr/local/lib.*',
-                        r'^/usr/.*/dist-packages/.*']
+            patterns = [r'^/usr/lib.*',
+                        r'^/usr/local/lib.*',
+                        r'^/usr/.*/dist-packages/.*',
+                        r'^/Library/.*'
+            ]
             if [p for p in patterns if re.search(p, modpath)]:
                 return False
             else:
