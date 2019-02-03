@@ -577,6 +577,34 @@ class UserModuleReloader(object):
         else:
             return set(modname.split('.')) & set(self.namelist)
 
+    def is_module_reloadable(self, module):
+        """Decide if a module can be reloaded or not."""
+        modpath = getattr(module, '__file__', None)
+
+        # Skip module according to different criteria
+        if modpath is None:
+            # *module* is a C module that is statically linked into the
+            # interpreter. There is no way to know its path, so we
+            # choose to ignore it.
+            return False
+        elif any([p in modpath for p in self.skip_paths]):
+            # We don't want to reload modules that belong to the
+            # standard library or installed to site-packages,
+            # just modules created by the user.
+            return False
+        elif not os.name == 'nt':
+            # Module paths containing the strings below can be ihherited
+            # from the default Linux installation or Homebrew in a
+            # virtualenv.
+            patterns = [r'^/usr/lib.*', r'^/usr/local/lib.*',
+                        r'^/usr/.*/dist-packages/.*']
+            if [p for p in patterns if re.search(p, modpath)]:
+                return False
+            else:
+                return True
+        else:
+            return True
+
     def run(self, verbose=False):
         """
         Del user modules to force Python to deeply reload them
@@ -588,27 +616,9 @@ class UserModuleReloader(object):
         log = []
         for modname, module in list(sys.modules.items()):
             if modname not in self.previous_modules:
-                modpath = getattr(module, '__file__', None)
-
-                # Skip module according to different criteria
-                if modpath is None:
-                    # *module* is a C module that is statically linked into the
-                    # interpreter. There is no way to know its path, so we
-                    # choose to ignore it.
+                # Decide if a module can be reloaded or not
+                if not self.is_module_reloadable(module):
                     continue
-                elif any([p in modpath for p in self.skip_paths]):
-                    # We don't want to reload modules that belong to the
-                    # standard library or installed to site-packages,
-                    # just modules created by the user.
-                    continue
-                elif not os.name == 'nt':
-                    # Module paths containing the strings below can be ihherited
-                    # from the default Linux installation or Homebrew in a
-                    # virtualenv.
-                    patterns = [r'^/usr/lib.*', r'^/usr/local/lib.*',
-                                r'^/usr/.*/dist-packages/.*']
-                    if [p for p in patterns if re.search(p, modpath)]:
-                        continue
 
                 # Reload module
                 if not self.is_module_blacklisted(modname, modpath):
