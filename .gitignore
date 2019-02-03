@@ -28,7 +28,6 @@ spyder_crash.log
 .spyproject
 .idea/
 .cache
-.coverage*
 *.tmp
 *.temp
 *.bak
