@@ -19,6 +19,15 @@ from spyder_kernels.customize.spydercustomize import UserModuleReloader
 from spyder_kernels.py3compat import to_text_string
 
 
+def test_umr_previous_modules():
+    """Test that UMR's previos_modules is working as expected."""
+    umr = UserModuleReloader()
+
+    import scipy
+    assert 'IPython' in umr.previous_modules
+    assert 'scipy' not in umr.previous_modules
+
+
 def test_umr_namelist():
     """Test that the UMR skips modules according to its name."""
     umr = UserModuleReloader()
