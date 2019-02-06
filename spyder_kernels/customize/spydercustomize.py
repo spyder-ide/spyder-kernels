@@ -647,7 +647,17 @@ class UserModuleReloader(object):
             _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"\
                    % ("Reloaded modules", ": "+", ".join(log)))
 
-__umr__ = None
+
+if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
+    namelist = os.environ.get("SPY_UMR_NAMELIST", None)
+    if namelist is not None:
+        try:
+            namelist = namelist.split(',')
+        except Exception:
+            namelist = None
+        __umr__ = UserModuleReloader(namelist=namelist)
+else:
+    __umr__ = None
 
 
 #==============================================================================
@@ -729,16 +739,10 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    global __umr__
-    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
-        if __umr__ is None:
-            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
-            if namelist is not None:
-                namelist = namelist.split(',')
-            __umr__ = UserModuleReloader(namelist=namelist)
-        else:
-            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
-            __umr__.run(verbose=verbose)
+
+    if __umr__ is not None:
+        verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
+        __umr__.run(verbose=verbose)
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:
