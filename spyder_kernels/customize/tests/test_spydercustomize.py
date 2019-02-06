@@ -34,6 +34,15 @@ def square(x):
     init_file.write('#')
 
 
+def test_umr_run(user_module):
+    """Test that UMR's run method is working correctly."""
+    umr = UserModuleReloader()
+
+    from foo.bar import square
+    umr.run(verbose=True)
+    umr.modnames_to_reload == ['foo', 'foo.bar']
+
+
 def test_umr_previous_modules():
     """Test that UMR's previos_modules is working as expected."""
     umr = UserModuleReloader()
