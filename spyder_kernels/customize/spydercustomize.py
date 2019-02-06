@@ -584,8 +584,8 @@ class UserModuleReloader(object):
         else:
             return set(modname.split('.')) & set(self.namelist)
 
-    def is_module_reloadable(self, module):
-        """Decide if a module can be reloaded or not."""
+    def is_module_in_pathlist(self, module):
+        """Decide if a module can be reloaded or not according to its path."""
         modpath = getattr(module, '__file__', None)
 
         # Skip module according to different criteria
@@ -628,7 +628,7 @@ class UserModuleReloader(object):
         for modname, module in list(sys.modules.items()):
             if modname not in self.previous_modules:
                 # Decide if a module can be reloaded or not
-                if not self.is_module_reloadable(module):
+                if not self.is_module_in_pathlist(module):
                     continue
 
                 # Reload module

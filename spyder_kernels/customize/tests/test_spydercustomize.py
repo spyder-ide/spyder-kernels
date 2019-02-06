@@ -19,17 +19,17 @@ from spyder_kernels.customize.spydercustomize import UserModuleReloader
 from spyder_kernels.py3compat import to_text_string
 
 
-def test_umr_skip_libmodules(tmpdir):
+def test_umr_skip_pathlist(tmpdir):
     """Test that UMR skips library modules and reloads user modules."""
     umr = UserModuleReloader()
 
     # Don't reload stdlib modules
     import xml
-    assert umr.is_module_reloadable(xml) == False
+    assert umr.is_module_in_pathlist(xml) == False
 
     # Don't reload third-party modules
     import numpy
-    assert umr.is_module_reloadable(numpy) == False
+    assert umr.is_module_in_pathlist(numpy) == False
 
     # Reload user modules
     sys.path.append(to_text_string(tmpdir))
@@ -44,4 +44,4 @@ def test_umr_skip_libmodules(tmpdir):
     init_file.write('#')
 
     import foo
-    assert umr.is_module_reloadable(foo)
+    assert umr.is_module_in_pathlist(foo)
