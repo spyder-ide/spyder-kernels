@@ -568,6 +568,7 @@ class UserModuleReloader(object):
             return []
 
     def is_module_blacklisted(self, module, modname):
+        """Return if a module is blacklisted or not."""
         modpath = getattr(module, '__file__', None)
 
         if HAS_CYTHON:
