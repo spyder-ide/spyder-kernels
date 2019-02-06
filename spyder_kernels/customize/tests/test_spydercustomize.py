@@ -19,6 +19,21 @@ from spyder_kernels.customize.spydercustomize import UserModuleReloader
 from spyder_kernels.py3compat import to_text_string
 
 
+@pytest.fixture
+def user_module(tmpdir):
+    """Create a simple module in tmpdir as an example of a user module."""
+    sys.path.append(to_text_string(tmpdir))
+    modfile = tmpdir.mkdir('foo').join('bar.py')
+    code = """
+def square(x):
+    return x**2
+"""
+    modfile.write(code)
+
+    init_file = tmpdir.join('foo').join('__init__.py')
+    init_file.write('#')
+
+
 def test_umr_previous_modules():
     """Test that UMR's previos_modules is working as expected."""
     umr = UserModuleReloader()
@@ -38,7 +53,7 @@ def test_umr_namelist():
     assert not umr.is_module_in_namelist('foo')
 
 
-def test_umr_pathlist(tmpdir):
+def test_umr_pathlist(user_module):
     """Test that the UMR skips modules according to its path."""
     umr = UserModuleReloader()
 
@@ -51,16 +66,5 @@ def test_umr_pathlist(tmpdir):
     assert umr.is_module_in_pathlist(numpy)
 
     # Reload user modules
-    sys.path.append(to_text_string(tmpdir))
-    modfile = tmpdir.mkdir('foo').join('bar.py')
-    code = """
-def square(x):
-    return x**2
-"""
-    modfile.write(code)
-
-    init_file = tmpdir.join('foo').join('__init__.py')
-    init_file.write('#')
-
     import foo
     assert umr.is_module_in_pathlist(foo) == False
