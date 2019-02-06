@@ -534,8 +534,13 @@ class UserModuleReloader(object):
     def __init__(self, namelist=None, pathlist=None):
         if namelist is None:
             namelist = []
-        spy_modules = ['sitecustomize', 'spyder', 'spyderplugins']
+
+        # Spyder modules
+        spy_modules = ['spyder_kernels']
+
+        # Matplotlib modules
         mpl_modules = ['matplotlib', 'tkinter', 'Tkinter']
+
         # Add other, necessary modules to the UMR blacklist
         # astropy: see issue 6962
         # pytorch: see issue 7041
@@ -550,12 +555,19 @@ class UserModuleReloader(object):
 
         if pathlist is None:
             pathlist = []
-        self.pathlist = pathlist
+        self.pathlist = self.create_pathlist(pathlist)
+
+        # List of previously loaded modules
         self.previous_modules = list(sys.modules.keys())
 
-    @property
-    def skip_paths(self):
-        """Python library paths to be skipped from module reloading."""
+        # List of module names to reload
+        self.modnames_to_reload = []
+
+    def create_pathlist(self, initial_pathlist):
+        """
+        Add to pathlist Python library paths to be skipped from module
+        reloading.
+        """
         try:
             paths = sysconfig.get_paths()
             lib_paths = [paths['stdlib'],
@@ -563,22 +575,28 @@ class UserModuleReloader(object):
                          paths['scripts'],
                          paths['data']]
 
-            return lib_paths
+            return initial_pathlist + lib_paths
         except Exception:
-            return []
+            return initial_pathlist
 
-    def is_module_blacklisted(self, modname, modpath):
+    def is_module_reloadable(self, module, modname):
+        """Decide if a module is reloadable or not."""
         if HAS_CYTHON:
             # Don't return cached inline compiled .PYX files
             return True
-        for path in [sys.prefix]+self.pathlist:
-            if modpath.startswith(path):
-                return True
         else:
-            return set(modname.split('.')) & set(self.namelist)
+            if (self.is_module_in_pathlist(module) or
+                    self.is_module_in_namelist(modname)):
+                return False
+            else:
+                return True
 
-    def is_module_reloadable(self, module):
-        """Decide if a module can be reloaded or not."""
+    def is_module_in_namelist(self, modname):
+        """Decide if a module can be reloaded or not according to its name."""
+        return set(modname.split('.')) & set(self.namelist)
+
+    def is_module_in_pathlist(self, module):
+        """Decide if a module can be reloaded or not according to its path."""
         modpath = getattr(module, '__file__', None)
 
         # Skip module according to different criteria
@@ -586,12 +604,12 @@ class UserModuleReloader(object):
             # *module* is a C module that is statically linked into the
             # interpreter. There is no way to know its path, so we
             # choose to ignore it.
-            return False
-        elif any([p in modpath for p in self.skip_paths]):
+            return True
+        elif any([p in modpath for p in self.pathlist]):
             # We don't want to reload modules that belong to the
             # standard library or installed to site-packages,
             # just modules created by the user.
-            return False
+            return True
         elif not os.name == 'nt':
             # Module paths containing the strings below can be ihherited
             # from the default Linux installation or Homebrew in a
@@ -601,39 +619,49 @@ class UserModuleReloader(object):
                         r'^/usr/.*/dist-packages/.*',
                         r'^/Library/.*'
             ]
+
             if [p for p in patterns if re.search(p, modpath)]:
-                return False
-            else:
                 return True
+            else:
+                return False
         else:
-            return True
+            return False
 
     def run(self, verbose=False):
         """
-        Del user modules to force Python to deeply reload them
+        Delete user modules to force Python to deeply reload them
 
         Do not del modules which are considered as system modules, i.e.
         modules installed in subdirectories of Python interpreter's binary
         Do not del C modules
         """
-        log = []
+        self.modnames_to_reload = []
         for modname, module in list(sys.modules.items()):
             if modname not in self.previous_modules:
                 # Decide if a module can be reloaded or not
-                if not self.is_module_reloadable(module):
+                if self.is_module_reloadable(module, modname):
+                    self.modnames_to_reload.append(modname)
+                    del sys.modules[modname]
+                else:
                     continue
 
-                # Reload module
-                if not self.is_module_blacklisted(modname, modpath):
-                    log.append(modname)
-                    del sys.modules[modname]
-
         # Report reloaded modules
-        if verbose and log:
+        if verbose and self.modnames_to_reload:
+            modnames = self.modnames_to_reload
             _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"\
-                   % ("Reloaded modules", ": "+", ".join(log)))
+                   % ("Reloaded modules", ": "+", ".join(modnames)))
 
-__umr__ = None
+
+if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
+    namelist = os.environ.get("SPY_UMR_NAMELIST", None)
+    if namelist is not None:
+        try:
+            namelist = namelist.split(',')
+        except Exception:
+            namelist = None
+        __umr__ = UserModuleReloader(namelist=namelist)
+else:
+    __umr__ = None
 
 
 #==============================================================================
@@ -715,16 +743,10 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    global __umr__
-    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
-        if __umr__ is None:
-            namelist = os.environ.get("SPY_UMR_NAMELIST", None)
-            if namelist is not None:
-                namelist = namelist.split(',')
-            __umr__ = UserModuleReloader(namelist=namelist)
-        else:
-            verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
-            __umr__.run(verbose=verbose)
+
+    if __umr__ is not None:
+        verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
+        __umr__.run(verbose=verbose)
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:

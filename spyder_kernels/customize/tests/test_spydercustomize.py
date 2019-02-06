@@ -19,29 +19,61 @@ from spyder_kernels.customize.spydercustomize import UserModuleReloader
 from spyder_kernels.py3compat import to_text_string
 
 
-def test_umr_skip_libmodules(tmpdir):
-    """Test that UMR skips library modules and reloads user modules."""
-    umr = UserModuleReloader()
-
-    # Don't reload stdlib modules
-    import xml
-    assert umr.is_module_reloadable(xml) == False
-
-    # Don't reload third-party modules
-    import numpy
-    assert umr.is_module_reloadable(numpy) == False
-
-    # Reload user modules
+@pytest.fixture
+def user_module(tmpdir):
+    """Create a simple module in tmpdir as an example of a user module."""
     sys.path.append(to_text_string(tmpdir))
     modfile = tmpdir.mkdir('foo').join('bar.py')
     code = """
-    def square(x):
-        return x**2
+def square(x):
+    return x**2
 """
     modfile.write(code)
 
     init_file = tmpdir.join('foo').join('__init__.py')
     init_file.write('#')
 
+
+def test_umr_run(user_module):
+    """Test that UMR's run method is working correctly."""
+    umr = UserModuleReloader()
+
+    from foo.bar import square
+    umr.run(verbose=True)
+    umr.modnames_to_reload == ['foo', 'foo.bar']
+
+
+def test_umr_previous_modules(user_module):
+    """Test that UMR's previos_modules is working as expected."""
+    umr = UserModuleReloader()
+
     import foo
-    assert umr.is_module_reloadable(foo)
+    assert 'IPython' in umr.previous_modules
+    assert 'foo' not in umr.previous_modules
+
+
+def test_umr_namelist():
+    """Test that the UMR skips modules according to its name."""
+    umr = UserModuleReloader()
+
+    assert umr.is_module_in_namelist('tensorflow')
+    assert umr.is_module_in_namelist('pytorch')
+    assert umr.is_module_in_namelist('spyder_kernels')
+    assert not umr.is_module_in_namelist('foo')
+
+
+def test_umr_pathlist(user_module):
+    """Test that the UMR skips modules according to its path."""
+    umr = UserModuleReloader()
+
+    # Don't reload stdlib modules
+    import xml
+    assert umr.is_module_in_pathlist(xml)
+
+    # Don't reload third-party modules
+    import numpy
+    assert umr.is_module_in_pathlist(numpy)
+
+    # Reload user modules
+    import foo
+    assert umr.is_module_in_pathlist(foo) == False
