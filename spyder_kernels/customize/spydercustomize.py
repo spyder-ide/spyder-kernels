@@ -536,7 +536,7 @@ class UserModuleReloader(object):
             namelist = []
 
         # Spyder modules
-        spy_modules = ['customize', 'spyder', 'plugins']
+        spy_modules = ['spyder_kernels']
 
         # Matplotlib modules
         mpl_modules = ['matplotlib', 'tkinter', 'Tkinter']

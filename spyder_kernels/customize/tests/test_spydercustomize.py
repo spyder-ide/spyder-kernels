@@ -25,6 +25,7 @@ def test_umr_namelist():
 
     assert umr.is_module_in_namelist('tensorflow')
     assert umr.is_module_in_namelist('pytorch')
+    assert umr.is_module_in_namelist('spyder_kernels')
     assert not umr.is_module_in_namelist('foo')
 
 
