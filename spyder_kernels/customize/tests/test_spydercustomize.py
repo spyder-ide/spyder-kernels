@@ -34,11 +34,11 @@ def test_umr_pathlist(tmpdir):
 
     # Don't reload stdlib modules
     import xml
-    assert umr.is_module_in_pathlist(xml) == False
+    assert umr.is_module_in_pathlist(xml)
 
     # Don't reload third-party modules
     import numpy
-    assert umr.is_module_in_pathlist(numpy) == False
+    assert umr.is_module_in_pathlist(numpy)
 
     # Reload user modules
     sys.path.append(to_text_string(tmpdir))
@@ -53,4 +53,4 @@ def square(x):
     init_file.write('#')
 
     import foo
-    assert umr.is_module_in_pathlist(foo)
+    assert umr.is_module_in_pathlist(foo) == False

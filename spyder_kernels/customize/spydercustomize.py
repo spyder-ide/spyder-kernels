@@ -601,12 +601,12 @@ class UserModuleReloader(object):
             # *module* is a C module that is statically linked into the
             # interpreter. There is no way to know its path, so we
             # choose to ignore it.
-            return False
+            return True
         elif any([p in modpath for p in self.pathlist]):
             # We don't want to reload modules that belong to the
             # standard library or installed to site-packages,
             # just modules created by the user.
-            return False
+            return True
         elif not os.name == 'nt':
             # Module paths containing the strings below can be ihherited
             # from the default Linux installation or Homebrew in a
@@ -618,11 +618,11 @@ class UserModuleReloader(object):
             ]
 
             if [p for p in patterns if re.search(p, modpath)]:
-                return False
-            else:
                 return True
+            else:
+                return False
         else:
-            return True
+            return False
 
     def run(self, verbose=False):
         """
@@ -637,11 +637,10 @@ class UserModuleReloader(object):
             if modname not in self.previous_modules:
                 # Decide if a module can be reloaded or not
                 if self.is_module_reloadable(module, modname):
-                    continue
-                else:
-                    # Reload module
                     log.append(modname)
                     del sys.modules[modname]
+                else:
+                    continue
 
         # Report reloaded modules
         if verbose and log:
