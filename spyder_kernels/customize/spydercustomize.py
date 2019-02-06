@@ -576,13 +576,21 @@ class UserModuleReloader(object):
         except Exception:
             return initial_pathlist
 
-    def is_module_blacklisted(self, modname):
-        """Return if a module is blacklisted or not."""
+    def is_module_reloadable(self, module, modname):
+        """Decide if a module is reloadable or not."""
         if HAS_CYTHON:
             # Don't return cached inline compiled .PYX files
             return True
         else:
-            return set(modname.split('.')) & set(self.namelist)
+            if (self.is_module_in_pathlist(module) or
+                    self.is_module_in_namelist(modname)):
+                return False
+            else:
+                return True
+
+    def is_module_in_namelist(self, modname):
+        """Decide if a module can be reloaded or not according to its name."""
+        return set(modname.split('.')) & set(self.namelist)
 
     def is_module_in_pathlist(self, module):
         """Decide if a module can be reloaded or not according to its path."""
@@ -628,11 +636,10 @@ class UserModuleReloader(object):
         for modname, module in list(sys.modules.items()):
             if modname not in self.previous_modules:
                 # Decide if a module can be reloaded or not
-                if not self.is_module_in_pathlist(module):
+                if self.is_module_reloadable(module, modname):
                     continue
-
-                # Reload module
-                if not self.is_module_blacklisted(modname):
+                else:
+                    # Reload module
                     log.append(modname)
                     del sys.modules[modname]
 
