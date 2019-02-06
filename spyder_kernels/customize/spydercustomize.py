@@ -560,6 +560,9 @@ class UserModuleReloader(object):
         # List of previously loaded modules
         self.previous_modules = list(sys.modules.keys())
 
+        # List of module names to reload
+        self.modnames_to_reload = []
+
     def create_pathlist(self, initial_pathlist):
         """
         Add to pathlist Python library paths to be skipped from module
@@ -626,26 +629,27 @@ class UserModuleReloader(object):
 
     def run(self, verbose=False):
         """
-        Del user modules to force Python to deeply reload them
+        Delete user modules to force Python to deeply reload them
 
         Do not del modules which are considered as system modules, i.e.
         modules installed in subdirectories of Python interpreter's binary
         Do not del C modules
         """
-        log = []
+        self.modnames_to_reload = []
         for modname, module in list(sys.modules.items()):
             if modname not in self.previous_modules:
                 # Decide if a module can be reloaded or not
                 if self.is_module_reloadable(module, modname):
-                    log.append(modname)
+                    self.modnames_to_reload.append(modname)
                     del sys.modules[modname]
                 else:
                     continue
 
         # Report reloaded modules
-        if verbose and log:
+        if verbose and self.modnames_to_reload:
+            modnames = self.modnames_to_reload
             _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"\
-                   % ("Reloaded modules", ": "+", ".join(log)))
+                   % ("Reloaded modules", ": "+", ".join(modnames)))
 
 
 if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
