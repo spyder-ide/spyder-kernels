@@ -534,8 +534,13 @@ class UserModuleReloader(object):
     def __init__(self, namelist=None, pathlist=None):
         if namelist is None:
             namelist = []
-        spy_modules = ['sitecustomize', 'spyder', 'spyderplugins']
+
+        # Spyder modules
+        spy_modules = ['customize', 'spyder', 'plugins']
+
+        # Matplotlib modules
         mpl_modules = ['matplotlib', 'tkinter', 'Tkinter']
+
         # Add other, necessary modules to the UMR blacklist
         # astropy: see issue 6962
         # pytorch: see issue 7041
@@ -550,12 +555,16 @@ class UserModuleReloader(object):
 
         if pathlist is None:
             pathlist = []
-        self.pathlist = pathlist
+        self.pathlist = self.create_pathlist(pathlist)
+
+        # List of previously loaded modules
         self.previous_modules = list(sys.modules.keys())
 
-    @property
-    def skip_paths(self):
-        """Python library paths to be skipped from module reloading."""
+    def create_pathlist(self, initial_pathlist):
+        """
+        Add to pathlist Python library paths to be skipped from module
+        reloading.
+        """
         try:
             paths = sysconfig.get_paths()
             lib_paths = [paths['stdlib'],
@@ -563,20 +572,15 @@ class UserModuleReloader(object):
                          paths['scripts'],
                          paths['data']]
 
-            return lib_paths
+            return initial_pathlist + lib_paths
         except Exception:
-            return []
+            return initial_pathlist
 
-    def is_module_blacklisted(self, module, modname):
+    def is_module_blacklisted(self, modname):
         """Return if a module is blacklisted or not."""
-        modpath = getattr(module, '__file__', None)
-
         if HAS_CYTHON:
             # Don't return cached inline compiled .PYX files
             return True
-        for path in [sys.prefix] + self.pathlist:
-            if modpath is not None and modpath.startswith(path):
-                return True
         else:
             return set(modname.split('.')) & set(self.namelist)
 
@@ -590,7 +594,7 @@ class UserModuleReloader(object):
             # interpreter. There is no way to know its path, so we
             # choose to ignore it.
             return False
-        elif any([p in modpath for p in self.skip_paths]):
+        elif any([p in modpath for p in self.pathlist]):
             # We don't want to reload modules that belong to the
             # standard library or installed to site-packages,
             # just modules created by the user.
@@ -628,7 +632,7 @@ class UserModuleReloader(object):
                     continue
 
                 # Reload module
-                if not self.is_module_blacklisted(module, modname):
+                if not self.is_module_blacklisted(modname):
                     log.append(modname)
                     del sys.modules[modname]
 
