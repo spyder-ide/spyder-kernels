@@ -567,12 +567,14 @@ class UserModuleReloader(object):
         except Exception:
             return []
 
-    def is_module_blacklisted(self, modname, modpath):
+    def is_module_blacklisted(self, module, modname):
+        modpath = getattr(module, '__file__', None)
+
         if HAS_CYTHON:
             # Don't return cached inline compiled .PYX files
             return True
-        for path in [sys.prefix]+self.pathlist:
-            if modpath.startswith(path):
+        for path in [sys.prefix] + self.pathlist:
+            if modpath is not None and modpath.startswith(path):
                 return True
         else:
             return set(modname.split('.')) & set(self.namelist)
@@ -601,6 +603,7 @@ class UserModuleReloader(object):
                         r'^/usr/.*/dist-packages/.*',
                         r'^/Library/.*'
             ]
+
             if [p for p in patterns if re.search(p, modpath)]:
                 return False
             else:
@@ -624,7 +627,7 @@ class UserModuleReloader(object):
                     continue
 
                 # Reload module
-                if not self.is_module_blacklisted(modname, modpath):
+                if not self.is_module_blacklisted(module, modname):
                     log.append(modname)
                     del sys.modules[modname]
 
