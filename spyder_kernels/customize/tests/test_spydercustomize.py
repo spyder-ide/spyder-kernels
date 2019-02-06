@@ -44,8 +44,8 @@ def test_umr_pathlist(tmpdir):
     sys.path.append(to_text_string(tmpdir))
     modfile = tmpdir.mkdir('foo').join('bar.py')
     code = """
-    def square(x):
-        return x**2
+def square(x):
+    return x**2
 """
     modfile.write(code)
 
