@@ -19,8 +19,17 @@ from spyder_kernels.customize.spydercustomize import UserModuleReloader
 from spyder_kernels.py3compat import to_text_string
 
 
-def test_umr_skip_pathlist(tmpdir):
-    """Test that UMR skips library modules and reloads user modules."""
+def test_umr_namelist():
+    """Test that the UMR skips modules according to its name."""
+    umr = UserModuleReloader()
+
+    assert umr.is_module_in_namelist('tensorflow')
+    assert umr.is_module_in_namelist('pytorch')
+    assert not umr.is_module_in_namelist('foo')
+
+
+def test_umr_pathlist(tmpdir):
+    """Test that the UMR skips modules according to its path."""
     umr = UserModuleReloader()
 
     # Don't reload stdlib modules
