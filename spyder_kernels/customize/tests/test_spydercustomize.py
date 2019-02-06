@@ -43,13 +43,13 @@ def test_umr_run(user_module):
     umr.modnames_to_reload == ['foo', 'foo.bar']
 
 
-def test_umr_previous_modules():
+def test_umr_previous_modules(user_module):
     """Test that UMR's previos_modules is working as expected."""
     umr = UserModuleReloader()
 
-    import scipy
+    import foo
     assert 'IPython' in umr.previous_modules
-    assert 'scipy' not in umr.previous_modules
+    assert 'foo' not in umr.previous_modules
 
 
 def test_umr_namelist():
