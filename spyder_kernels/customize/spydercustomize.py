@@ -130,40 +130,6 @@ if os.name == 'nt' and PY2:
 
 
 #==============================================================================
-# Cython support
-#==============================================================================
-HAS_CYTHON = False
-
-def activate_cython():
-    """Activate Cython support."""
-    global HAS_CYTHON
-    run_cython = os.environ.get("SPY_RUN_CYTHON") == "True"
-
-    if run_cython and not HAS_CYTHON:
-        try:
-            __import__('Cython')
-            HAS_CYTHON = True
-        except Exception:
-            pass
-
-        if HAS_CYTHON:
-            # Import pyximport to enable Cython files support for
-            # import statement
-            import pyximport
-            pyx_setup_args = {}
-
-            # Add Numpy include dir to pyximport/distutils
-            try:
-                import numpy
-                pyx_setup_args['include_dirs'] = numpy.get_include()
-            except Exception:
-                pass
-
-            # Setup pyximport and enable Cython files reload
-            pyximport.install(setup_args=pyx_setup_args, reload_support=True)
-
-
-#==============================================================================
 # Prevent subprocess.Popen calls to create visible console windows on Windows.
 # See issue #4932
 #==============================================================================
@@ -538,6 +504,11 @@ class UserModuleReloader(object):
     def __init__(self, namelist=None, pathlist=None):
         if namelist is None:
             namelist = []
+        else:
+            try:
+                namelist = namelist.split(',')
+            except Exception:
+                namelist = []
 
         # Spyder modules
         spy_modules = ['spyder_kernels']
@@ -568,7 +539,16 @@ class UserModuleReloader(object):
         self.modnames_to_reload = []
 
         # Activate Cython support
-        activate_cython()
+        self.has_cython = False
+        self.activate_cython()
+
+        # Check if the UMR is enabled or not
+        enabled = os.environ.get("SPY_UMR_ENABLED", "")
+        self.enabled = enabled.lower() == "true"
+
+        # Check if the UMR should print the list of reloaded modules or not
+        verbose = os.environ.get("SPY_UMR_VERBOSE", "")
+        self.verbose = verbose.lower() == "true"
 
     def create_pathlist(self, initial_pathlist):
         """
@@ -588,7 +568,7 @@ class UserModuleReloader(object):
 
     def is_module_reloadable(self, module, modname):
         """Decide if a module is reloadable or not."""
-        if HAS_CYTHON:
+        if self.has_cython:
             # Don't return cached inline compiled .PYX files
             return False
         else:
@@ -634,7 +614,40 @@ class UserModuleReloader(object):
         else:
             return False
 
-    def run(self, verbose=False):
+    def activate_cython(self):
+        """
+        Activate Cython support.
+
+        We need to run this here because if the support is
+        active, we don't to run the UMR at all.
+        """
+        run_cython = os.environ.get("SPY_RUN_CYTHON") == "True"
+
+        if run_cython:
+            try:
+                __import__('Cython')
+                self.has_cython = True
+            except Exception:
+                pass
+
+            if self.has_cython:
+                # Import pyximport to enable Cython files support for
+                # import statement
+                import pyximport
+                pyx_setup_args = {}
+
+                # Add Numpy include dir to pyximport/distutils
+                try:
+                    import numpy
+                    pyx_setup_args['include_dirs'] = numpy.get_include()
+                except Exception:
+                    pass
+
+                # Setup pyximport and enable Cython files reload
+                pyximport.install(setup_args=pyx_setup_args,
+                                  reload_support=True)
+
+    def run(self):
         """
         Delete user modules to force Python to deeply reload them
 
@@ -653,22 +666,14 @@ class UserModuleReloader(object):
                     continue
 
         # Report reloaded modules
-        if verbose and self.modnames_to_reload:
+        if self.verbose and self.modnames_to_reload:
             modnames = self.modnames_to_reload
             _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"\
                    % ("Reloaded modules", ": "+", ".join(modnames)))
 
 
-if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
-    namelist = os.environ.get("SPY_UMR_NAMELIST", None)
-    if namelist is not None:
-        try:
-            namelist = namelist.split(',')
-        except Exception:
-            namelist = None
-        __umr__ = UserModuleReloader(namelist=namelist)
-else:
-    __umr__ = None
+__umr__ = UserModuleReloader(namelist=os.environ.get("SPY_UMR_NAMELIST",
+                                                     None))
 
 
 #==============================================================================
@@ -737,13 +742,6 @@ def _get_globals():
     return ipython_shell.user_ns
 
 
-def run_umr():
-    """Run the user module reloader."""
-    if __umr__ is not None:
-        verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
-        __umr__.run(verbose=verbose)
-
-
 def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     """
     Run filename
@@ -757,7 +755,8 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    run_umr()
+    if __umr__.enabled:
+        __umr__.run()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:
@@ -777,7 +776,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
         os.chdir(wdir)
     if post_mortem:
         set_post_mortem()
-    if HAS_CYTHON:
+    if __umr__.has_cython:
         # Cython files
         with io.open(filename, encoding='utf-8') as f:
             ipython_shell = get_ipython()
