@@ -583,7 +583,7 @@ class UserModuleReloader(object):
         """Decide if a module is reloadable or not."""
         if HAS_CYTHON:
             # Don't return cached inline compiled .PYX files
-            return True
+            return False
         else:
             if (self.is_module_in_pathlist(module) or
                     self.is_module_in_namelist(modname)):
