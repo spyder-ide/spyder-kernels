@@ -132,31 +132,35 @@ if os.name == 'nt' and PY2:
 #==============================================================================
 # Cython support
 #==============================================================================
-RUN_CYTHON = os.environ.get("SPY_RUN_CYTHON") == "True"
 HAS_CYTHON = False
 
-if RUN_CYTHON:
-    try:
-        __import__('Cython')
-        HAS_CYTHON = True
-    except Exception:
-        pass
+def activate_cython():
+    """Activate Cython support."""
+    global HAS_CYTHON
+    run_cython = os.environ.get("SPY_RUN_CYTHON") == "True"
 
-    if HAS_CYTHON:
-        # Import pyximport to enable Cython files support for
-        # import statement
-        import pyximport
-        pyx_setup_args = {}
-
-        # Add Numpy include dir to pyximport/distutils
+    if run_cython and not HAS_CYTHON:
         try:
-            import numpy
-            pyx_setup_args['include_dirs'] = numpy.get_include()
+            __import__('Cython')
+            HAS_CYTHON = True
         except Exception:
             pass
 
-        # Setup pyximport and enable Cython files reload
-        pyximport.install(setup_args=pyx_setup_args, reload_support=True)
+        if HAS_CYTHON:
+            # Import pyximport to enable Cython files support for
+            # import statement
+            import pyximport
+            pyx_setup_args = {}
+
+            # Add Numpy include dir to pyximport/distutils
+            try:
+                import numpy
+                pyx_setup_args['include_dirs'] = numpy.get_include()
+            except Exception:
+                pass
+
+            # Setup pyximport and enable Cython files reload
+            pyximport.install(setup_args=pyx_setup_args, reload_support=True)
 
 
 #==============================================================================
@@ -563,6 +567,9 @@ class UserModuleReloader(object):
         # List of module names to reload
         self.modnames_to_reload = []
 
+        # Activate Cython support
+        activate_cython()
+
     def create_pathlist(self, initial_pathlist):
         """
         Add to pathlist Python library paths to be skipped from module
@@ -583,7 +590,7 @@ class UserModuleReloader(object):
         """Decide if a module is reloadable or not."""
         if HAS_CYTHON:
             # Don't return cached inline compiled .PYX files
-            return True
+            return False
         else:
             if (self.is_module_in_pathlist(module) or
                     self.is_module_in_namelist(modname)):
