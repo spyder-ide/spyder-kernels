@@ -96,6 +96,24 @@ Initial release for Spyder 4
 
 ----
 
+## Version 0.4.2 (2019-02-07)
+
+### Issues Closed
+
+* [Issue 85](https://github.com/spyder-ide/spyder-kernels/issues/85) - NameError: name 'modpath' is not defined ([PR 86](https://github.com/spyder-ide/spyder-kernels/pull/86))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 88](https://github.com/spyder-ide/spyder-kernels/pull/88) - PR: Improve Cython activation
+* [PR 87](https://github.com/spyder-ide/spyder-kernels/pull/87) - PR: Fix running Cython files
+* [PR 86](https://github.com/spyder-ide/spyder-kernels/pull/86) - PR: Fix problems with UMR's run method ([85](https://github.com/spyder-ide/spyder-kernels/issues/85))
+
+In this release 3 pull requests were closed.
+
+----
+
 ## Version 0.4.1 (2019-02-03)
 
 ### Pull Requests Merged
