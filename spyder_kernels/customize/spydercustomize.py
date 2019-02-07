@@ -542,6 +542,14 @@ class UserModuleReloader(object):
         self.has_cython = False
         self.activate_cython()
 
+        # Check if the UMR is enabled or not
+        enabled = os.environ.get("SPY_UMR_ENABLED", "")
+        self.enabled = enabled.lower() == "true"
+
+        # Check if the UMR should print the list of reloaded modules or not
+        verbose = os.environ.get("SPY_UMR_VERBOSE", "")
+        self.verbose = verbose.lower() == "true"
+
     def create_pathlist(self, initial_pathlist):
         """
         Add to pathlist Python library paths to be skipped from module
@@ -639,7 +647,7 @@ class UserModuleReloader(object):
                 pyximport.install(setup_args=pyx_setup_args,
                                   reload_support=True)
 
-    def run(self, verbose=False):
+    def run(self):
         """
         Delete user modules to force Python to deeply reload them
 
@@ -658,7 +666,7 @@ class UserModuleReloader(object):
                     continue
 
         # Report reloaded modules
-        if verbose and self.modnames_to_reload:
+        if self.verbose and self.modnames_to_reload:
             modnames = self.modnames_to_reload
             _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"\
                    % ("Reloaded modules", ": "+", ".join(modnames)))
@@ -748,9 +756,8 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
         # AttributeError --> systematically raised in Python 3
         pass
 
-    if os.environ.get("SPY_UMR_ENABLED", "").lower() == "true":
-        verbose = os.environ.get("SPY_UMR_VERBOSE", "").lower() == "true"
-        __umr__.run(verbose=verbose)
+    if __umr__.enabled:
+        __umr__.run()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:

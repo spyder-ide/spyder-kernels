@@ -66,11 +66,14 @@ def test_umr_run(user_module):
     # Create user module
     user_module('foo1')
 
+    # Activate verbose mode in the UMR
+    os.environ['SPY_UMR_VERBOSE'] = 'True'
+
     # Create UMR
     umr = UserModuleReloader()
 
     from foo1.bar import square
-    umr.run(verbose=True)
+    umr.run()
     umr.modnames_to_reload == ['foo', 'foo.bar']
 
 
