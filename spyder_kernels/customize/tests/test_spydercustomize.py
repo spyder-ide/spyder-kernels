@@ -9,6 +9,7 @@
 """Tests for spydercustomize.py."""
 
 # Stdlib imports
+import os
 import sys
 
 # Third party imports
@@ -22,34 +23,68 @@ from spyder_kernels.py3compat import to_text_string
 @pytest.fixture
 def user_module(tmpdir):
     """Create a simple module in tmpdir as an example of a user module."""
-    sys.path.append(to_text_string(tmpdir))
-    modfile = tmpdir.mkdir('foo').join('bar.py')
-    code = """
+    if to_text_string(tmpdir) not in sys.path:
+        sys.path.append(to_text_string(tmpdir))
+
+    def create_module(modname):
+        modfile = tmpdir.mkdir(modname).join('bar.py')
+        code = """
 def square(x):
     return x**2
-"""
-    modfile.write(code)
+        """
+        modfile.write(code)
 
-    init_file = tmpdir.join('foo').join('__init__.py')
-    init_file.write('#')
+        init_file = tmpdir.join(modname).join('__init__.py')
+        init_file.write('#')
+
+    return create_module
+
+
+def test_umr_skip_cython(user_module):
+    """
+    Test that the UMR doesn't try to reload modules when Cython
+    support is active.
+    """
+    # Create user module
+    user_module('foo')
+
+    # Activate Cython support
+    os.environ['SPY_RUN_CYTHON'] = 'True'
+
+    # Create UMR
+    umr = UserModuleReloader()
+
+    import foo
+    assert umr.is_module_reloadable(foo, 'foo') == False
+
+    # Deactivate Cython support
+    os.environ['SPY_RUN_CYTHON'] = 'False'
 
 
 def test_umr_run(user_module):
     """Test that UMR's run method is working correctly."""
+    # Create user module
+    user_module('foo1')
+
+    # Create UMR
     umr = UserModuleReloader()
 
-    from foo.bar import square
+    from foo1.bar import square
     umr.run(verbose=True)
     umr.modnames_to_reload == ['foo', 'foo.bar']
 
 
 def test_umr_previous_modules(user_module):
     """Test that UMR's previos_modules is working as expected."""
+    # Create user module
+    user_module('foo2')
+
+    # Create UMR
     umr = UserModuleReloader()
 
-    import foo
+    import foo2
     assert 'IPython' in umr.previous_modules
-    assert 'foo' not in umr.previous_modules
+    assert 'foo2' not in umr.previous_modules
 
 
 def test_umr_namelist():
@@ -64,6 +99,10 @@ def test_umr_namelist():
 
 def test_umr_pathlist(user_module):
     """Test that the UMR skips modules according to its path."""
+    # Create user module
+    user_module('foo3')
+
+    # Create UMR
     umr = UserModuleReloader()
 
     # Don't reload stdlib modules
@@ -75,5 +114,5 @@ def test_umr_pathlist(user_module):
     assert umr.is_module_in_pathlist(numpy)
 
     # Reload user modules
-    import foo
-    assert umr.is_module_in_pathlist(foo) == False
+    import foo3
+    assert umr.is_module_in_pathlist(foo3) == False
