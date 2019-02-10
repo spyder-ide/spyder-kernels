@@ -1,5 +1,11 @@
 # History of changes
 
+## Version 1.3.2 (2019-02-10)
+
+Sister release for 0.4.2
+
+----
+
 ## Version 1.3.1 (2019-02-03)
 
 Sister release for 0.4.1
