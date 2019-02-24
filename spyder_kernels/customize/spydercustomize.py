@@ -209,6 +209,16 @@ try:
 except:
     pass
 
+import turtle
+from turtle import Screen, Terminator
+def spyder_bye():
+    try:
+        Screen().bye()
+        turtle.TurtleScreen._RUNNING = True
+    except Terminator:
+        pass
+turtle.bye=spyder_bye
+
 
 #==============================================================================
 # Pandas adjustments
