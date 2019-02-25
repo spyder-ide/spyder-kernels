@@ -212,8 +212,9 @@ except:
 #==============================================================================
 # Turtle adjustments
 #==============================================================================
-# Needed to prevent turtle scripts crashes after multiple launches in the same
-# IPython Console instance. See Spyder issue #6278
+# This is needed to prevent turtle scripts crashes after multiple runs in the
+# same IPython Console instance.
+# See Spyder issue #6278
 import turtle
 from turtle import Screen, Terminator
 

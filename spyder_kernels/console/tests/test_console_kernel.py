@@ -371,7 +371,7 @@ if __name__ == '__main__':
 
 
 def test_turtle_launch(tmpdir):
-    """Test turtle scripts launching in the same kernel."""
+    """Test turtle scripts running in the same kernel."""
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
 
@@ -412,23 +412,8 @@ turtle.bye()
         assert content['found']
 
         # Write turtle code to a file
-        code = """
-import turtle
-wn=turtle.Screen()
-wn.bgcolor("lightgreen")
-tess1 = turtle.Turtle() # Create tess and set some attributes
-tess1.color("hotpink")
-tess1.pensize(5)
+        code = code + "a = 10"
 
-tess1.forward(80) # Make tess draw equilateral triangle
-tess1.left(120)
-tess1.forward(80)
-tess1.left(120)
-tess1.forward(80)
-tess1.left(120) # Complete the triangle
-
-turtle.bye()
-"""
         p = tmpdir.join("turtle-test1.py")
         p.write(code)
 
@@ -436,8 +421,8 @@ turtle.bye()
         client.execute("runfile(r'{}')".format(to_text_string(p)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
-        # Verify that the `tess1` variable is defined
-        client.inspect('tess1')
+        # Verify that the `a` variable is defined
+        client.inspect('a')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
