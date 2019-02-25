@@ -467,5 +467,63 @@ f = np.get_printoptions()['formatter']
         content = msg['content']['data']['text/plain']
         assert "{'float_kind': <built-in method format of str object" in content
 
+def test_turtle_launch(tmpdir):
+    """Test turtle scripts running in the same kernel."""
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Remove all variables
+        client.execute("%reset -f")
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Write turtle code to a file
+        code = """
+import turtle
+wn=turtle.Screen()
+wn.bgcolor("lightgreen")
+tess = turtle.Turtle() # Create tess and set some attributes
+tess.color("hotpink")
+tess.pensize(5)
+
+tess.forward(80) # Make tess draw equilateral triangle
+tess.left(120)
+tess.forward(80)
+tess.left(120)
+tess.forward(80)
+tess.left(120) # Complete the triangle
+
+turtle.bye()
+"""
+        p = tmpdir.join("turtle-test.py")
+        p.write(code)
+
+        # Run code
+        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that the `tess` variable is defined
+        client.inspect('tess')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
+
+        # Write turtle code to a file
+        code = code + "a = 10"
+
+        p = tmpdir.join("turtle-test1.py")
+        p.write(code)
+
+        # Run code again
+        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that the `a` variable is defined
+        client.inspect('a')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
+
+
 if __name__ == "__main__":
     pytest.main()
