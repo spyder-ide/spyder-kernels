@@ -641,7 +641,7 @@ class UserModuleReloader(object):
                         r'^/usr/.*/dist-packages/.*',
                         r'^/Library/.*',
                         r'^/home/.*/.local/lib.*',
-                        r'^/Users/.*/Library/.*',
+                        r'^/Users/.*/Library/.*'
             ]
 
             if [p for p in patterns if re.search(p, modpath)]:

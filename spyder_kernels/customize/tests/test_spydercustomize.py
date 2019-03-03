@@ -121,11 +121,8 @@ def test_umr_pathlist(user_module):
     assert umr.is_module_in_pathlist(foo3) == False
 
 
-def test_user_sitepackages_in_pathlist(user_module):
+def test_user_sitepackages_in_pathlist():
     """Test that we include users site-packages in UMR's pathlist."""
-    # Create user module
-    user_module('foo4')
-
     # Create UMR
     umr = UserModuleReloader()
 
@@ -134,6 +131,6 @@ def test_user_sitepackages_in_pathlist(user_module):
     elif sys.platform == 'darwin':
         user_path = '/Users/travis/Library'
     else:
-        user_path = 'AppData'
+        user_path = 'Roaming'
 
     assert any([user_path in path for path in umr.pathlist])
