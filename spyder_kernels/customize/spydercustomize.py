@@ -572,16 +572,34 @@ class UserModuleReloader(object):
         Add to pathlist Python library paths to be skipped from module
         reloading.
         """
+        # Get standard installation paths
         try:
             paths = sysconfig.get_paths()
-            lib_paths = [paths['stdlib'],
-                         paths['purelib'],
-                         paths['scripts'],
-                         paths['data']]
-
-            return initial_pathlist + lib_paths
+            standard_paths = [paths['stdlib'],
+                              paths['purelib'],
+                              paths['scripts'],
+                              paths['data']]
         except Exception:
-            return initial_pathlist
+            standard_paths = []
+
+        # Get user installation path
+        # See Spyder issue 8776
+        try:
+            import site
+            if getattr(site, 'getusersitepackages', False):
+                # Virtualenvs don't have this function but
+                # conda envs do
+                user_path = [site.getusersitepackages()]
+            elif getattr(site, 'USER_SITE', False):
+                # However, it seems virtualenvs have this
+                # constant
+                user_path = [site.USER_SITE]
+            else:
+                user_path = []
+        except Exception:
+            user_path = []
+
+        return initial_pathlist + standard_paths + user_path
 
     def is_module_reloadable(self, module, modname):
         """Decide if a module is reloadable or not."""
@@ -616,12 +634,14 @@ class UserModuleReloader(object):
             return True
         elif not os.name == 'nt':
             # Module paths containing the strings below can be ihherited
-            # from the default Linux installation or Homebrew in a
-            # virtualenv.
+            # from the default Linux installation, Homebrew or the user
+            # site-packages in a virtualenv.
             patterns = [r'^/usr/lib.*',
                         r'^/usr/local/lib.*',
                         r'^/usr/.*/dist-packages/.*',
-                        r'^/Library/.*'
+                        r'^/Library/.*',
+                        r'^/home/.*/.local/lib.*',
+                        r'^/Users/.*/Library/.*'
             ]
 
             if [p for p in patterns if re.search(p, modpath)]:
