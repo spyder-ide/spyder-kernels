@@ -634,12 +634,14 @@ class UserModuleReloader(object):
             return True
         elif not os.name == 'nt':
             # Module paths containing the strings below can be ihherited
-            # from the default Linux installation or Homebrew in a
-            # virtualenv.
+            # from the default Linux installation, Homebrew or the user
+            # site-packages in a virtualenv.
             patterns = [r'^/usr/lib.*',
                         r'^/usr/local/lib.*',
                         r'^/usr/.*/dist-packages/.*',
-                        r'^/Library/.*'
+                        r'^/Library/.*',
+                        r'^/home/.*/.local/lib.*',
+                        r'^/Users/.*/Library/.*',
             ]
 
             if [p for p in patterns if re.search(p, modpath)]:
