@@ -465,7 +465,7 @@ f = np.get_printoptions()['formatter']
         client.inspect('f')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']['data']['text/plain']
-        assert "float_kind': <built-in method format of str object" in content
+        assert "{'float_kind': <built-in method format of str object" in content
 
 def test_turtle_launch(tmpdir):
     """Test turtle scripts running in the same kernel."""
