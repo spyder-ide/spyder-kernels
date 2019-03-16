@@ -421,7 +421,7 @@ def test_np_threshold(kernel):
         client.execute("""
 import numpy as np;
 np.set_printoptions(
-    threshold=np.nan,
+    threshold=np.inf,
     suppress=True,
     formatter={'float_kind':'{:0.2f}'.format})
     """)
@@ -453,7 +453,7 @@ f = np.get_printoptions()['formatter']
         client.inspect('t')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']['data']['text/plain']
-        assert "nan" in content
+        assert "inf" in content
 
         # Check suppress value
         client.inspect('s')
