@@ -639,9 +639,10 @@ class UserModuleReloader(object):
             patterns = [r'^/usr/lib.*',
                         r'^/usr/local/lib.*',
                         r'^/usr/.*/dist-packages/.*',
-                        r'^/Library/.*',
                         r'^/home/.*/.local/lib.*',
-                        r'^/Users/.*/Library/.*'
+                        r'^/Library/.*',
+                        r'^/Users/.*/Library/.*',
+                        r'^/Users/.*/.local/.*',
             ]
 
             if [p for p in patterns if re.search(p, modpath)]:
@@ -824,7 +825,13 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
 
     clear_post_mortem()
     sys.argv = ['']
-    namespace.pop('__file__')
+
+    # Avoid error when running `%reset -f` programmatically
+    # See issue spyder-ide/spyder-kernels#91
+    try:
+        namespace.pop('__file__')
+    except KeyError:
+        pass
 
 builtins.runfile = runfile
 
