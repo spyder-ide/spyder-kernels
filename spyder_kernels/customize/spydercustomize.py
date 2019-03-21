@@ -824,7 +824,13 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
 
     clear_post_mortem()
     sys.argv = ['']
-    namespace.pop('__file__')
+
+    # Avoid error when running `%reset -f` programmatically
+    # See issue spyder-ide/spyder-kernels#91
+    try:
+        namespace.pop('__file__')
+    except KeyError:
+        pass
 
 builtins.runfile = runfile
 
