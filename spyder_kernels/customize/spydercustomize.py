@@ -883,7 +883,7 @@ def runcell(cellname, filename, line_number=None):
                                line_number=line_number))
                 return
             cell_boundary_re = re.compile(
-                r'(?:^\s*(?:# ?%%|# <codecell>|# In\[)|\A|\Z)',
+                r'(?:^\s*(?:# ?%%|# <codecell>|# In\[.*\])|\A|\Z)',
                 re.MULTILINE)
             re_iter = cell_boundary_re.finditer(text)
             end_idx = -1
