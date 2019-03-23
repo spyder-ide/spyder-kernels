@@ -836,7 +836,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
 builtins.runfile = runfile
 
 
-def runcell(cellname, filename, position=None):
+def runcell(cellname, filename, line_number=None):
     """
     Run a code cell from an editor as a file.
 
@@ -865,13 +865,22 @@ def runcell(cellname, filename, position=None):
         cell_code = ipython_shell.cell_code
         del ipython_shell.cell_code
     else:
-        if position is None:
+        if line_number is None:
             _print("--Run Cell Error--\n"
-                   "Calling runcell without a position is depreciated;"
+                   "Calling runcell without a line number is depreciated;"
                    " Please update spyder")
             return
+
         with io.open(filename, encoding='utf-8') as f:
             text = f.read()
+            position = -1
+            for index, it in enumerate(re.finditer('^', text, re.MULTILINE)):
+                if index + 1 == line_number:
+                    position = it.start()
+            if position == -1:
+                _print("--Run Cell Error--\n"
+                       f"Line {line_number} not found.")
+                return
             cell_boundary_re = re.compile(
                 r'(?:^\s*(?:# ?%%|# <codecell>|# In\[)|\A|\Z)',
                 re.MULTILINE)
