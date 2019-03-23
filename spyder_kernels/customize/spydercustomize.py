@@ -879,7 +879,8 @@ def runcell(cellname, filename, line_number=None):
                     position = it.start()
             if position == -1:
                 _print("--Run Cell Error--\n"
-                       f"Line {line_number} not found.")
+                       "Line {line_number} not found.".format(
+                               line_number=line_number))
                 return
             cell_boundary_re = re.compile(
                 r'(?:^\s*(?:# ?%%|# <codecell>|# In\[)|\A|\Z)',
