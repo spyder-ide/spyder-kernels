@@ -836,7 +836,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
 builtins.runfile = runfile
 
 
-def runcell(cellname, filename):
+def runcell(cellname, filename, position=None):
     """
     Run a code cell from an editor as a file.
 
@@ -861,21 +861,37 @@ def runcell(cellname, filename):
     ipython_shell = get_ipython()
     namespace = _get_globals()
     namespace['__file__'] = filename
-    try:
+    if hasattr(ipython_shell, 'cell_code'):
         cell_code = ipython_shell.cell_code
-    except AttributeError:
-        _print("--Run Cell Error--\n"
-               "Please use only through Spyder's Editor; "
-               "shouldn't be called manually from the console")
-        return
-
+        del ipython_shell.cell_code
+    else:
+        if position is None:
+            _print("--Run Cell Error--\n"
+                   "Calling runcell without a position is depreciated;"
+                   " Please update spyder")
+            return
+        with io.open(filename, encoding='utf-8') as f:
+            text = f.read()
+            cell_boundary_re = re.compile(
+                r'(?:^\s*(?:# ?%%|# <codecell>|# In\[)|\A|\Z)',
+                re.MULTILINE)
+            re_iter = cell_boundary_re.finditer(text)
+            end_idx = -1
+            start_idx = -1
+            for it in re_iter:
+                if it.start() > position:
+                    end_idx = it.start()
+                    break
+                else:
+                    start_idx = it.start()
+            assert end_idx > -1 and start_idx > -1
+            cell_code = text[start_idx:end_idx]
     # Trigger `post_execute` to exit the additional pre-execution.
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
 
     ipython_shell.run_cell(cell_code)
     namespace.pop('__file__')
-    del ipython_shell.cell_code
 
 
 builtins.runcell = runcell
