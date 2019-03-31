@@ -1,5 +1,23 @@
 # History of changes
 
+## Version 0.4.3 (2019-03-31)
+
+### Issues Closed
+
+* [Issue 91](https://github.com/spyder-ide/spyder-kernels/issues/91) - KeyError when running "%reset -f" programmatically ([PR 96](https://github.com/spyder-ide/spyder-kernels/pull/96))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 96](https://github.com/spyder-ide/spyder-kernels/pull/96) - PR:  Avoid error when trying to pop __file__ out of the current namespace ([91](https://github.com/spyder-ide/spyder-kernels/issues/91))
+* [PR 92](https://github.com/spyder-ide/spyder-kernels/pull/92) - PR: Include user site-packages directory in the list of excluded paths by the UMR ([8776](https://github.com/spyder-ide/spyder/issues/8776))
+* [PR 90](https://github.com/spyder-ide/spyder-kernels/pull/90) - PR: Patch turtle.bye to make it work with multiple runnings of the same code ([6278](https://github.com/spyder-ide/spyder/issues/6278))
+
+In this release 3 pull requests were closed.
+
+----
+
 ## Version 0.4.2 (2019-02-07)
 
 ### Issues Closed
