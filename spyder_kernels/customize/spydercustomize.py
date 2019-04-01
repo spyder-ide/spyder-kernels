@@ -836,7 +836,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
 builtins.runfile = runfile
 
 
-def runcell(cellname, filename):
+def runcell(cellname, filename, line_number=-1):
     """
     Run a code cell from an editor as a file.
 
@@ -851,6 +851,8 @@ def runcell(cellname, filename):
         cell was run with the fuction. This variable is not used.
     filename : str
         Needed to allow for proper traceback links.
+    line_number: int
+        The line number of the cell. This variable is not used.
     """
     try:
         filename = filename.decode('utf-8')
