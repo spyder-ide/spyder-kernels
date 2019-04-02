@@ -836,7 +836,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
 builtins.runfile = runfile
 
 
-def runcell(filename, cellname, line_number=-1):
+def runcell(cellname, filename, line_number=-1):
     """
     Run a code cell from an editor as a file.
 
