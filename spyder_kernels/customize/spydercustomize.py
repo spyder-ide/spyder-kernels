@@ -44,7 +44,7 @@ if not hasattr(sys, 'argv'):
 # Main constants
 #==============================================================================
 IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
-SHOW_SUBPROCESS_WINDOW = os.environ.get('SPY_SHOW_CMD') == "True"
+HIDE_CMD_WINDOWS = os.environ.get('SPY_HIDE_CMD') == "True"
 
 #==============================================================================
 # Important Note:
@@ -133,14 +133,13 @@ if os.name == 'nt' and PY2:
 # Prevent subprocess.Popen calls to create visible console windows on Windows.
 # See issue #4932
 #==============================================================================
-if os.name == 'nt':
+if os.name == 'nt' and HIDE_CMD_WINDOWS:
     import subprocess
     creation_flag = 0x08000000  # CREATE_NO_WINDOW
 
     class SubprocessPopen(subprocess.Popen):
         def __init__(self, *args, **kwargs):
-            if SHOW_SUBPROCESS_WINDOW:
-                kwargs['creationflags'] = creation_flag
+            kwargs['creationflags'] = creation_flag
             super(SubprocessPopen, self).__init__(*args, **kwargs)
 
     subprocess.Popen = SubprocessPopen
