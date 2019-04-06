@@ -44,7 +44,7 @@ if not hasattr(sys, 'argv'):
 # Main constants
 #==============================================================================
 IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
-
+SHOW_SUBPROCESS_WINDOW = os.environ.get('SPY_SHOW_CMD') == "True"
 
 #==============================================================================
 # Important Note:
@@ -139,7 +139,8 @@ if os.name == 'nt':
 
     class SubprocessPopen(subprocess.Popen):
         def __init__(self, *args, **kwargs):
-            kwargs['creationflags'] = creation_flag
+            if SHOW_SUBPROCESS_WINDOW:
+                kwargs['creationflags'] = creation_flag
             super(SubprocessPopen, self).__init__(*args, **kwargs)
 
     subprocess.Popen = SubprocessPopen
