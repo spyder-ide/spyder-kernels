@@ -35,6 +35,12 @@ import IPython
 FILES_PATH = os.path.dirname(os.path.realpath(__file__))
 TIMEOUT = 15
 
+TKINTER_INSTALLED = False
+try:
+    import tkinter
+    TKINTER_INSTALLED = True
+except:
+    pass
 
 # =============================================================================
 # Fixtures
@@ -370,6 +376,8 @@ if __name__ == '__main__':
         assert content['found']
 
 
+@pytest.mark.skipif(not TKINTER_INSTALLED,
+                    reason="Doesn't work on Python installations without Tk")
 def test_turtle_launch(tmpdir):
     """Test turtle scripts running in the same kernel."""
     # Command to start the kernel
