@@ -1,5 +1,25 @@
 # History of changes
 
+## Version 1.3.3 (2019-04-08)
+
+### New features
+* This release also contains all features and fixes present in
+  versions 0.4.3 and 0.4.4
+
+### Issues Closed
+
+* [Issue 93](https://github.com/spyder-ide/spyder-kernels/issues/93) - test_np_threshold is failing ([PR 95](https://github.com/spyder-ide/spyder-kernels/pull/95))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 95](https://github.com/spyder-ide/spyder-kernels/pull/95) - PR: Change np.nan for np.inf in test_np_threshold ([93](https://github.com/spyder-ide/spyder-kernels/issues/93))
+
+In this release 1 pull request was closed.
+
+----
+
 ## Version 1.3.2 (2019-02-10)
 
 Sister release for 0.4.2
