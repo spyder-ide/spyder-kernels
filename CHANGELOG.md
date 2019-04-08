@@ -1,5 +1,22 @@
 # History of changes
 
+## Version 0.4.4 (2019-04-08)
+
+### Issues Closed
+
+* [Issue 102](https://github.com/spyder-ide/spyder-kernels/issues/102) - Tkinter is now required for version 0.4.3 after patching the turtle code ([PR 103](https://github.com/spyder-ide/spyder-kernels/pull/103))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 106](https://github.com/spyder-ide/spyder-kernels/pull/106) - PR: Skip test_turtle_launch if Tk is not installed
+* [PR 103](https://github.com/spyder-ide/spyder-kernels/pull/103) - PR: Enclose turtle customizations in a try/except to avoid a dependency on Tk ([102](https://github.com/spyder-ide/spyder-kernels/issues/102))
+
+In this release 2 pull requests were closed.
+
+----
+
 ## Version 0.4.3 (2019-03-31)
 
 ### Issues Closed
