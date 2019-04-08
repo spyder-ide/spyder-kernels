@@ -6,34 +6,20 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
-
-"""
-Spyder Kernels
-==============
-
-Provides Jupyter kernels for use with the consoles of Spyder, the Scientific
-Python Development Environment. These can launched either through Spyder itself
-or in an independent Python session, and allow for interactive or file-based
-execution of Python code in different environments, all inside the IDE.
-For more on Spyder, visit https://www.spyder-ide.org/
-
-To learn about creating, connecting to and using Spyder's consoles, read:
-https://docs.spyder-ide.org/ipythonconsole.html
-
-For advice on managing packages and environments with Spyder-Kernels, see:
-https://github.com/spyder-ide/spyder/wiki/Working-with-packages-and-environments-in-Spyder
-
-"""
+"""Jupyter Kernels for the Spyder consoles."""
 
 # Standard library imports
 import ast
+import io
 import os
 
 # Third party imports
 from setuptools import find_packages, setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
-DOCLINES = __doc__.split('\n')
+
+with io.open('README.md', encoding='utf-8') as f:
+    LONG_DESCRIPTION = f.read()
 
 
 def get_version(module='spyder_kernels'):
@@ -66,7 +52,8 @@ setup(
     author='Spyder Development Team',
     author_email="spyderlib@googlegroups.com",
     description="Jupyter kernels for Spyder's console",
-    long_description="\n".join(DOCLINES[4:]),
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type='text/markdown',
     packages=find_packages(exclude=['docs']),
     install_requires=REQUIREMENTS,
     include_package_data=True,
