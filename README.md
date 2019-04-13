@@ -4,7 +4,18 @@
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/pd0etf64xyiyd3qb/branch/master?svg=true)](https://ci.appveyor.com/project/spyder-ide/spyder-kernels/branch/master)
 [![codecov](https://codecov.io/gh/spyder-ide/spyder-kernels/branch/master/graph/badge.svg)](https://codecov.io/gh/spyder-ide/spyder-kernels)
 
-Package that provides the kernels used by Spyder on its IPython console.
+Package that provides Jupyter kernels for use with the consoles of Spyder, the
+Scientific Python Development Environment.
+
+These kernels can launched either through Spyder itself or in an independent
+Python session, and allow for interactive or file-based execution of Python
+code inside Spyder.
+
+To learn about creating, connecting to and using these kernels with the Spyder
+console, please read our [documentation](https://docs.spyder-ide.org/ipythonconsole.html).
+
+For advice on managing packages and environments with `spyder-kernels`, please visit
+our [wiki](https://github.com/spyder-ide/spyder/wiki/Working-with-packages-and-environments-in-Spyder).
 
 ## Installation
 
