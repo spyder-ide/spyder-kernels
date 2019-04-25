@@ -463,10 +463,12 @@ class SpyderKernel(IPythonKernel):
         import traceback
         from IPython.core.getipython import get_ipython
 
-        generic_error = ("\n"
-                         "NOTE: The following error appeared when setting "
-                         "your Matplotlib backend\n\n"
-                         "{0}")
+        generic_error = (
+            "\n" + "="*73 + "\n"
+            "NOTE: The following error appeared when setting "
+            "your Matplotlib backend!!\n" + "="*73 + "\n\n"
+            "{0}"
+        )
 
         magic = 'pylab' if pylab else 'matplotlib'
 
