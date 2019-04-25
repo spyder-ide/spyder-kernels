@@ -436,5 +436,25 @@ turtle.bye()
         assert content['found']
 
 
+def test_matplotlib_inline(kernel):
+    """Test that the default backend for our kernels is 'inline'."""
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Get current backend
+        code = "import matplotlib; backend = matplotlib.get_backend()"
+        client.execute(code, user_expressions={'output': 'backend'})
+        reply = client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Transform value obtained through user_expressions
+        user_expressions = reply['content']['user_expressions']
+        str_value = user_expressions['output']['data']['text/plain']
+        value = ast.literal_eval(str_value)
+
+        # Assert backend is inline
+        assert 'inline' in value
+
+
 if __name__ == "__main__":
     pytest.main()
