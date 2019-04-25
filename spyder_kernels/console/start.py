@@ -12,8 +12,11 @@ File used to start kernels for the IPython Console
 
 # Standard library imports
 from distutils.version import LooseVersion
+import locale
+import quote
 import os
 import os.path as osp
+import subprocess
 import sys
 import site
 
@@ -73,6 +76,44 @@ init_session()
 """
 
     return lines
+
+
+def is_anaconda():
+    """
+    Detect if we are running under Anaconda.
+    Taken from https://stackoverflow.com/a/47610844/438386
+    """
+    is_conda = osp.exists(osp.join(sys.prefix, 'conda-meta'))
+    return is_conda
+
+
+def exec_in_env(conda_root, envname, *command):
+    """
+    Run the standard conda activation script.
+    Taken from https://github.com/Anaconda-Platform/nb_conda_kernels/blob/
+    master/nb_conda_kernels/runner.py#L13
+    """
+    if sys.platform.startswith('win'):
+        print(sys.stdin.encoding, sys.stdout.encoding, sys.stderr.encoding,
+              locale.getpreferredencoding())
+        activate = os.path.join(conda_root, 'Scripts', 'activate.bat')
+        activator = subprocess.list2cmdline(['call', activate, envname])
+        ecomm = [os.environ['COMSPEC'], '/S', '/U', '/C', '@echo', 'off', '&&',
+                 'chcp', '&&', 'call', 'activate', envname,
+                 '&&'] + list(command)
+        subprocess.Popen(ecomm).wait()
+    else:
+        command = ' '.join(quote(c) for c in command)
+        activate = os.path.join(conda_root, 'bin', 'activate')
+        ecomm = ". '{}' '{}' && exec {}".format(activate, envname, command)
+        ecomm = ['sh' if 'bsd' in sys.platform else 'bash', '-c', ecomm]
+        os.execvp(ecomm[0], ecomm)
+
+
+def get_conda_env_path():
+    """Get conda environment PATH when running under a conda env."""
+    # TODO: Get the correct PATH that is setted when calling 'activate <env>'
+    # by using exec_in_env or build it using sys.executable
 
 
 def kernel_config():
@@ -292,6 +333,11 @@ def main():
     # See spyder-ide/spyder#8007
     while '' in sys.path:
         sys.path.remove('')
+
+    # Handle conda environment. See Spyder issue #9077
+    if os.environ.get('SPY_EXTERNAL_INTERPRETER'):
+        if is_anaconda():
+            os.environ['PATH'] = get_conda_env_path()
 
     # Fire up the kernel instance.
     from ipykernel.kernelapp import IPKernelApp
