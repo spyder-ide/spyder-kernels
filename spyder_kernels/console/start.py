@@ -12,11 +12,10 @@ File used to start kernels for the IPython Console
 
 # Standard library imports
 from distutils.version import LooseVersion
-import locale
-import quote
+import json
 import os
 import os.path as osp
-import subprocess
+from subprocess import check_output
 import sys
 import site
 
@@ -87,33 +86,21 @@ def is_anaconda():
     return is_conda
 
 
-def exec_in_env(conda_root, envname, *command):
-    """
-    Run the standard conda activation script.
-    Taken from https://github.com/Anaconda-Platform/nb_conda_kernels/blob/
-    master/nb_conda_kernels/runner.py#L13
-    """
-    if sys.platform.startswith('win'):
-        print(sys.stdin.encoding, sys.stdout.encoding, sys.stderr.encoding,
-              locale.getpreferredencoding())
-        activate = os.path.join(conda_root, 'Scripts', 'activate.bat')
-        activator = subprocess.list2cmdline(['call', activate, envname])
-        ecomm = [os.environ['COMSPEC'], '/S', '/U', '/C', '@echo', 'off', '&&',
-                 'chcp', '&&', 'call', 'activate', envname,
-                 '&&'] + list(command)
-        subprocess.Popen(ecomm).wait()
-    else:
-        command = ' '.join(quote(c) for c in command)
-        activate = os.path.join(conda_root, 'bin', 'activate')
-        ecomm = ". '{}' '{}' && exec {}".format(activate, envname, command)
-        ecomm = ['sh' if 'bsd' in sys.platform else 'bash', '-c', ecomm]
-        os.execvp(ecomm[0], ecomm)
+def get_conda_root_path():
+    """Get conda root path using 'conda info --json'."""
+    conda_info = check_output('conda info --json')
+    conda_info_json = json.loads(conda_info)
+    return conda_info_json['env_vars']['CONDA_ROOT']
 
 
 def get_conda_env_path():
-    """Get conda environment PATH when running under a conda env."""
+    """
+    Get conda environment minimum PATH elements when running under a conda env.
+    """
     # TODO: Get the correct PATH that is setted when calling 'activate <env>'
     # by using exec_in_env or build it using sys.executable
+    env_root_path = sys.executable
+    conda_root_path = get_conda_root_path()
 
 
 def kernel_config():
@@ -335,9 +322,9 @@ def main():
         sys.path.remove('')
 
     # Handle conda environment. See Spyder issue #9077
-    if os.environ.get('SPY_EXTERNAL_INTERPRETER'):
+    if os.environ.get('SPY_EXTERNAL_INTERPRETER') and os.name == 'nt':
         if is_anaconda():
-            os.environ['PATH'] = get_conda_env_path()
+            os.environ['PATH'] = get_conda_env_path() + os.environ['PATH']
 
     # Fire up the kernel instance.
     from ipykernel.kernelapp import IPKernelApp
