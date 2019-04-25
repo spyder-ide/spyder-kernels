@@ -458,7 +458,7 @@ class SpyderKernel(IPythonKernel):
         Set a backend for Matplotlib.
 
         backend: A parameter that can be passed to %matplotlib
-                 (e.g. inline or tk).
+                 (e.g. 'inline' or 'tk').
         """
         import traceback
         from IPython.core.getipython import get_ipython
@@ -479,11 +479,17 @@ class SpyderKernel(IPythonKernel):
             if "GUI eventloops" in str(err):
                 import matplotlib
                 previous_backend = matplotlib.get_backend()
-                error = ("\n"
-                         "NOTE: Spyder *can't* set your selected Matplotlib "
-                         "backend because there is a previous backend already "
-                         "in use.\n\n"
-                         "Your backend will be {0}".format(previous_backend))
+                if not backend in previous_backend.lower():
+                    # Only inform about an error if the user selected backend
+                    # and the one set by Matplotlib are different. Else this
+                    # message is very confusing.
+                    error = (
+                        "\n"
+                        "NOTE: Spyder *can't* set your selected Matplotlib "
+                        "backend because there is a previous backend already "
+                        "in use.\n\n"
+                        "Your backend will be {0}".format(previous_backend)
+                    )
                 del matplotlib
             # This covers other RuntimeError's
             else:
