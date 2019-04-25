@@ -150,6 +150,7 @@ def kernel_config():
         pylab_o = os.environ.get('SPY_PYLAB_O')
         backend_o = os.environ.get('SPY_BACKEND_O')
         if pylab_o == 'True' and backend_o is not None:
+            # Select the automatic backend
             if backend_o == '1':
                 if is_module_installed('PyQt5'):
                     auto_backend = 'qt5'
@@ -161,6 +162,8 @@ def kernel_config():
                     auto_backend = 'inline'
             else:
                 auto_backend = ''
+
+            # Mapping of Spyder options to backends
             backends = {'0': 'inline',
                         '1': auto_backend,
                         '2': 'qt5',
@@ -170,6 +173,8 @@ def kernel_config():
                         '6': 'gtk',
                         '7': 'wx',
                         '8': 'tk'}
+
+            # Select backend
             mpl_backend = backends[backend_o]
 
             # Inline backend configuration
