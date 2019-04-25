@@ -88,19 +88,40 @@ def is_anaconda():
 
 def get_conda_root_path():
     """Get conda root path using 'conda info --json'."""
-    conda_info = check_output('conda info --json')
-    conda_info_json = json.loads(conda_info)
-    return conda_info_json['env_vars']['CONDA_ROOT']
+    try:
+        conda_info = check_output('conda info --json')
+        conda_info_json = json.loads(conda_info)
+        return conda_info_json['env_vars']['CONDA_ROOT']
+    except Exception:
+        return None
 
 
 def get_conda_env_path():
     """
     Get conda environment minimum PATH elements when running under a conda env.
     """
-    # TODO: Get the correct PATH that is setted when calling 'activate <env>'
-    # by using exec_in_env or build it using sys.executable
-    env_root_path = sys.executable
+    env_root_exec = sys.executable
     conda_root_path = get_conda_root_path()
+
+    # Environment PATH elements
+    env_path = ''
+    if env_root_exec:
+        env_root_path = osp.dirname(env_root_exec)
+        env_path = env_root_path + ';'
+        env_path += osp.join(env_root_path, 'Library', 'mingw-w64', 'bin;')
+        env_path += osp.join(env_root_path, 'Library', 'usr', 'bin;')
+        env_path += osp.join(env_root_path, 'Library', 'bin;')
+        env_path += osp.join(env_root_path, 'Scripts;')
+        env_path += osp.join(env_root_path, 'bin;')
+
+    # Root environment PATH elements
+    root_path = ''
+    if conda_root_path is not None:
+        root_path = conda_root_path + ';'
+        env_path += osp.join(conda_root_path, 'Scripts;')
+        env_path += osp.join(conda_root_path, 'bin;')
+
+    return env_path + root_path
 
 
 def kernel_config():
@@ -324,7 +345,9 @@ def main():
     # Handle conda environment. See Spyder issue #9077
     if os.environ.get('SPY_EXTERNAL_INTERPRETER') and os.name == 'nt':
         if is_anaconda():
-            os.environ['PATH'] = get_conda_env_path() + os.environ['PATH']
+            conda_env_path = get_conda_env_path()
+            if conda_env_path:
+                os.environ['PATH'] = conda_env_path + os.environ['PATH']
 
     # Fire up the kernel instance.
     from ipykernel.kernelapp import IPKernelApp
