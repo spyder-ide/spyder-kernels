@@ -145,12 +145,11 @@ def kernel_config():
 
     # Pylab configuration
     mpl_backend = None
-    pylab_o = os.environ.get('SPY_PYLAB_O')
-
-    if pylab_o == 'True' and is_module_installed('matplotlib'):
-        # Set Matplotlib backend
+    if is_module_installed('matplotlib'):
+        # Set Matplotlib backend with Spyder options
+        pylab_o = os.environ.get('SPY_PYLAB_O')
         backend_o = os.environ.get('SPY_BACKEND_O')
-        if backend_o is not None:
+        if pylab_o == 'True' and backend_o is not None:
             if backend_o == '1':
                 if is_module_installed('PyQt5'):
                     auto_backend = 'qt5'
@@ -172,13 +171,6 @@ def kernel_config():
                         '7': 'wx',
                         '8': 'tk'}
             mpl_backend = backends[backend_o]
-
-            # Automatically load Pylab and Numpy, or only set Matplotlib
-            # backend
-            autoload_pylab_o = os.environ.get('SPY_AUTOLOAD_PYLAB_O') == 'True'
-            command = "get_ipython().kernel._set_mpl_backend('{0}', {1})"
-            spy_cfg.IPKernelApp.exec_lines.append(
-                command.format(mpl_backend, autoload_pylab_o))
 
             # Inline backend configuration
             if mpl_backend == 'inline':
@@ -206,6 +198,17 @@ def kernel_config():
                 bbox_inches = 'tight' if bbox_inches_o == 'True' else None
                 spy_cfg.InlineBackend.print_figure_kwargs.update(
                     {'bbox_inches': bbox_inches})
+        else:
+            # Set Matplotlib backend to inline for external kernels.
+            # Fixes issue 108
+            mpl_backend = 'inline'
+
+        # Automatically load Pylab and Numpy, or only set Matplotlib
+        # backend
+        autoload_pylab_o = os.environ.get('SPY_AUTOLOAD_PYLAB_O') == 'True'
+        command = "get_ipython().kernel._set_mpl_backend('{0}', {1})"
+        spy_cfg.IPKernelApp.exec_lines.append(
+            command.format(mpl_backend, autoload_pylab_o))
 
     # Enable Cython magic
     run_cython = os.environ.get('SPY_RUN_CYTHON') == 'True'
