@@ -19,6 +19,9 @@ from subprocess import check_output
 import sys
 import site
 
+# Local imports
+from spyder_kernels.py3compat import to_text_string
+
 
 PY2 = sys.version[0] == '2'
 
@@ -86,40 +89,43 @@ def is_anaconda():
     return is_conda
 
 
-def get_conda_root_path():
+def get_conda_rootpath():
     """Get conda root path using 'conda info --json'."""
     try:
         conda_info = check_output('conda info --json')
         conda_info_json = json.loads(conda_info)
-        return conda_info_json['env_vars']['CONDA_ROOT']
+        return to_text_string(conda_info_json['env_vars']['CONDA_ROOT'])
     except Exception:
         return None
 
 
-def get_conda_env_path():
+def get_win_conda_envpath():
     """
-    Get conda environment minimum PATH elements when running under a conda env.
+    Get minimal set of directories to add to PATH for conda
+    environments on Windows.
     """
-    env_root_exec = sys.executable
-    conda_root_path = get_conda_root_path()
+    env_python_exec = sys.executable
+    conda_root_path = get_conda_rootpath()
 
     # Environment PATH elements
     env_path = ''
-    if env_root_exec:
-        env_root_path = osp.dirname(env_root_exec)
-        env_path = env_root_path + ';'
-        env_path += osp.join(env_root_path, 'Library', 'mingw-w64', 'bin;')
-        env_path += osp.join(env_root_path, 'Library', 'usr', 'bin;')
-        env_path += osp.join(env_root_path, 'Library', 'bin;')
-        env_path += osp.join(env_root_path, 'Scripts;')
-        env_path += osp.join(env_root_path, 'bin;')
+    if env_python_exec:
+        env_root_path = osp.dirname(to_text_string(env_python_exec))
+        env_path = env_root_path + os.pathsep
+        env_path += osp.join(env_root_path, u'Library', u'mingw-w64',
+                             u'bin' + os.pathsep)
+        env_path += osp.join(env_root_path, u'Library', u'usr',
+                             u'bin' + os.pathsep)
+        env_path += osp.join(env_root_path, u'Library', u'bin' + os.pathsep)
+        env_path += osp.join(env_root_path, u'Scripts' + os.pathsep)
+        env_path += osp.join(env_root_path, u'bin' + os.pathsep)
 
     # Root environment PATH elements
     root_path = ''
     if conda_root_path is not None:
         root_path = conda_root_path + ';'
-        env_path += osp.join(conda_root_path, 'Scripts;')
-        env_path += osp.join(conda_root_path, 'bin;')
+        env_path += osp.join(conda_root_path, u'Scripts' + os.pathsep)
+        env_path += osp.join(conda_root_path, u'bin' + os.pathsep)
 
     return env_path + root_path
 
@@ -345,9 +351,13 @@ def main():
     # Handle conda environment. See Spyder issue #9077
     if os.environ.get('SPY_EXTERNAL_INTERPRETER') and os.name == 'nt':
         if is_anaconda():
-            conda_env_path = get_conda_env_path()
+            conda_env_path = get_win_conda_envpath()
             if conda_env_path:
-                os.environ['PATH'] = conda_env_path + os.environ['PATH']
+                try:
+                    os.environ['PATH'] = conda_env_path + os.environ['PATH']
+                except UnicodeEncodeError:
+                    path = conda_env_path.encode('utf8') + os.environ['PATH']
+                    os.environ['PATH'] = path
 
     # Fire up the kernel instance.
     from ipykernel.kernelapp import IPKernelApp
