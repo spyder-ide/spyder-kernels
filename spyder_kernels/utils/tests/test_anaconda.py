@@ -31,8 +31,6 @@ def test_get_conda_rootpath():
         conda_root_path = anaconda.get_conda_rootpath()
         if os.name == 'nt':
             assert conda_root_path == "C:\\conda"
-        else:
-            assert conda_root_path == "/home/circleci/miniconda"
 
 
 def test_get_win_conda_envpath():
@@ -44,6 +42,7 @@ def test_get_win_conda_envpath():
         conda_envpath = anaconda.get_win_conda_envpath()
         if os.name == 'nt':
             expected_conda_envpath = (
+                """C:\\conda\\envs\\test;"""
                 """C:\\conda\\envs\\test\\Library\\mingw-w64\\bin;"""
                 """C:\\conda\\envs\\test\\Library\\usr\\bin;"""
                 """C:\\conda\\envs\\test\\Library\\bin;"""

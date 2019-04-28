@@ -63,7 +63,7 @@ def get_win_conda_envpath():
     root_path = ''
     if conda_root_path is not None:
         root_path = conda_root_path + os.pathsep
-        env_path += osp.join(conda_root_path, u'Scripts' + os.pathsep)
-        env_path += osp.join(conda_root_path, u'bin' + os.pathsep)
+        root_path += osp.join(conda_root_path, u'Scripts' + os.pathsep)
+        root_path += osp.join(conda_root_path, u'bin' + os.pathsep)
 
     return env_path + root_path
