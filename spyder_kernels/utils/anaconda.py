@@ -6,7 +6,7 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
-"""Utilities for conda environtment handling"""
+"""Utilities for conda environtment handling."""
 
 # Standard imports
 import json
@@ -22,6 +22,7 @@ from spyder_kernels.py3compat import to_text_string
 def is_anaconda():
     """
     Detect if we are running under Anaconda.
+
     Taken from https://stackoverflow.com/a/47610844/438386
     """
     is_conda = osp.exists(osp.join(sys.prefix, 'conda-meta'))
@@ -39,10 +40,7 @@ def get_conda_rootpath():
 
 
 def get_win_conda_envpath():
-    """
-    Get minimal set of directories to add to PATH for conda
-    environments on Windows.
-    """
+    """Get directories to add to PATH for conda envs on Windows."""
     env_python_exec = sys.executable
     conda_root_path = get_conda_rootpath()
 
