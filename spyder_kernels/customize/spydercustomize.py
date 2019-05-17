@@ -107,8 +107,10 @@ except ImportError:
     def execfile(filename, namespace):
         # Open a source file correctly, whatever its encoding is
         with open(filename, 'rb') as f:
-            exec(compile(f.read(), filename, 'exec'), namespace)
-
+            try:
+                exec(compile(f.read(), filename, 'exec'), namespace)
+            except:
+                get_ipython().showtraceback(running_compiled_code=True)
 
 #==============================================================================
 # Setting console encoding (otherwise Python does not recognize encoding)
