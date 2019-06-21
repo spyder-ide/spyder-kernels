@@ -107,7 +107,7 @@ def real_values():
     like other structs, matrices and Cell Arrays.
     """
     path = os.path.join(LOCATION, 'numpy_data.npz')
-    file_s = np.load(path)
+    file_s = np.load(path, allow_pickle=True)
     A = file_s['A'].item()
     B = file_s['B']
     C = file_s['C']

@@ -44,7 +44,7 @@ if not hasattr(sys, 'argv'):
 # Main constants
 #==============================================================================
 IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
-
+HIDE_CMD_WINDOWS = os.environ.get('SPY_HIDE_CMD') == "True"
 
 #==============================================================================
 # Important Note:
@@ -133,7 +133,7 @@ if os.name == 'nt' and PY2:
 # Prevent subprocess.Popen calls to create visible console windows on Windows.
 # See issue #4932
 #==============================================================================
-if os.name == 'nt':
+if os.name == 'nt' and HIDE_CMD_WINDOWS:
     import subprocess
     creation_flag = 0x08000000  # CREATE_NO_WINDOW
 
@@ -215,16 +215,19 @@ except:
 # This is needed to prevent turtle scripts crashes after multiple runs in the
 # same IPython Console instance.
 # See Spyder issue #6278
-import turtle
-from turtle import Screen, Terminator
+try:
+    import turtle
+    from turtle import Screen, Terminator
 
-def spyder_bye():
-    try:
-        Screen().bye()
-        turtle.TurtleScreen._RUNNING = True
-    except Terminator:
-        pass
-turtle.bye = spyder_bye
+    def spyder_bye():
+        try:
+            Screen().bye()
+            turtle.TurtleScreen._RUNNING = True
+        except Terminator:
+            pass
+    turtle.bye = spyder_bye
+except:
+    pass
 
 
 #==============================================================================
