@@ -602,7 +602,8 @@ def globalsfilter(input_dict, check_all=False, filters=None,
 #==============================================================================
 REMOTE_SETTINGS = ('check_all', 'exclude_private', 'exclude_uppercase',
                    'exclude_capitalized', 'exclude_unsupported',
-                   'excluded_names', 'minmax')
+                   'excluded_names', 'minmax', 'show_callable_attributes',
+                   'show_special_attributes')
 
 
 def get_supported_types():
