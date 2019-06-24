@@ -1,10 +1,27 @@
 # History of changes
 
+## Version 1.4.0 (2019-06-24)
+
+### New features
+
+* Add entries necessary for the new Object Explorer to
+  REMOTE_SETTINGS.
+* This release also contains all features and fixes present in
+  version 0.5.0
+
+### Pull Requests Merged
+
+* [PR 100](https://github.com/spyder-ide/spyder-kernels/pull/100) - PR: Add object explorer settings to REMOTE_SETTINGS
+
+In this release 1 pull request was closed.
+
+----
+
 ## Version 1.3.3 (2019-04-08)
 
 ### New features
-* This release also contains all features and fixes present in
-  versions 0.4.3 and 0.4.4
+* This release contains all features and fixes present in versions
+  0.4.3 and 0.4.4
 
 ### Issues Closed
 
