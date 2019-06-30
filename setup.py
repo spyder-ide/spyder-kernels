@@ -39,7 +39,9 @@ REQUIREMENTS = ['ipykernel>=4.8.2',
                 'pyzmq>=17',
                 'jupyter-client>=5.2.3',
                 'cloudpickle',
-                'wurlitzer;platform_system!="Windows"']
+                'wurlitzer;platform_system!="Windows"',
+                'mock',
+                'matplotlib']
 
 
 setup(
