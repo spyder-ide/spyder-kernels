@@ -39,9 +39,9 @@ REQUIREMENTS = ['ipykernel>=4.8.2',
                 'pyzmq>=17',
                 'jupyter-client>=5.2.3',
                 'cloudpickle',
-                'wurlitzer;platform_system!="Windows"',
-                'mock',
-                'matplotlib']
+                'wurlitzer;platform_system!="Windows"']
+with io.open('requirements/tests.txt', encoding='utf-8') as f:
+    TEST_REQUIREMENTS = f.readlines()
 
 
 setup(
@@ -58,6 +58,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=find_packages(exclude=['docs']),
     install_requires=REQUIREMENTS,
+    tests_require=TEST_REQUIREMENTS,
     include_package_data=True,
     classifiers=['Development Status :: 5 - Production/Stable',
                  'Framework :: Jupyter',
