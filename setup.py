@@ -41,6 +41,14 @@ REQUIREMENTS = ['ipykernel>=4.8.2',
                 'cloudpickle',
                 'wurlitzer;platform_system!="Windows"']
 
+TEST_REQUIREMENTS = ['numpy',
+                     'pandas',
+                     'scipy',
+                     'pytest',
+                     'pytest-cov',
+                     'mock',
+                     'cython',
+                     'matplotlib']
 
 setup(
     name='spyder-kernels',
@@ -56,6 +64,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=find_packages(exclude=['docs']),
     install_requires=REQUIREMENTS,
+    extras_requires={'test': TEST_REQUIREMENTS},
     include_package_data=True,
     classifiers=['Development Status :: 5 - Production/Stable',
                  'Framework :: Jupyter',
