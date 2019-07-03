@@ -10,9 +10,9 @@ jobs:
       - run:
           command: docker pull continuumio/miniconda3:latest
       - run:
-          command: ./.circleci/install.sh
+          command: ./ci/install.sh
       - run:
-          command: ./.circleci/run_tests.sh
+          command: ./ci/runtests.sh
   python3.6:
     machine: true
     environment:
@@ -22,9 +22,9 @@ jobs:
       - run:
           command: docker pull continuumio/miniconda3:latest
       - run:
-          command: ./.circleci/install.sh
+          command: ./ci/install.sh
       - run:
-          command: ./.circleci/run_tests.sh
+          command: ./ci/runtests.sh
   python3.7:
     machine: true
     environment:
@@ -34,9 +34,9 @@ jobs:
       - run:
           command: docker pull continuumio/miniconda3:latest
       - run:
-          command: ./.circleci/install.sh
+          command: ./ci/install.sh
       - run:
-          command: ./.circleci/run_tests.sh
+          command: ./ci/runtests.sh
 
 workflows:
   version: 2
