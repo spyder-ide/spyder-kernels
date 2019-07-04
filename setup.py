@@ -64,7 +64,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=find_packages(exclude=['docs']),
     install_requires=REQUIREMENTS,
-    extras_requires={'test': TEST_REQUIREMENTS},
+    extras_require={'test': TEST_REQUIREMENTS},
     include_package_data=True,
     classifiers=['Development Status :: 5 - Production/Stable',
                  'Framework :: Jupyter',
