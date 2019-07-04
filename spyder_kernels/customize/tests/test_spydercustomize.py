@@ -129,7 +129,7 @@ def test_user_sitepackages_in_pathlist():
     if sys.platform.startswith('linux'):
         user_path = 'local'
     elif sys.platform == 'darwin':
-        user_path = '/Users/travis/Library'
+        user_path = '/Users/travis/.local'
     else:
         user_path = 'Roaming'
 
