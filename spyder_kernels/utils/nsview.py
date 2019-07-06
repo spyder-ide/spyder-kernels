@@ -578,18 +578,15 @@ def is_supported(value, check_all=False, filters=None, iterate=False):
 
 
 def globalsfilter(input_dict, check_all=False, filters=None,
-                  exclude_private=None, exclude_capitalized=None,
-                  exclude_uppercase=None, exclude_unsupported=None,
-                  excluded_names=None):
+                  include_private=None, include_capitalized=None,
+                  include_callables=None, excluded_names=None):
     """Keep only objects that can be pickled"""
     output_dict = {}
     for key, value in list(input_dict.items()):
-        excluded = (exclude_private and key.startswith('_')) or \
-                   (exclude_capitalized and key[0].isupper()) or \
-                   (exclude_uppercase and key.isupper()
-                    and len(key) > 1 and not key[1:].isdigit()) or \
+        excluded = (not include_private and key.startswith('_')) or \
+                   (not include_capitalized and key[0].isupper()) or \
                    (key in excluded_names) or \
-                   (exclude_unsupported and \
+                   (not include_callables and \
                     not is_supported(value, check_all=check_all,
                                      filters=filters))
         if not excluded:
@@ -600,10 +597,9 @@ def globalsfilter(input_dict, check_all=False, filters=None,
 #==============================================================================
 # Create view to be displayed by NamespaceBrowser
 #==============================================================================
-REMOTE_SETTINGS = ('check_all', 'exclude_private', 'exclude_uppercase',
-                   'exclude_capitalized', 'exclude_unsupported',
-                   'excluded_names', 'minmax', 'show_callable_attributes',
-                   'show_special_attributes')
+REMOTE_SETTINGS = ('check_all', 'include_private', 'include_capitalized',
+                   'include_callables', 'excluded_names', 'minmax',
+                   'show_callable_attributes', 'show_special_attributes')
 
 
 def get_supported_types():
@@ -652,10 +648,9 @@ def get_remote_data(data, settings, mode, more_excluded_names=None):
         excluded_names += more_excluded_names
     return globalsfilter(data, check_all=settings['check_all'],
                          filters=tuple(supported_types[mode]),
-                         exclude_private=settings['exclude_private'],
-                         exclude_uppercase=settings['exclude_uppercase'],
-                         exclude_capitalized=settings['exclude_capitalized'],
-                         exclude_unsupported=settings['exclude_unsupported'],
+                         include_private=settings['include_private'],
+                         include_capitalized=settings['include_capitalized'],
+                         include_callables=settings['include_callables'],
                          excluded_names=excluded_names)
 
 

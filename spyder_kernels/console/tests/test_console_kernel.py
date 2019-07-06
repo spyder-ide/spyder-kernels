@@ -52,10 +52,9 @@ def kernel(request):
     # Get kernel instance
     kernel = get_kernel()
     kernel.namespace_view_settings = {'check_all': False,
-                                      'exclude_private': True,
-                                      'exclude_uppercase': True,
-                                      'exclude_capitalized': False,
-                                      'exclude_unsupported': True,
+                                      'include_private': False,
+                                      'include_capitalized': True,
+                                      'include_callables': False,
                                       'excluded_names': ['nan', 'inf',
                                                          'infty',
                                                          'little_endian',
