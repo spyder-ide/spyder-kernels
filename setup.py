@@ -62,7 +62,7 @@ setup(
     description="Jupyter kernels for Spyder's console",
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
-    packages=find_packages(exclude=['docs']),
+    packages=find_packages(exclude=['docs', '*tests']),
     install_requires=REQUIREMENTS,
     extras_require={'test': TEST_REQUIREMENTS},
     include_package_data=True,
