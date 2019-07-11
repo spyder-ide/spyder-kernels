@@ -1,5 +1,24 @@
 # History of changes
 
+## Version 0.5.1 (2019-07-11)
+
+### Issues Closed
+
+* [Issue 121](https://github.com/spyder-ide/spyder-kernels/issues/121) - Add test requirements to setup.py ([PR 122](https://github.com/spyder-ide/spyder-kernels/pull/122))
+* [Issue 120](https://github.com/spyder-ide/spyder-kernels/issues/120) - Backport CI configuration from master to 0.x ([PR 123](https://github.com/spyder-ide/spyder-kernels/pull/123))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+* [PR 125](https://github.com/spyder-ide/spyder-kernels/pull/125) - PR: Fix not including tests in tarballs and wheels
+* [PR 123](https://github.com/spyder-ide/spyder-kernels/pull/123) - PR: Backport CI configuration from master to 0.x ([120](https://github.com/spyder-ide/spyder-kernels/issues/120))
+* [PR 122](https://github.com/spyder-ide/spyder-kernels/pull/122) - PR: Add tests requirements to setup.py ([121](https://github.com/spyder-ide/spyder-kernels/issues/121))
+
+In this release 3 pull requests were closed.
+
+----
+
 ## Version 0.5.0 (2019-06-23)
 
 ### New features
