@@ -76,7 +76,7 @@ else:
     from sys import maxsize
     import io
     import pickle
-    from collections import MutableMapping
+    from collections.abc import MutableMapping
     import _thread
     import reprlib
     import queue as Queue
