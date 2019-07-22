@@ -17,6 +17,7 @@ import datetime
 import numpy as np
 import pandas as pd
 import pytest
+import sympy
 
 # Local imports
 from spyder_kernels.py3compat import PY2
@@ -195,6 +196,17 @@ def test_set_display():
     # Long list of sets
     disp = '[' + ''.join('{0, 1, 2, 3, 4, ...}, '*10)[:-2] + ']'
     assert value_to_display([long_set] * 10) == disp[:70] + ' ...'
+
+
+def test_sympy_display():
+    """Tests for display of sets."""
+
+    # Simple symbol
+    assert value_to_display(sympy.Symbol('a')) == 'a'
+
+    # Simple subscript
+    assert value_to_display(sympy.bernoulli(sympy.Symbol('n'),
+                                            sympy.Symbol('x'))) == 'B \n n'
 
 
 def test_datetime_display():

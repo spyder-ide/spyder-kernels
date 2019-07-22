@@ -97,6 +97,15 @@ except:
 
 
 #==============================================================================
+# SymPy support
+#==============================================================================
+try:
+    from sympy import Basic
+except:
+    Basic = FakeObject
+
+
+#==============================================================================
 # Misc.
 #==============================================================================
 def address(obj):
@@ -207,6 +216,7 @@ COLORS = {
            DataFrame,
            Series,
            Index):            ARRAY_COLOR,
+          Basic:              "#000080",
           Image:              "#008000",
           datetime.date:      "#808000",
           datetime.timedelta: "#808000",
@@ -330,6 +340,7 @@ def value_to_display(value, minmax=False, level=0):
     # To save current Numpy printoptions
     np_printoptions = FakeObject
 
+    truncated = False
     try:
         numeric_numpy_types = (int64, int32, int16, int8,
                                uint64, uint32, uint16, uint8,
@@ -404,6 +415,16 @@ def value_to_display(value, minmax=False, level=0):
                     display = value.summary()
             else:
                 display = 'Index'
+        elif isinstance(value, Basic):
+            if level == 0:
+                try:
+                    from sympy import pretty
+                    display = pretty(value)
+                    truncated = True
+                except:
+                    display = repr(value)
+            else:
+                display = 'SymPy expression'
         elif is_binary_string(value):
             # We don't apply this to classes that extend string types
             # See issue 5636
@@ -444,7 +465,7 @@ def value_to_display(value, minmax=False, level=0):
 
     # Truncate display at 70 chars to avoid freezing Spyder
     # because of large displays
-    if len(display) > 70:
+    if not truncated and len(display) > 70:
         if is_binary_string(display):
             ellipses = b' ...'
         else:
@@ -626,6 +647,11 @@ def get_supported_types():
     try:
         from pandas import DataFrame, Series, DatetimeIndex
         editable_types += [DataFrame, Series, Index]
+    except:
+        pass
+    try:
+        from sympy import Basic
+        editable_types += [Basic]
     except:
         pass
     picklable_types = editable_types[:]

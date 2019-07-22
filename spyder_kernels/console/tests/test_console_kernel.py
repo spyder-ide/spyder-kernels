@@ -146,6 +146,7 @@ def test_get_var_properties(kernel):
     assert "'is_series': False" in var_properties
     assert "'array_shape': None" in var_properties
     assert "'array_ndim': None" in var_properties
+    assert "'is_sympy': False" in var_properties
 
 
 def test_send_spyder_msg(kernel):
@@ -201,6 +202,7 @@ def test_remove_value(kernel):
     assert "'is_series': False" in var_properties
     assert "'array_shape': None" in var_properties
     assert "'array_ndim': None" in var_properties
+    assert "'is_sympy': False" in var_properties
     kernel.remove_value(name)
     var_properties = kernel.get_var_properties()
     assert var_properties == '{}'
@@ -223,6 +225,7 @@ def test_copy_value(kernel):
     assert "'is_series': False" in var_properties
     assert "'array_shape': None" in var_properties
     assert "'array_ndim': None" in var_properties
+    assert "'is_sympy': False" in var_properties
     kernel.copy_value(orig_name, new_name)
     var_properties = kernel.get_var_properties()
     assert "'a'" in var_properties
@@ -236,6 +239,7 @@ def test_copy_value(kernel):
     assert "'is_series': False" in var_properties
     assert "'array_shape': None" in var_properties
     assert "'array_ndim': None" in var_properties
+    assert "'is_sympy': False" in var_properties
 
 
 def test_load_data(kernel):
@@ -254,6 +258,7 @@ def test_load_data(kernel):
     assert "'is_series': False" in var_properties
     assert "'array_shape': None" in var_properties
     assert "'array_ndim': None" in var_properties
+    assert "'is_sympy': False" in var_properties
 
 
 def test_save_namespace(kernel):
@@ -552,6 +557,25 @@ def test_matplotlib_inline(kernel):
         # Assert backend is inline
         assert 'inline' in value
 
+
+def test_sympy_detection(kernel):
+    """Test that the default backend for our kernels is 'inline'."""
+
+    execute = kernel.do_execute('from sympy import Symbol; a = Symbol("a")',
+                                True)
+
+    var_properties = kernel.get_var_properties()
+    assert "'a'" in var_properties
+    assert "'is_list': False" in var_properties
+    assert "'is_dict': False" in var_properties
+    assert "'len': None" in var_properties
+    assert "'is_array': False" in var_properties
+    assert "'is_image': False" in var_properties
+    assert "'is_data_frame': False" in var_properties
+    assert "'is_series': False" in var_properties
+    assert "'array_shape': None" in var_properties
+    assert "'array_ndim': None" in var_properties
+    assert "'is_sympy': True" in var_properties
 
 if __name__ == "__main__":
     pytest.main()
