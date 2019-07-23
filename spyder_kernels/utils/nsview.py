@@ -154,34 +154,45 @@ def get_object_attrs(obj):
 # =============================================================================
 # String truncation
 # =============================================================================
-def truncate_string(s, c, ellipses=None):
-    if len(s) > c:
+def truncate_string(s, linelength, ellipses=None, eol=None):
+    if len(s) > linelength:
         if not ellipses:
             if is_binary_string(s):
                 ellipses = b' ...'
             else:
                 ellipses = u' ...'
-        s = s[:c].rstrip() + ellipses
+
+        if not eol:
+            if is_binary_string(s):
+                eol = b'\n'
+            else:
+                eol = u'\n'
+
+        s = s[:linelength] + ellipses
     return s
 
 
-def truncate_rows(s, crows=None, cline=None):
+def truncate_rows(s, nlines=None, linelength=None):
     if is_binary_string(s):
         ellipses = b' ...'
+        eol = b'\n'
     else:
         ellipses = u' ...'
-    strings = s.split('\n')
-    if crows is not None and len(strings) > crows:
-        del strings[crows:]
+        eol = u'\n'
+    strings = s.split(eol)
+    if nlines is not None and len(strings) > nlines:
+        del strings[nlines:]
         strings.append(ellipses)
 
-    if cline is not None:
+    if linelength is not None:
         new_strings = []
         for line in strings:
-            new_strings.append(truncate_string(line, cline, ellipses))
+            new_strings.append(truncate_string(line, linelength,
+                                               ellipses=ellipses,
+                                               eol=eol))
         strings = new_strings
 
-    return('\n'.join(strings))
+    return(eol.join(strings))
 
 
 #==============================================================================
@@ -297,7 +308,7 @@ def sort_against(list1, list2, reverse=False):
     to sorted(list2, reverse).
     """
     try:
-        return [item for _, item in 
+        return [item for _, item in
                 sorted(zip(list2, list1), key=lambda x: x[0], reverse=reverse)]
     except:
         return list1
@@ -311,6 +322,10 @@ def unsorted_unique(lista):
 #==============================================================================
 # Display <--> Value
 #==============================================================================
+
+MAX_LINE_LENGTH = 80
+MAX_NUMBER_OF_LINES = 10
+
 def default_display(value, with_module=True):
     """Default display for unknown objects."""
     object_type = type(value)
@@ -413,7 +428,7 @@ def value_to_display(value, minmax=False, level=0):
                     display = str(value)
                 else:
                     display = default_display(value)
-                display = truncate_rows(display, 10, 70)
+                display = truncate_rows(display, MAX_NUMBER_OF_LINES, MAX_LINE_LENGTH)
                 truncated = True
             else:
                 display = 'Numpy array'
@@ -474,7 +489,8 @@ def value_to_display(value, minmax=False, level=0):
                     from sympy import pretty
                     display = pretty(value)
                     truncated = True
-                    display = truncate_rows(display, cline=80)
+                    display = truncate_rows(display,
+                                            linelength=MAX_LINE_LENGTH)
                 except:
                     display = repr(value)
             else:
@@ -527,10 +543,10 @@ def value_to_display(value, minmax=False, level=0):
     except:
         display = default_display(value)
 
-    # Truncate display at 10 rows and 80 chars to avoid freezing Spyder
-    # because of large displays
+    # Truncate display to MAX_NUMBER_OF_LINES lines and MAX_LINE_LENGTH chars
+    # to avoid freezing Spyder because of large displays
     if not truncated:
-        display = truncate_rows(display, 10, 80)
+        display = truncate_rows(display, MAX_NUMBER_OF_LINES, MAX_LINE_LENGTH)
 
     # Restore Numpy printoptions
     if np_printoptions is not FakeObject:
