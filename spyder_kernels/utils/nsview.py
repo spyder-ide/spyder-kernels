@@ -148,6 +148,38 @@ def get_object_attrs(obj):
     return attrs
 
 
+# =============================================================================
+# String truncation
+# =============================================================================
+def truncate_string(s, c):
+    if len(s) > c:
+        if is_binary_string(s):
+            ellipses = b' ...'
+        else:
+            ellipses = u' ...'
+        s = s[:c].rstrip() + ellipses
+    return s
+
+
+def truncate_rows(s, crows=None, cline=None):
+    if is_binary_string(s):
+        ellipses = b' ...'
+    else:
+        ellipses = u' ...'
+    strings = s.split('\n')
+    if crows is not None and len(strings) > crows:
+        del strings[crows:]
+        strings.append(ellipses)
+
+    if cline is not None:
+        new_strings = []
+        for line in strings:
+            new_strings.append(truncate_string(line, cline))
+        strings = new_strings
+
+    return('\n'.join(strings))
+
+
 #==============================================================================
 # Date and datetime objects support
 #==============================================================================
@@ -374,6 +406,8 @@ def value_to_display(value, minmax=False, level=0):
                     display = str(value)
                 else:
                     display = default_display(value)
+                display = truncate_rows(display, 10, 70)
+                truncated = True
             else:
                 display = 'Numpy array'
         elif any([type(value) == t for t in [list, set, tuple, dict]]):
@@ -420,6 +454,7 @@ def value_to_display(value, minmax=False, level=0):
                 try:
                     from sympy import pretty
                     display = pretty(value)
+                    display = truncate_rows(display, cline=70)
                     truncated = True
                 except:
                     display = repr(value)
@@ -465,7 +500,10 @@ def value_to_display(value, minmax=False, level=0):
 
     # Truncate display at 70 chars to avoid freezing Spyder
     # because of large displays
+    print(truncated)
+    print(display)
     if not truncated and len(display) > 70:
+        print("Truncating")
         if is_binary_string(display):
             ellipses = b' ...'
         else:
