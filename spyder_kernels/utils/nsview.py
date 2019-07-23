@@ -100,9 +100,11 @@ except:
 # SymPy support
 #==============================================================================
 try:
-    from sympy import Basic
+    from sympy import Basic, Set, Tuple
+    from sympy.matrices import MatrixBase
+    from sympy.tensor.array import NDimArray
 except:
-    Basic = FakeObject
+    Basic = MatrixBase = NDimArray = Set = Tuple = FakeObject
 
 
 #==============================================================================
@@ -126,12 +128,13 @@ def get_size(item):
     """Return size of an item of arbitrary type"""
     if isinstance(item, (list, set, tuple, dict)):
         return len(item)
-    elif isinstance(item, (ndarray, MaskedArray)):
+    elif isinstance(item, (ndarray, MaskedArray, MatrixBase, DataFrame, Index,
+                           Series, NDimArray)):
         return item.shape
     elif isinstance(item, Image):
         return item.size
-    if isinstance(item, (DataFrame, Index, Series)):
-        return item.shape
+    elif isinstance(item, (Set, Tuple)):
+        return len(item.args)
     else:
         return 1
 
@@ -151,12 +154,13 @@ def get_object_attrs(obj):
 # =============================================================================
 # String truncation
 # =============================================================================
-def truncate_string(s, c):
+def truncate_string(s, c, ellipses=None):
     if len(s) > c:
-        if is_binary_string(s):
-            ellipses = b' ...'
-        else:
-            ellipses = u' ...'
+        if not ellipses:
+            if is_binary_string(s):
+                ellipses = b' ...'
+            else:
+                ellipses = u' ...'
         s = s[:c].rstrip() + ellipses
     return s
 
@@ -174,7 +178,7 @@ def truncate_rows(s, crows=None, cline=None):
     if cline is not None:
         new_strings = []
         for line in strings:
-            new_strings.append(truncate_string(line, cline))
+            new_strings.append(truncate_string(line, cline, ellipses))
         strings = new_strings
 
     return('\n'.join(strings))
@@ -234,6 +238,7 @@ def str_to_timedelta(value):
 #==============================================================================
 ARRAY_COLOR = "#00ff00"
 SCALAR_COLOR = "#0000ff"
+SYMPY_COLOR ="#008080"
 COLORS = {
           bool:               "#ff00ff",
           NUMERIC_TYPES:      SCALAR_COLOR,
@@ -248,7 +253,9 @@ COLORS = {
            DataFrame,
            Series,
            Index):            ARRAY_COLOR,
-          Basic:              "#000080",
+          (Basic,
+           MatrixBase,
+           NDimArray):        SYMPY_COLOR,
           Image:              "#008000",
           datetime.date:      "#808000",
           datetime.timedelta: "#808000",
@@ -449,17 +456,39 @@ def value_to_display(value, minmax=False, level=0):
                     display = value.summary()
             else:
                 display = 'Index'
-        elif isinstance(value, Basic):
+        elif isinstance(value, Tuple):
+            if level == 0:
+                # Convert to tuple for printing (value.args is a tuple already)
+                display = value_to_display(value.args, level=1)
+            else:
+                display = 'SymPy Tuple'
+        elif isinstance(value, Set):
+            if level == 0:
+                # Convert to set for displaying
+                display = value_to_display(set(value.args))
+            else:
+                display = 'SymPy Set'
+        elif isinstance(value, (Basic, MatrixBase, NDimArray)):
             if level == 0:
                 try:
                     from sympy import pretty
                     display = pretty(value)
-                    display = truncate_rows(display, cline=70)
                     truncated = True
+                    display = truncate_rows(display, cline=80)
                 except:
                     display = repr(value)
             else:
                 display = 'SymPy expression'
+                try:
+                    # Some types, as symbols and numbers, are often short
+                    # (and single line) so print these even at higher levels
+                    from sympy import Integer, Float, Symbol, MatrixSymbol
+                    if isinstance(value, (Integer, Float, Symbol,
+                                          MatrixSymbol)):
+                        from sympy import pretty
+                        display = pretty(value)
+                except:
+                    pass
         elif is_binary_string(value):
             # We don't apply this to classes that extend string types
             # See issue 5636
@@ -498,17 +527,10 @@ def value_to_display(value, minmax=False, level=0):
     except:
         display = default_display(value)
 
-    # Truncate display at 70 chars to avoid freezing Spyder
+    # Truncate display at 10 rows and 80 chars to avoid freezing Spyder
     # because of large displays
-    print(truncated)
-    print(display)
-    if not truncated and len(display) > 70:
-        print("Truncating")
-        if is_binary_string(display):
-            ellipses = b' ...'
-        else:
-            ellipses = u' ...'
-        display = display[:70].rstrip() + ellipses
+    if not truncated:
+        display = truncate_rows(display, 10, 80)
 
     # Restore Numpy printoptions
     if np_printoptions is not FakeObject:
@@ -535,6 +557,34 @@ def display_to_value(value, default_value, ignore_errors=True):
                 value = np_dtype(complex(value))
             else:
                 value = np_dtype(value)
+        elif isinstance(default_value, Tuple):
+            # Check Tuple before Basic as Tuple is instance of Basic
+            try:
+                from sympy import sympify
+                # Assume that it is still on tuple
+                value = Tuple(*sympify(value))
+            except:
+                try:
+                    # If not (maybe only one item left, and forgotten ",")
+                    value = Tuple(sympify(value))
+                except:
+                    # Something went wrong, restore
+                    value = default_value
+        elif isinstance(default_value, (MatrixBase, NDimArray)):
+            try:
+                from sympy import sympify
+                # Use class as there are many variants
+                # (mutable/immutable/dense/sparse)
+                value = default_value.__class__(sympify(value))
+            except:
+                # Something went wrong, restore
+                value = default_value
+        elif isinstance(default_value, Basic):
+            try:
+                from sympy import sympify
+                value = sympify(value)
+            except:
+                value = default_value
         elif is_binary_string(default_value):
             value = to_binary_string(value, 'utf8')
         elif is_text_string(default_value):
@@ -688,8 +738,8 @@ def get_supported_types():
     except:
         pass
     try:
-        from sympy import Basic
-        editable_types += [Basic]
+        from sympy import Basic, NDimArray, MatrixBase
+        editable_types += [Basic, NDimArray, MatrixBase]
     except:
         pass
     picklable_types = editable_types[:]
