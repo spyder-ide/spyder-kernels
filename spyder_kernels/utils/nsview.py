@@ -96,9 +96,9 @@ except:
     NavigableString = FakeObject  # analysis:ignore
 
 
-#==============================================================================
+# =============================================================================
 # SymPy support
-#==============================================================================
+# =============================================================================
 try:
     from sympy import Basic, Set, Tuple
     from sympy.matrices import MatrixBase
@@ -192,7 +192,7 @@ def truncate_rows(s, nlines=None, linelength=None):
                                                eol=eol))
         strings = new_strings
 
-    return(eol.join(strings))
+    return eol.join(strings)
 
 
 #==============================================================================
@@ -274,6 +274,7 @@ COLORS = {
 CUSTOM_TYPE_COLOR = "#7755aa"
 UNSUPPORTED_COLOR = "#ffffff"
 
+
 def get_color_name(value):
     """Return color name depending on value type"""
     if not is_known_type(value):
@@ -325,6 +326,7 @@ def unsorted_unique(lista):
 
 MAX_LINE_LENGTH = 80
 MAX_NUMBER_OF_LINES = 10
+
 
 def default_display(value, with_module=True):
     """Default display for unknown objects."""
@@ -428,7 +430,8 @@ def value_to_display(value, minmax=False, level=0):
                     display = str(value)
                 else:
                     display = default_display(value)
-                display = truncate_rows(display, MAX_NUMBER_OF_LINES, MAX_LINE_LENGTH)
+                display = truncate_rows(display, MAX_NUMBER_OF_LINES,
+                                        MAX_LINE_LENGTH)
                 truncated = True
             else:
                 display = 'Numpy array'
@@ -647,7 +650,7 @@ def get_type_string(item):
                        to_text_string(type(item)))
     if found:
         return found[0]
-    
+
 
 def is_known_type(item):
     """Return True if object has a known type"""
