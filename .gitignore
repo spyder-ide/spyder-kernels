@@ -16,6 +16,9 @@ nppBackup/
 # Sphinx doc build dir
 _build/
 
+# Pickle results from tests
+*.pickle
+
 # Special dirs and files
 build/
 dist/
