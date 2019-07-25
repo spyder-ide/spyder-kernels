@@ -17,12 +17,15 @@ import datetime
 import numpy as np
 import pandas as pd
 import pytest
+import sympy
 
 # Local imports
 from spyder_kernels.py3compat import PY2
 from spyder_kernels.utils.nsview import (sort_against, is_supported,
                                          value_to_display,
-                                         get_supported_types)
+                                         get_supported_types,
+                                         MAX_LINE_LENGTH,
+                                         MAX_NUMBER_OF_LINES)
 
 def generate_complex_object():
     """Taken from issue #4221."""
@@ -110,7 +113,7 @@ def test_list_display():
 
     # Long list of lists
     result = '[' + ''.join('[0, 1, 2, 3, 4, ...], '*10)[:-2] + ']'
-    assert value_to_display([long_list] * 10) == result[:70] + ' ...'
+    assert value_to_display([long_list] * 10) == result[:MAX_LINE_LENGTH] + ' ...'
 
     # Multiple level lists
     assert (value_to_display([[1, 2, 3, [4], 5]] + long_list) ==
@@ -152,7 +155,8 @@ def test_dict_display():
     # Long dict of dicts
     result = ('{(0, 0, 0, 0, 0, ...):[0, 1, 2, 3, 4, ...], '
                '(1, 1, 1, 1, 1, ...):[0, 1, 2, 3, 4, ...]}')
-    assert value_to_display({(0,)*100:long_list, (1,)*100:long_list}) == result[:70] + ' ...'
+    assert (value_to_display({(0,)*100:long_list, (1,)*100:long_list}) == 
+            result[:MAX_LINE_LENGTH] + ' ...')
 
     # Multiple level dicts
     assert (value_to_display({0: {1:1, 2:2, 3:3, 4:{0:0}, 5:5}, 1:1}) ==
@@ -194,7 +198,15 @@ def test_set_display():
 
     # Long list of sets
     disp = '[' + ''.join('{0, 1, 2, 3, 4, ...}, '*10)[:-2] + ']'
-    assert value_to_display([long_set] * 10) == disp[:70] + ' ...'
+    assert value_to_display([long_set] * 10) == disp[:MAX_LINE_LENGTH] + ' ...'
+
+
+def test_sympy_display():
+    """Tests for display of SymPy expressions."""
+
+    # Simple symbol
+    assert value_to_display(sympy.Symbol('a')) == 'a'
+
 
 
 def test_datetime_display():

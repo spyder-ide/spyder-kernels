@@ -111,7 +111,8 @@ class SpyderKernel(IPythonKernel):
                     'is_data_frame': self._is_data_frame(value),
                     'is_series': self._is_series(value),
                     'array_shape': self._get_array_shape(value),
-                    'array_ndim': self._get_array_ndim(value)
+                    'array_ndim': self._get_array_ndim(value),
+                    'is_sympy': self._is_sympy(value),
                 }
 
             return repr(properties)
@@ -392,6 +393,15 @@ class SpyderKernel(IPythonKernel):
         try:
             from pandas import Series
             return isinstance(var, Series)
+        except:
+            return False
+
+
+    def _is_sympy(self, var):
+        """Return True if variable is a Series"""
+        try:
+            from sympy import Basic
+            return isinstance(var, Basic)
         except:
             return False
 
