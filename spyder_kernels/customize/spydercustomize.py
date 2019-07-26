@@ -791,7 +791,7 @@ def runfile(filename, args=None, wdir=None, namespace=None,
     wdir: working directory
     namespace: namespace for execution
     post_mortem: boolean, whether to enter post-mortem mode on error
-
+    current_namespace: if true, run the file in the current namespace
     """
     ipython_shell = get_ipython()
     try:
