@@ -810,6 +810,8 @@ def runfile(filename, args=None, wdir=None, namespace=None,
         else:
             main_mod = ipython_shell.new_main_mod(filename, '__main__')
             namespace = main_mod.__dict__
+            # Needed to allow pickel to reference main
+            sys.modules['__main__'] = main_mod
     namespace['__file__'] = filename
     sys.argv = [filename]
     if args is not None:
@@ -836,6 +838,7 @@ def runfile(filename, args=None, wdir=None, namespace=None,
 
     clear_post_mortem()
     sys.argv = ['']
+    del sys.modules['__main__']
 
     # Avoid error when running `%reset -f` programmatically
     # See issue spyder-ide/spyder-kernels#91
