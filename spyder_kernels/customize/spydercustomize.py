@@ -783,13 +783,17 @@ def _get_globals():
     return ipython_shell.user_ns
 
 
-def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
+def runfile(filename, args=None, wdir=None, namespace=None,
+            post_mortem=False, current_namespace=False):
     """
     Run filename
     args: command line arguments (string)
     wdir: working directory
+    namespace: namespace for execution
     post_mortem: boolean, whether to enter post-mortem mode on error
+
     """
+    ipython_shell = get_ipython()
     try:
         filename = filename.decode('utf-8')
     except (UnicodeError, TypeError, AttributeError):
@@ -801,7 +805,11 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:
-        namespace = _get_globals()
+        if current_namespace:
+            namespace = _get_globals()
+        else:
+            main_mod = ipython_shell.new_main_mod(filename, '__main__')
+            namespace = main_mod.__dict__
     namespace['__file__'] = filename
     sys.argv = [filename]
     if args is not None:
@@ -820,10 +828,11 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     if __umr__.has_cython:
         # Cython files
         with io.open(filename, encoding='utf-8') as f:
-            ipython_shell = get_ipython()
             ipython_shell.run_cell_magic('cython', '', f.read())
     else:
         execfile(filename, namespace)
+
+    ipython_shell.user_ns.update(namespace)
 
     clear_post_mortem()
     sys.argv = ['']
