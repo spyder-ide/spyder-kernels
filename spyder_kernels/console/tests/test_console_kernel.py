@@ -421,7 +421,7 @@ def test_runfile(tmpdir):
                        .format(to_text_string(u)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
-        # Verify that the `result` variable is defined
+        # Verify that the `result2` variable is defined
         client.inspect('result2')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
@@ -434,7 +434,7 @@ def test_runfile(tmpdir):
         content = msg['content']
         print(content)
 
-        # Verify that the `result` variable is defined
+        # Verify that the `result3` variable is defined
         client.inspect('result3')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
