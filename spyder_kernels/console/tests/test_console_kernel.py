@@ -399,7 +399,7 @@ def test_runfile(tmpdir):
         code = dedent(u"""
         try:
             result3 = result
-        except:
+        except NameError:
             result2 = 'hello world'
         """)
         u = tmpdir.join("undefined-test.py")

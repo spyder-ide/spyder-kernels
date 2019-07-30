@@ -838,7 +838,11 @@ def runfile(filename, args=None, wdir=None, namespace=None,
 
     clear_post_mortem()
     sys.argv = ['']
-    del sys.modules['__main__']
+
+    try:
+        del sys.modules['__main__']
+    except KeyError:
+        pass
 
     # Avoid error when running `%reset -f` programmatically
     # See issue spyder-ide/spyder-kernels#91
