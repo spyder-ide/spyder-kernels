@@ -397,8 +397,10 @@ def test_runfile(tmpdir):
 
         # Write undefined variable code to a file
         code = dedent(u"""
-        if 'result' in globals():
-            result2 = result
+        try:
+            result3 = result
+        except:
+            result2 = 'hello world'
         """)
         u = tmpdir.join("undefined-test.py")
         u.write(code)
@@ -423,15 +425,17 @@ def test_runfile(tmpdir):
         client.inspect('result2')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
-        assert not content['found']
+        assert content['found']
 
         # Run code
         client.execute("runfile(r'{}', current_namespace=True)"
                        .format(to_text_string(u)))
-        client.get_shell_msg(block=True, timeout=TIMEOUT)
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        print(content)
 
         # Verify that the `result` variable is defined
-        client.inspect('result2')
+        client.inspect('result3')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
