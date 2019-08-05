@@ -351,19 +351,6 @@ if __name__ == '__main__':
 
         # Run code
         client.execute("runfile(r'{}')".format(to_text_string(p)))
-        time.sleep(1)
-        client.input('')
-        client.get_shell_msg(block=True, timeout=TIMEOUT)
-
-        # Verify that the `result` variable is defined
-        client.inspect('result')
-        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
-
-        # Check it works without the api
-        # Run code
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
         # Verify that the `result` variable is defined
