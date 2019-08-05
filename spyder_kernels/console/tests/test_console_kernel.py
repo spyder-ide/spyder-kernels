@@ -163,9 +163,8 @@ def test_set_value(kernel):
     """Test setting the value of a variable."""
     name = 'a'
     execute = kernel.do_execute('a = 0', True)
-    value = [cloudpickle.dumps(10, protocol=PICKLE_PROTOCOL)]
-    PY2_frontend = False
-    kernel.set_value(name, value, PY2_frontend)
+    value = 10
+    kernel.set_value(name, value)
     log_text = get_log_text(kernel)
     assert "'__builtin__': <module " in log_text
     assert "'__builtins__': <module " in log_text

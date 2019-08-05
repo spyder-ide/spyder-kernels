@@ -174,24 +174,10 @@ class SpyderKernel(IPythonKernel):
         self._do_publish_pdb_state = False
         return ns[name]
 
-    def set_value(self, name, value, PY2_frontend):
+    def set_value(self, name, value):
         """Set the value of a variable"""
-        import cloudpickle
         ns = self._get_reference_namespace(name)
-
-        # We send serialized values in a list of one element
-        # from Spyder to the kernel, to be able to send them
-        # at all in Python 2
-        svalue = value[0]
-
-        # We need to convert svalue to bytes if the frontend
-        # runs in Python 2 and the kernel runs in Python 3
-        if PY2_frontend and not PY2:
-            svalue = bytes(svalue, 'latin-1')
-
-        # Deserialize and set value in namespace
-        dvalue = cloudpickle.loads(svalue)
-        ns[name] = dvalue
+        ns[name] = value
         self.log.debug(ns)
 
     def remove_value(self, name):
