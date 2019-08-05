@@ -49,8 +49,8 @@ The messages exchanged are:
                 'call_id': The uuid from above,
                 'call_name': The function name (mostly for debugging)
                 }
-
 """
+
 import cloudpickle
 import logging
 import sys
@@ -218,7 +218,9 @@ class CommBase(object):
         """Handle a remote call."""
         msg_dict = msg['content']
         if load_exception:
-            raise load_exception
+            logger.debug(
+                "Exception in cloudpickle.loads : %s" % str(load_exception))
+            return
         try:
             return_value = self._remote_callback(
                     msg_dict['call_name'],

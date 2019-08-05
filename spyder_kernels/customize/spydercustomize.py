@@ -327,14 +327,14 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
                 breakpoints = _frontend_request().get_breakpoints()
                 self.set_spyder_breakpoints(breakpoints)
         except (CommError, TimeoutError):
-            logger.debug("Could not get breakpoint from the frontend.")
+            logger.debug("Could not get breakpoints from the frontend.")
 
     def postloop(self):
         """Notifies spyder that the loop has ended."""
         try:
             _frontend_request(blocking=False).set_debug_state(False)
         except (CommError, TimeoutError):
-            logger.debug("Could not send postloop to frontend.")
+            logger.debug("Could not send debugging state to the frontend.")
         super(SpyderPdb, self).postloop()
 
     # --- Methods defined by us
@@ -831,11 +831,6 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     wdir: working directory
     post_mortem: boolean, whether to enter post-mortem mode on error
     """
-    try:
-        # Save the open files
-        _frontend_request().savefiles()
-    except (CommError, TimeoutError):
-        logger.debug("Could not send save files before executing.")
 
     try:
         filename = filename.decode('utf-8')

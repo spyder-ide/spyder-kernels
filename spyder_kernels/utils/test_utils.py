@@ -45,26 +45,3 @@ def get_kernel(kernel_class=SpyderKernel):
 def get_log_text(kernel):
     """Get the log of the given kernel."""
     return kernel.log.handlers[0].stream.getvalue()
-
-
-class dummyComm():
-    def __init__(self):
-        self.other = None
-        self.message_callback = None
-        self.close_callback = None
-
-    def close(self):
-        self.other.close_callback({'content': None})
-
-    def send(self, msg_dict, buffers=None):
-        msg = {
-            'buffers': buffers,
-            'content': {'data': msg_dict},
-            }
-        self.other.message_callback(msg)
-
-    def on_msg(self, callback):
-        self.message_callback = callback
-
-    def on_close(self, callback):
-        self.close_callback = callback
