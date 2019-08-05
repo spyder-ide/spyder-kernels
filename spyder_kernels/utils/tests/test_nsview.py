@@ -17,6 +17,7 @@ import datetime
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 
 # Local imports
 from spyder_kernels.py3compat import PY2
@@ -35,7 +36,7 @@ def generate_complex_object():
 
 COMPLEX_OBJECT = generate_complex_object()
 DF = pd.DataFrame([1,2,3])
-PANEL = pd.Panel({0: pd.DataFrame([1,2]), 1:pd.DataFrame([3,4])})
+DATASET = xr.Dataset({0: pd.DataFrame([1,2]), 1:pd.DataFrame([3,4])})
 
 
 # --- Tests
@@ -88,9 +89,9 @@ def test_default_display():
     assert (value_to_display(np.array(COMPLEX_OBJECT)) ==
             'ndarray object of numpy module')
 
-    # Display of Panel
-    assert (value_to_display(PANEL) ==
-            'Panel object of pandas.core.panel module')
+    # Display of Dataset
+    assert (value_to_display(DATASET) ==
+            'Dataset object of xarray.core.dataset module')
 
 
 def test_list_display():
@@ -116,14 +117,14 @@ def test_list_display():
     assert (value_to_display([[1, 2, 3, [4], 5]] + long_list) ==
             '[[1, 2, 3, [...], 5], 0, 1, 2, 3, 4, 5, 6, 7, 8, ...]')
     assert value_to_display([1, 2, [DF]]) == '[1, 2, [Dataframe]]'
-    assert value_to_display([1, 2, [[DF], PANEL]]) == '[1, 2, [[...], Panel]]'
+    assert value_to_display([1, 2, [[DF], DATASET]]) == '[1, 2, [[...], Dataset]]'
 
     # List of complex object
     assert value_to_display([COMPLEX_OBJECT]) == '[defaultdict]'
 
     # List of composed objects
-    li = [COMPLEX_OBJECT, PANEL, 1, {1:2, 3:4}, DF]
-    result = '[defaultdict, Panel, 1, {1:2, 3:4}, Dataframe]'
+    li = [COMPLEX_OBJECT, DATASET, 1, {1:2, 3:4}, DF]
+    result = '[defaultdict, Dataset, 1, {1:2, 3:4}, Dataframe]'
     assert value_to_display(li) == result
 
     # List starting with a non-supported object (#5313)
@@ -158,14 +159,14 @@ def test_dict_display():
     assert (value_to_display({0: {1:1, 2:2, 3:3, 4:{0:0}, 5:5}, 1:1}) ==
             '{0:{1:1, 2:2, 3:3, 4:{...}, 5:5}, 1:1}')
     assert value_to_display({0:0, 1:1, 2:2, 3:DF}) == '{0:0, 1:1, 2:2, 3:Dataframe}'
-    assert value_to_display({0:0, 1:1, 2:[[DF], PANEL]}) == '{0:0, 1:1, 2:[[...], Panel]}'
+    assert value_to_display({0:0, 1:1, 2:[[DF], DATASET]}) == '{0:0, 1:1, 2:[[...], Dataset]}'
 
     # Dict of complex object
     assert value_to_display({0:COMPLEX_OBJECT}) == '{0:defaultdict}'
 
     # Dict of composed objects
-    li = {0:COMPLEX_OBJECT, 1:PANEL, 2:2, 3:{0:0, 1:1}, 4:DF}
-    result = '{0:defaultdict, 1:Panel, 2:2, 3:{0:0, 1:1}, 4:Dataframe}'
+    li = {0:COMPLEX_OBJECT, 1:DATASET, 2:2, 3:{0:0, 1:1}, 4:DF}
+    result = '{0:defaultdict, 1:Dataset, 2:2, 3:{0:0, 1:1}, 4:Dataframe}'
     assert value_to_display(li) == result
 
     # Dict starting with a non-supported object (#5313)
