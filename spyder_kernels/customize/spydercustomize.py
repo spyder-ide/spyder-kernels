@@ -23,10 +23,15 @@ import sys
 import sysconfig
 import time
 import warnings
+import logging
 
 from IPython.core.getipython import get_ipython
 
+from spyder_kernels.py3compat import TimeoutError
+from spyder_kernels.comms import CommError
 
+
+logger = logging.getLogger(__name__)
 # We are in Python 2?
 PY2 = sys.version[0] == '2'
 
@@ -303,16 +308,34 @@ if os.name == 'nt' and not PY2:
 #==============================================================================
 # Pdb adjustments
 #==============================================================================
-class SpyderPdb(pdb.Pdb):
+class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 
     send_initial_notification = True
     starting = True
 
+    def __init__(self, *args, **kwargs):
+        """Init Pdb."""
+        self.continue_if_has_breakpoints = True
+        super(SpyderPdb, self).__init__(*args, **kwargs)
+
     # --- Methods overriden by us
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
-        if self.starting:
-            get_ipython().kernel._ask_spyder_for_breakpoints()
+        try:
+            _frontend_request(blocking=False).set_debug_state(True)
+            if self.starting:
+                breakpoints = _frontend_request().get_breakpoints()
+                self.set_spyder_breakpoints(breakpoints)
+        except (CommError, TimeoutError):
+            logger.debug("Could not get breakpoint from the frontend.")
+
+    def postloop(self):
+        """Notifies spyder that the loop has ended."""
+        try:
+            _frontend_request(blocking=False).set_debug_state(False)
+        except (CommError, TimeoutError):
+            logger.debug("Could not send postloop to frontend.")
+        super(SpyderPdb, self).postloop()
 
     # --- Methods defined by us
     def set_spyder_breakpoints(self, breakpoints):
@@ -347,10 +370,18 @@ class SpyderPdb(pdb.Pdb):
             # Do 'continue' if the first breakpoint is *not* placed
             # where the debugger is going to land.
             # Fixes issue 4681
-            if breaks and lineno != breaks[0] and osp.isfile(fname):
-                get_ipython().kernel.pdb_continue()
+            if (self.continue_if_has_breakpoints and
+                    breaks and
+                    lineno < breaks[0] and
+                    osp.isfile(fname)):
+                try:
+                    get_ipython().kernel.pdb_continue()
+                except (CommError, TimeoutError):
+                    logger.debug(
+                        "Could not send a Pdb continue call to the frontend.")
 
     def notify_spyder(self, frame):
+        """Send kernel state to the frontend."""
         if not frame:
             return
 
@@ -374,7 +405,10 @@ class SpyderPdb(pdb.Pdb):
         # Publish Pdb state so we can update the Variable Explorer
         # and the Editor on the Spyder side
         kernel._pdb_step = step
-        kernel.publish_pdb_state()
+        try:
+            kernel.publish_pdb_state()
+        except (CommError, TimeoutError):
+            logger.debug("Could not send Pdb state to the frontend.")
 
 
 pdb.Pdb = SpyderPdb
@@ -473,7 +507,8 @@ def reset(self):
 #     specific behaviour desired?)
 @monkeypatch_method(pdb.Pdb, 'Pdb')
 def postcmd(self, stop, line):
-    if "_set_spyder_breakpoints" not in line:
+    if ("_set_spyder_breakpoints" not in line and
+            '!get_ipython().kernel' not in line):
         self.notify_spyder(self.curframe)
     return self._old_Pdb_postcmd(stop, line)
 
@@ -783,6 +818,12 @@ def _get_globals():
     return ipython_shell.user_ns
 
 
+def _frontend_request(blocking=True):
+    if not get_ipython().kernel.frontend_comm.is_open():
+        raise CommError("Can't make a request to a closed comm")
+    return get_ipython().kernel.frontend_call(blocking=blocking)
+
+
 def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     """
     Run filename
@@ -790,6 +831,12 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     wdir: working directory
     post_mortem: boolean, whether to enter post-mortem mode on error
     """
+    try:
+        # Save the open files
+        _frontend_request().savefiles()
+    except (CommError, TimeoutError):
+        logger.debug("Could not send save files before executing.")
+
     try:
         filename = filename.decode('utf-8')
     except (UnicodeError, TypeError, AttributeError):
