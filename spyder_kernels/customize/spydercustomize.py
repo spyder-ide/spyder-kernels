@@ -821,7 +821,9 @@ def _get_globals():
 def _frontend_request(blocking=True):
     if not get_ipython().kernel.frontend_comm.is_open():
         raise CommError("Can't make a request to a closed comm")
-    return get_ipython().kernel.frontend_call(blocking=blocking)
+    # Get a reply from the last frontend to have sent a message
+    return get_ipython().kernel.frontend_call(
+        blocking=blocking, broadcast=False)
 
 
 def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):

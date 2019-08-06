@@ -76,7 +76,8 @@ class CommBase(object):
 
     def __init__(self):
         super(CommBase, self).__init__()
-        self._comm = None
+        self.calling_comm_id = None
+        self._comms = {}
         self._message_handlers = {}
         self._remote_call_handlers = {}
         self._call_reply_dict = {}
@@ -86,17 +87,28 @@ class CommBase(object):
             'blocking_call_reply', self._handle_blocking_call_reply)
         # Dummy functions for testing and to trigger side effects such as
         # an interruption or waiting for a reply.
-        self.register_call_handler('ping', lambda: self.remote_call().pong())
+        def pong_back():
+            self.remote_call(self.calling_comm_id).pong()
+        self.register_call_handler('ping', pong_back)
         self.register_call_handler('pong', lambda: None)
 
-    def close(self):
+    def close(self, comm_id=None):
         """Close the comm and notify the other side."""
-        self._comm.close()
-        self._comm = None
+        if comm_id is None:
+            # close all the comms
+            id_list = list(self._comms.keys())
+        else:
+            id_list = [comm_id]
 
-    def is_open(self):
-        """Check to see it the comm is open."""
-        return self._comm is not None
+        for comm_id in id_list:
+            self._comms[comm_id].close()
+            del self._comms[comm_id]
+
+    def is_open(self, comm_id=None):
+        """Check to see if the comm is open."""
+        if comm_id is None:
+            return len(self._comms) > 0
+        return comm_id in self._comms
 
     def register_call_handler(self, call_name, handler):
         """
@@ -116,12 +128,13 @@ class CommBase(object):
 
         self._remote_call_handlers[call_name] = handler
 
-    def remote_call(self, **settings):
+    def remote_call(self, comm_id=None, **settings):
         """Get a handler for remote calls."""
-        return RemoteCallFactory(self, **settings)
+        return RemoteCallFactory(self, comm_id, **settings)
 
     # ---- Private -----
-    def _send_message(self, spyder_msg_type, content=None, data=None):
+    def _send_message(self, spyder_msg_type, content=None, data=None,
+                      comm_id=None):
         """
         Publish custom messages to the other side.
 
@@ -134,8 +147,11 @@ class CommBase(object):
         data: any
             Any object that is serializable by cloudpickle (should be most
             things). Will arrive as cloudpickled bytes in `.buffers[0]`.
+        comm_id: int
+            the comm to send to. If None sends to all comms.
         """
-        if not self.is_open():
+
+        if not self.is_open(comm_id):
             raise CommError("The comm is not connected.")
         import cloudpickle
         msg_dict = {
@@ -143,7 +159,13 @@ class CommBase(object):
             'content': content,
             }
         buffers = [cloudpickle.dumps(data, protocol=PICKLE_PROTOCOL)]
-        self._comm.send(msg_dict, buffers=buffers)
+        if comm_id is None:
+            # send to all the comms
+            id_list = list(self._comms.keys())
+        else:
+            id_list = [comm_id]
+        for comm_id in id_list:
+            self._comms[comm_id].send(msg_dict, buffers=buffers)
 
     @property
     def _comm_name(self):
@@ -177,20 +199,20 @@ class CommBase(object):
         """
         Open a new comm to the kernel.
         """
-        if self._comm:
-            raise CommError("Close the comm first.")
         comm.on_msg(self._comm_message)
         comm.on_close(self._comm_close)
-        self._comm = comm
+        self._comms[comm.comm_id] = comm
 
     def _comm_close(self, msg):
         """Close comm."""
-        self._comm = None
+        comm_id = msg['content']['comm_id']
+        del self._comms[comm_id]
 
     def _comm_message(self, msg):
         """
         Handle internal spyder messages.
         """
+        self.calling_comm_id = msg['content']['comm_id']
         # Load the buffer. Only one is supported.
         try:
             if PY2:
@@ -256,7 +278,8 @@ class CommBase(object):
         if traceback is not None:
             data = [data, traceback]
 
-        self._send_message('blocking_call_reply', content=content, data=data)
+        self._send_message('blocking_call_reply', content=content, data=data,
+                           comm_id=self.calling_comm_id)
 
     def _get_call_return_value(self, call_dict):
         """
@@ -323,14 +346,17 @@ class CommBase(object):
 class RemoteCallFactory(object):
     """Class to create `RemoteCall`s."""
 
-    def __init__(self, comm, **settings):
+    def __init__(self, comms_wrapper, comm_id, **settings):
         # Avoid setting attributes
-        super(RemoteCallFactory, self).__setattr__('_comm', comm)
+        super(RemoteCallFactory, self).__setattr__(
+            '_comms_wrapper', comms_wrapper)
+        super(RemoteCallFactory, self).__setattr__('_comm_id', comm_id)
         super(RemoteCallFactory, self).__setattr__('_settings', settings)
 
     def __getattr__(self, name):
         """Get a call for a function named 'name'."""
-        return RemoteCall(name, self._comm, self._settings)
+        return RemoteCall(name, self._comms_wrapper, self._comm_id,
+                          self._settings)
 
     def __setattr__(self, name, value):
         """Set an attribute to the other side."""
@@ -340,9 +366,10 @@ class RemoteCallFactory(object):
 class RemoteCall():
     """Class to call the other side of the comms like a function."""
 
-    def __init__(self, name, comm, settings):
+    def __init__(self, name, comms_wrapper, comm_id, settings):
         self._name = name
-        self._comm = comm
+        self._comms_wrapper = comms_wrapper
+        self._comm_id = comm_id
         self._settings = settings
 
     def __call__(self, *args, **kwargs):
@@ -362,13 +389,14 @@ class RemoteCall():
             'call_kwargs': kwargs,
             }
 
-        if not self._comm.is_open():
+        if not self._comms_wrapper.is_open(self._comm_id):
             # Only an error if the call is blocking.
             if 'blocking' in self._settings and self._settings['blocking']:
                 raise CommError("The comm is not connected.")
             logger.debug("Call to unconnected comm: %s" % self._name)
             return
 
-        self._comm._send_message(
-            'remote_call', content=call_dict, data=call_data)
-        return self._comm._get_call_return_value(call_dict)
+        self._comms_wrapper._send_message(
+            'remote_call', content=call_dict, data=call_data,
+            comm_id=self._comm_id)
+        return self._comms_wrapper._get_call_return_value(call_dict)

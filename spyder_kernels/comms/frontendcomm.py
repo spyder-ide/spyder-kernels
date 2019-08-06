@@ -32,9 +32,10 @@ class FrontendComm(CommBase):
         if not PY2:
             self._main_thread_id = threading.get_ident()
 
-    def remote_call(self, blocking=False):
+    def remote_call(self, comm_id=None, blocking=False):
         """Get a handler for remote calls."""
-        return super(FrontendComm, self).remote_call(blocking=blocking)
+        return super(FrontendComm, self).remote_call(
+                blocking=blocking, comm_id=comm_id)
 
     # --- Private --------
     def _wait_reply(self, call_id, call_name, timeout):
