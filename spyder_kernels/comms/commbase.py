@@ -61,6 +61,8 @@ PY2 = sys.version[0] == '2'
 logger = logging.getLogger(__name__)
 # To be able to get and set variables between Python 2 and 3
 PICKLE_PROTOCOL = 2
+# Maximum length of a serialized buffer
+MAX_SERIALIZED_LENGHT = 1e6
 
 
 class CommError(RuntimeError):
@@ -159,6 +161,9 @@ class CommBase(object):
             'content': content,
             }
         buffers = [cloudpickle.dumps(data, protocol=PICKLE_PROTOCOL)]
+        # Needed to prevent memory leaks. See spyder-ide/spyder#7158.
+        if len(buffers[0]) > MAX_SERIALIZED_LENGHT:
+            raise RuntimeError("Maximum serialized length exceeded.")
         if comm_id is None:
             # send to all the comms
             id_list = list(self._comms.keys())
