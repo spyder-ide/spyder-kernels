@@ -41,7 +41,7 @@ The messages exchanged are:
             'call_kwargs': The function kwargs,
             }
     - If the 'settings' has `'blocking' =  True`, a reply is sent.
-      (spyder_msg_type = 'blocking_call_reply'):
+      (spyder_msg_type = 'remote_call_reply'):
         - The buffer contains the return value of the function.
         - The 'content' is a dict with: {
                 'is_error': a boolean indicating if the return value is an
@@ -83,10 +83,11 @@ class CommBase(object):
         self._message_handlers = {}
         self._remote_call_handlers = {}
         self._call_reply_dict = {}
+        self._reply_callbacks = {}
         self._register_message_handler(
             'remote_call', self._handle_remote_call)
         self._register_message_handler(
-            'blocking_call_reply', self._handle_blocking_call_reply)
+            'remote_call_reply', self._handle_remote_call_reply)
         # Dummy functions for testing and to trigger side effects such as
         # an interruption or waiting for a reply.
         def pong_back():
@@ -130,9 +131,9 @@ class CommBase(object):
 
         self._remote_call_handlers[call_name] = handler
 
-    def remote_call(self, comm_id=None, **settings):
+    def remote_call(self, comm_id=None, callback=None, **settings):
         """Get a handler for remote calls."""
-        return RemoteCallFactory(self, comm_id, **settings)
+        return RemoteCallFactory(self, comm_id, callback, **settings)
 
     # ---- Private -----
     def _send_message(self, spyder_msg_type, content=None, data=None,
@@ -273,7 +274,8 @@ class CommBase(object):
         This will reply if settings['blocking'] == True
         """
         settings = call_dict['settings']
-        if 'blocking' not in settings or not settings['blocking']:
+        send_reply = 'send_reply' in settings and settings['send_reply']
+        if not send_reply:
             return
         content = {
             'is_error': traceback is not None,
@@ -283,10 +285,10 @@ class CommBase(object):
         if traceback is not None:
             data = [data, traceback]
 
-        self._send_message('blocking_call_reply', content=content, data=data,
+        self._send_message('remote_call_reply', content=content, data=data,
                            comm_id=self.calling_comm_id)
 
-    def _get_call_return_value(self, call_dict):
+    def _get_call_return_value(self, call_dict, callback=None):
         """
         A remote call has just been sent.
 
@@ -295,19 +297,35 @@ class CommBase(object):
         """
         settings = call_dict['settings']
 
-        if 'blocking' not in settings or not settings['blocking']:
+        blocking = 'blocking' in settings and settings['blocking']
+
+        if not blocking and callback is None:
             return
 
+        if blocking and callback is not None:
+            raise RuntimeError("Can not make a blocking call with a callback.")
+
+        call_id = call_dict['call_id']
+        call_name = call_dict['call_name']
+
+        if callback is not None:
+            self._reply_callbacks[call_id] = callback
+            # Check if the reply is already here
+            if call_id in self._call_reply_dict:
+                self._reply_recieved(call_id)
+            return
+
+        # Wait for the blocking call
         if 'timeout' in settings:
             timeout = settings['timeout']
         else:
             timeout = 3  # Seconds
 
-        call_id = call_dict['call_id']
-        call_name = call_dict['call_name']
-
         self._wait_reply(call_id, call_name, timeout)
+        return self._get_call_reply_value(call_id)
 
+    def _get_call_reply_value(self, call_id):
+        """Get the value of a call reply and raise an error is needed."""
         reply = self._call_reply_dict[call_id]
         self._call_reply_dict.pop(call_id)
 
@@ -324,44 +342,49 @@ class CommBase(object):
         """
         raise NotImplementedError
 
-    def _handle_blocking_call_reply(self, msg_dict, buffer, load_exception):
+    def _handle_remote_call_reply(self, msg_dict, buffer, load_exception):
         """
         A blocking call received a reply.
         """
         content = msg_dict['content']
-        request_id = content['call_id']
+        call_id = content['call_id']
         if load_exception:
             buffer = load_exception
             handle_error = True
         else:
             handle_error = content['is_error']
 
-        self._call_reply_dict[request_id] = {
+        self._call_reply_dict[call_id] = {
                 'is_error': handle_error,
                 'value': buffer,
                 'content': content
                 }
-        self._reply_recieved(request_id)
+        self._reply_recieved(call_id)
 
     def _reply_recieved(self, call_id):
         """A call got a reply."""
-        return
+        if call_id in self._reply_callbacks:
+            callback = self._reply_callbacks[call_id]
+            value = self._get_call_reply_value(call_id)
+            callback(value)
+            self._reply_callbacks.pop(call_id)
 
 
 class RemoteCallFactory(object):
     """Class to create `RemoteCall`s."""
 
-    def __init__(self, comms_wrapper, comm_id, **settings):
+    def __init__(self, comms_wrapper, comm_id, callback, **settings):
         # Avoid setting attributes
         super(RemoteCallFactory, self).__setattr__(
             '_comms_wrapper', comms_wrapper)
         super(RemoteCallFactory, self).__setattr__('_comm_id', comm_id)
+        super(RemoteCallFactory, self).__setattr__('_callback', callback)
         super(RemoteCallFactory, self).__setattr__('_settings', settings)
 
     def __getattr__(self, name):
         """Get a call for a function named 'name'."""
         return RemoteCall(name, self._comms_wrapper, self._comm_id,
-                          self._settings)
+                          self._callback, self._settings)
 
     def __setattr__(self, name, value):
         """Set an attribute to the other side."""
@@ -371,11 +394,12 @@ class RemoteCallFactory(object):
 class RemoteCall():
     """Class to call the other side of the comms like a function."""
 
-    def __init__(self, name, comms_wrapper, comm_id, settings):
+    def __init__(self, name, comms_wrapper, comm_id, callback, settings):
         self._name = name
         self._comms_wrapper = comms_wrapper
         self._comm_id = comm_id
         self._settings = settings
+        self._callback = callback
 
     def __call__(self, *args, **kwargs):
         """
@@ -383,6 +407,9 @@ class RemoteCall():
 
         The args and kwargs have to be picklable.
         """
+        blocking = 'blocking' in self._settings and self._settings['blocking']
+        self._settings['send_reply'] = blocking or self._callback is not None
+
         call_id = uuid.uuid4().hex
         call_dict = {
             'call_name': self._name,
@@ -396,7 +423,7 @@ class RemoteCall():
 
         if not self._comms_wrapper.is_open(self._comm_id):
             # Only an error if the call is blocking.
-            if 'blocking' in self._settings and self._settings['blocking']:
+            if blocking:
                 raise CommError("The comm is not connected.")
             logger.debug("Call to unconnected comm: %s" % self._name)
             return
@@ -404,4 +431,5 @@ class RemoteCall():
         self._comms_wrapper._send_message(
             'remote_call', content=call_dict, data=call_data,
             comm_id=self._comm_id)
-        return self._comms_wrapper._get_call_return_value(call_dict)
+        return self._comms_wrapper._get_call_return_value(
+            call_dict, self._callback)
