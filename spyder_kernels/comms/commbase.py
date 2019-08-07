@@ -219,7 +219,7 @@ class CommBase(object):
         self.calling_comm_id = msg['content']['comm_id']
         # Load the buffer. Only one is supported.
         try:
-            if PY3 and msg['PY2']:
+            if PY3 and msg['content']['data']['PY2']:
                 # https://docs.python.org/3/library/pickle.html#pickle.loads
                 # Using encoding='latin1' is required for unpickling
                 # NumPy arrays and instances of datetime, date and time
