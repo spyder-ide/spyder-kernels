@@ -57,8 +57,11 @@ import sys
 import uuid
 import traceback
 
+
 PY2 = sys.version[0] == '2'
+PY3 = sys.version[0] == '3'
 logger = logging.getLogger(__name__)
+
 # To be able to get and set variables between Python 2 and 3
 PICKLE_PROTOCOL = 2
 
@@ -151,13 +154,13 @@ class CommBase(object):
         comm_id: int
             the comm to send to. If None sends to all comms.
         """
-
         if not self.is_open(comm_id):
             raise CommError("The comm is not connected.")
         import cloudpickle
         msg_dict = {
             'spyder_msg_type': spyder_msg_type,
             'content': content,
+            'PY2': PY2,
             }
         buffers = [cloudpickle.dumps(data, protocol=PICKLE_PROTOCOL)]
         if comm_id is None:
@@ -216,10 +219,15 @@ class CommBase(object):
         self.calling_comm_id = msg['content']['comm_id']
         # Load the buffer. Only one is supported.
         try:
-            if PY2:
-                buffer = cloudpickle.loads(msg['buffers'][0])
+            if PY3 and msg['PY2']:
+                # https://docs.python.org/3/library/pickle.html#pickle.loads
+                # Using encoding='latin1' is required for unpickling
+                # NumPy arrays and instances of datetime, date and time
+                # pickled by Python 2.
+                buffer = cloudpickle.loads(msg['buffers'][0],
+                                           encoding='latin-1')
             else:
-                buffer = cloudpickle.loads(bytes(msg['buffers'][0]))
+                buffer = cloudpickle.loads(msg['buffers'][0])
             load_exception = None
         except Exception as e:
             load_exception = e
@@ -233,9 +241,8 @@ class CommBase(object):
         if spyder_msg_type in self._message_handlers:
             self._message_handlers[spyder_msg_type](
                 msg_dict, buffer, load_exception)
-            return
-
-        logger.debug("No such spyder message type: %s" % spyder_msg_type)
+        else:
+            logger.debug("No such spyder message type: %s" % spyder_msg_type)
 
     def _handle_remote_call(self, msg, buffer, load_exception):
         """Handle a remote call."""
@@ -307,7 +314,7 @@ class CommBase(object):
             self._reply_callbacks[call_id] = callback
             # Check if the reply is already here
             if call_id in self._call_reply_dict:
-                self._reply_recieved(call_id)
+                self._reply_received(call_id)
             return
 
         # Wait for the blocking call
@@ -351,9 +358,9 @@ class CommBase(object):
                 'value': buffer,
                 'content': content
                 }
-        self._reply_recieved(call_id)
+        self._reply_received(call_id)
 
-    def _reply_recieved(self, call_id):
+    def _reply_received(self, call_id):
         """A call got a reply."""
         if (call_id in self._reply_callbacks
                 and call_id in self._call_reply_dict):
