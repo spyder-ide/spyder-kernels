@@ -48,7 +48,7 @@ class FrontendComm(CommBase):
             # We can't call kernel.do_one_iteration from this thread.
             # And we have no reason to think the main thread is not busy.
             raise CommError(
-                "Can't make blocking calls from non main threads.")
+                "Can't make blocking calls from non-main threads.")
         t_start = time.time()
         self._wait_list[call_id] = call_name
         while call_id not in self._call_reply_dict:

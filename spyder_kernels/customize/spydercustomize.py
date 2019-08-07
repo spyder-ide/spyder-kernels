@@ -32,6 +32,7 @@ from spyder_kernels.comms import CommError
 
 
 logger = logging.getLogger(__name__)
+
 # We are in Python 2?
 PY2 = sys.version[0] == '2'
 
@@ -819,6 +820,11 @@ def _get_globals():
 
 
 def _frontend_request(blocking=True):
+    """
+    Send a request to the frontend.
+
+    If blocking is true, The return value will be returned.
+    """
     if not get_ipython().kernel.frontend_comm.is_open():
         raise CommError("Can't make a request to a closed comm")
     # Get a reply from the last frontend to have sent a message
