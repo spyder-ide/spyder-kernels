@@ -348,7 +348,7 @@ class CommBase(object):
         content = msg_dict['content']
         call_id = content['call_id']
         if load_exception:
-            buffer = load_exception
+            buffer = load_exception, []
             handle_error = True
         else:
             handle_error = content['is_error']
