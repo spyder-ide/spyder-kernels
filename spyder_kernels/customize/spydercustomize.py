@@ -327,14 +327,14 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
             if self.starting:
                 breakpoints = _frontend_request().get_breakpoints()
                 self.set_spyder_breakpoints(breakpoints)
-        except (CommError, TimeoutError):
+        except CommError:
             logger.debug("Could not get breakpoints from the frontend.")
 
     def postloop(self):
         """Notifies spyder that the loop has ended."""
         try:
             _frontend_request(blocking=False).set_debug_state(False)
-        except (CommError, TimeoutError):
+        except CommError:
             logger.debug("Could not send debugging state to the frontend.")
         super(SpyderPdb, self).postloop()
 
@@ -826,10 +826,13 @@ def _frontend_request(blocking=True):
     If blocking is true, The return value will be returned.
     """
     if not get_ipython().kernel.frontend_comm.is_open():
-        raise CommError("Can't make a request to a closed comm")
+        raise CommError("Can't make a request to a closed comm.")
     # Get a reply from the last frontend to have sent a message
-    return get_ipython().kernel.frontend_call(
-        blocking=blocking, broadcast=False)
+    try:
+        return get_ipython().kernel.frontend_call(
+            blocking=blocking, broadcast=False)
+    except TimeoutError:
+        raise CommError("The frontend took too long to respond.")
 
 
 def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
