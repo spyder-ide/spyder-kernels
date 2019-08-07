@@ -48,14 +48,13 @@ class SpyderKernel(IPythonKernel):
             'copy_value': self.copy_value,
             'set_cwd': self.set_cwd,
             'get_cwd': self.get_cwd,
-            'update_cwd': self.update_cwd,
             'get_syspath': self.get_syspath,
             'get_env': self.get_env,
             'close_all_mpl_figures': self.close_all_mpl_figures,
             'show_mpl_backend_errors': self.show_mpl_backend_errors,
-            'update_namespace_view': self.update_namespace_view,
+            'get_namespace_view': self.get_namespace_view,
             'set_namespace_view_settings': self.set_namespace_view_settings,
-            'update_var_properties': self.update_var_properties,
+            'get_var_properties': self.get_var_properties,
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -133,11 +132,6 @@ class SpyderKernel(IPythonKernel):
         else:
             return None
 
-    def update_namespace_view(self):
-        """Send updated namespace view."""
-        view = self.get_namespace_view()
-        self.frontend_call().set_namespace_view(view)
-
     def get_var_properties(self):
         """
         Get some properties of the variables in the current
@@ -169,11 +163,6 @@ class SpyderKernel(IPythonKernel):
             return properties
         else:
             return None
-
-    def update_var_properties(self):
-        """Send updated var properties."""
-        properties = self.get_var_properties()
-        self.frontend_call().set_var_properties(properties)
 
     def get_value(self, name):
         """Get the value of a variable"""
@@ -293,11 +282,6 @@ class SpyderKernel(IPythonKernel):
     def get_cwd(self):
         """Get current working directory."""
         return os.getcwd()
-
-    def update_cwd(self):
-        """Send updated working directory."""
-        cwd = self.get_cwd()
-        self.frontend_call().remote_set_cwd(cwd)
 
     def get_syspath(self):
         """Return sys.path contents."""

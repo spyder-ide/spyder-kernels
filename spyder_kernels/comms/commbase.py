@@ -317,10 +317,7 @@ class CommBase(object):
             timeout = 3  # Seconds
 
         self._wait_reply(call_id, call_name, timeout)
-        return self._get_call_reply_value(call_id)
 
-    def _get_call_reply_value(self, call_id):
-        """Get the value of a call reply and raise an error is needed."""
         reply = self._call_reply_dict[call_id]
         self._call_reply_dict.pop(call_id)
 
@@ -358,11 +355,21 @@ class CommBase(object):
 
     def _reply_recieved(self, call_id):
         """A call got a reply."""
-        if call_id in self._reply_callbacks:
+        if (call_id in self._reply_callbacks
+                and call_id in self._call_reply_dict):
+
             callback = self._reply_callbacks[call_id]
-            value = self._get_call_reply_value(call_id)
-            callback(value)
+            reply = self._call_reply_dict[call_id]
+
             self._reply_callbacks.pop(call_id)
+            self._call_reply_dict.pop(call_id)
+
+            if reply['is_error']:
+                error, tb = reply['value']
+                logger.debug(
+                    "Exception in callback call : {}, {}".format(tb, error))
+
+            callback(reply['value'])
 
 
 class RemoteCallFactory(object):
