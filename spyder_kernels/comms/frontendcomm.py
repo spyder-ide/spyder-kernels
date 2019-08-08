@@ -27,7 +27,6 @@ class FrontendComm(CommBase):
         self.kernel = kernel
         self.kernel.comm_manager.register_target(
             self._comm_name, self._comm_open)
-        self._wait_list = {}
 
         if not PY2:
             self._main_thread_id = threading.get_ident()
@@ -40,7 +39,7 @@ class FrontendComm(CommBase):
     # --- Private --------
     def _wait_reply(self, call_id, call_name, timeout):
         """Wait until the frontend replies to a request."""
-        if call_id in self._call_reply_dict:
+        if call_id in self._reply_inbox:
             return
 
         # There is no get_ident in Py2
@@ -49,9 +48,9 @@ class FrontendComm(CommBase):
             # And we have no reason to think the main thread is not busy.
             raise CommError(
                 "Can't make blocking calls from non-main threads.")
+
         t_start = time.time()
-        self._wait_list[call_id] = call_name
-        while call_id not in self._call_reply_dict:
+        while call_id not in self._reply_inbox:
             if time.time() > t_start + timeout:
                 raise TimeoutError(
                     "Timeout while waiting for '{}' reply".format(
@@ -62,7 +61,6 @@ class FrontendComm(CommBase):
                 if priority is not None:
                     # For Python2
                     priority = priority.result()
-        self._wait_list.pop(call_id)
 
     def _comm_open(self, comm, msg):
         """

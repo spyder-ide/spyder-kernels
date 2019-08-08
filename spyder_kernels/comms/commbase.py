@@ -81,18 +81,23 @@ class CommBase(object):
         super(CommBase, self).__init__()
         self.calling_comm_id = None
         self._comms = {}
+        # Handlers
         self._message_handlers = {}
         self._remote_call_handlers = {}
-        self._call_reply_dict = {}
-        self._reply_callbacks = {}
+        # Lists of reply numbers
+        self._reply_inbox = {}
+        self._reply_waitlist = {}
+
         self._register_message_handler(
             'remote_call', self._handle_remote_call)
         self._register_message_handler(
             'remote_call_reply', self._handle_remote_call_reply)
+
         # Dummy functions for testing and to trigger side effects such as
         # an interruption or waiting for a reply.
         def pong_back():
             self.remote_call(self.calling_comm_id).pong()
+
         self.register_call_handler('ping', pong_back)
         self.register_call_handler('pong', lambda: None)
 
@@ -277,10 +282,14 @@ class CommBase(object):
         """
         settings = call_dict['settings']
         send_reply = 'send_reply' in settings and settings['send_reply']
-        if not send_reply:
+
+        is_error = traceback is not None
+
+        if not send_reply and not is_error:
+            # Nothing to send back
             return
         content = {
-            'is_error': traceback is not None,
+            'is_error': is_error,
             'call_id': call_dict['call_id'],
             'call_name': call_dict['call_name']
         }
@@ -290,7 +299,17 @@ class CommBase(object):
         self._send_message('remote_call_reply', content=content, data=data,
                            comm_id=self.calling_comm_id)
 
-    def _get_call_return_value(self, call_dict, callback=None):
+    def _register_call(self, call_dict, callback=None):
+        """
+        Register the call so the reply can be properly treated.
+        """
+        settings = call_dict['settings']
+        blocking = 'blocking' in settings and settings['blocking']
+        call_id = call_dict['call_id']
+        if blocking or callback is not None:
+            self._reply_waitlist[call_id] = blocking, callback
+
+    def _get_call_return_value(self, call_dict):
         """
         A remote call has just been sent.
 
@@ -301,21 +320,11 @@ class CommBase(object):
 
         blocking = 'blocking' in settings and settings['blocking']
 
-        if not blocking and callback is None:
+        if not blocking:
             return
-
-        if blocking and callback is not None:
-            raise RuntimeError("Can not make a blocking call with a callback.")
 
         call_id = call_dict['call_id']
         call_name = call_dict['call_name']
-
-        if callback is not None:
-            self._reply_callbacks[call_id] = callback
-            # Check if the reply is already here
-            if call_id in self._call_reply_dict:
-                self._reply_received(call_id)
-            return
 
         # Wait for the blocking call
         if 'timeout' in settings:
@@ -325,8 +334,7 @@ class CommBase(object):
 
         self._wait_reply(call_id, call_name, timeout)
 
-        reply = self._call_reply_dict[call_id]
-        self._call_reply_dict.pop(call_id)
+        reply = self._reply_inbox.pop(call_id)
 
         if reply['is_error']:
             error, tb = reply['value']
@@ -347,36 +355,49 @@ class CommBase(object):
         """
         content = msg_dict['content']
         call_id = content['call_id']
+        call_name = content['call_name']
         if load_exception:
             buffer = load_exception, []
-            handle_error = True
+            is_error = True
         else:
-            handle_error = content['is_error']
+            is_error = content['is_error']
 
-        self._call_reply_dict[call_id] = {
-                'is_error': handle_error,
-                'value': buffer,
-                'content': content
-                }
-        self._reply_received(call_id)
+        # Unexpected reply
+        if call_id not in self._reply_waitlist:
+            if is_error:
+                error, tb = buffer
+                self._async_error(call_name, error, tb)
+            else:
+                logger.debug('Got an unexpected reply {}, id:{}'.format(
+                    call_name, call_id))
+            return
 
-    def _reply_received(self, call_id):
-        """A call got a reply."""
-        if (call_id in self._reply_callbacks
-                and call_id in self._call_reply_dict):
+        blocking, callback = self._reply_waitlist.pop(call_id)
 
-            callback = self._reply_callbacks[call_id]
-            reply = self._call_reply_dict[call_id]
+        # Async error
+        if is_error and not blocking:
+            error, tb = buffer
+            self._async_error(call_name, error, tb)
+            return
 
-            self._reply_callbacks.pop(call_id)
-            self._call_reply_dict.pop(call_id)
+        # Callback
+        if callback is not None and not is_error:
+            callback(buffer)
 
-            if reply['is_error']:
-                error, tb = reply['value']
-                logger.debug(
-                    "Exception in callback call : {}, {}".format(tb, error))
+        # Blocking inbox
+        if blocking:
+            self._reply_inbox[call_id] = {
+                    'is_error': is_error,
+                    'value': buffer,
+                    'content': content
+                    }
 
-            callback(reply['value'])
+    def _async_error(self, function_name, error, tb):
+        """
+        Handle an error that was raised on the other side and sent back.
+        """
+        traceback.print_list(tb)
+        raise error
 
 
 class RemoteCallFactory(object):
@@ -436,9 +457,8 @@ class RemoteCall():
                 raise CommError("The comm is not connected.")
             logger.debug("Call to unconnected comm: %s" % self._name)
             return
-
+        self._comms_wrapper._register_call(call_dict, self._callback)
         self._comms_wrapper._send_message(
             'remote_call', content=call_dict, data=call_data,
             comm_id=self._comm_id)
-        return self._comms_wrapper._get_call_return_value(
-            call_dict, self._callback)
+        return self._comms_wrapper._get_call_return_value(call_dict)
