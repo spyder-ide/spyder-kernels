@@ -70,6 +70,55 @@ class CommError(RuntimeError):
     pass
 
 
+class CommsErrorWrapper():
+    def __init__(self, call_name, call_id):
+        self.call_name = call_name
+        self.call_id = call_id
+        self.etype, self.error, tb = sys.exc_info()
+        self.tb = traceback.extract_tb(tb)
+
+    def raise_error(self):
+        """
+        Raise the error while adding informations on the callback.
+        """
+        # Add the traceback in the error, so it can be handled upstream
+        raise self.etype(self)
+
+    def format_error(self):
+        """
+        Format the error recieved from the other side and returns a list of
+        strings.
+        """
+        lines = (['Exception in comms call {}:\n'.format(self.call_name)]
+                 + traceback.format_list(self.tb)
+                 + traceback.format_exception_only(self.etype, self.error))
+        return lines
+
+    def print_error(self, file=None):
+        """
+        Print the error to file or to sys.stderr if file is None.
+        """
+        if file is None:
+            file = sys.stderr
+        for line in self.format_error():
+            print(line, file=file)
+
+
+# Replace sys.excepthook to handle CommsErrorWrapper
+sys_excepthook = sys.excepthook
+
+
+def comm_excepthook(type, value, tb):
+    if len(value.args) == 1 and isinstance(value.args[0], CommsErrorWrapper):
+        traceback.print_tb(tb)
+        value.args[0].print_error()
+        return
+    sys_excepthook(type, value, tb)
+
+
+sys.excepthook = comm_excepthook
+
+
 class CommBase(object):
     """
     Class with the necessary attributes and methods to handle
@@ -262,9 +311,10 @@ class CommBase(object):
                     buffer['call_args'],
                     buffer['call_kwargs'])
             self._set_call_return_value(msg_dict, return_value)
-        except Exception as e:
-            tb = traceback.extract_tb(sys.exc_info()[2])
-            self._set_call_return_value(msg_dict, e, traceback=tb)
+        except Exception:
+            exc_infos = CommsErrorWrapper(
+                msg_dict['call_name'], msg_dict['call_id'])
+            self._set_call_return_value(msg_dict, exc_infos, is_error=True)
 
     def _remote_callback(self, call_name, call_args, call_kwargs):
         """Call the callback function for the remote call."""
@@ -274,7 +324,7 @@ class CommBase(object):
 
         raise CommError("No such spyder call type: %s" % call_name)
 
-    def _set_call_return_value(self, call_dict, data, traceback=None):
+    def _set_call_return_value(self, call_dict, data, is_error=False):
         """
         A remote call has just been processed.
 
@@ -282,8 +332,6 @@ class CommBase(object):
         """
         settings = call_dict['settings']
         send_reply = 'send_reply' in settings and settings['send_reply']
-
-        is_error = traceback is not None
 
         if not send_reply and not is_error:
             # Nothing to send back
@@ -293,8 +341,6 @@ class CommBase(object):
             'call_id': call_dict['call_id'],
             'call_name': call_dict['call_name']
         }
-        if traceback is not None:
-            data = [data, traceback]
 
         self._send_message('remote_call_reply', content=content, data=data,
                            comm_id=self.calling_comm_id)
@@ -337,9 +383,7 @@ class CommBase(object):
         reply = self._reply_inbox.pop(call_id)
 
         if reply['is_error']:
-            error, tb = reply['value']
-            traceback.print_list(tb)
-            raise error
+            return self._sync_error(reply['value'])
 
         return reply['value']
 
@@ -365,8 +409,7 @@ class CommBase(object):
         # Unexpected reply
         if call_id not in self._reply_waitlist:
             if is_error:
-                error, tb = buffer
-                self._async_error(call_name, error, tb)
+                return self._async_error(buffer)
             else:
                 logger.debug('Got an unexpected reply {}, id:{}'.format(
                     call_name, call_id))
@@ -376,9 +419,7 @@ class CommBase(object):
 
         # Async error
         if is_error and not blocking:
-            error, tb = buffer
-            self._async_error(call_name, error, tb)
-            return
+            return self._async_error(buffer)
 
         # Callback
         if callback is not None and not is_error:
@@ -392,12 +433,17 @@ class CommBase(object):
                     'content': content
                     }
 
-    def _async_error(self, function_name, error, tb):
+    def _async_error(self, error_wrapper):
         """
-        Handle an error that was raised on the other side and sent back.
+        Handle an error that was raised on the other side asyncronously.
         """
-        traceback.print_list(tb)
-        raise error
+        error_wrapper.raise_error()
+
+    def _sync_error(self, error_wrapper):
+        """
+        Handle an error that was raised on the other side syncronously.
+        """
+        error_wrapper.raise_error()
 
 
 class RemoteCallFactory(object):
