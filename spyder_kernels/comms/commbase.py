@@ -50,6 +50,7 @@ The messages exchanged are:
                 'call_name': The function name (mostly for debugging)
                 }
 """
+from __future__ import print_function
 
 import cloudpickle
 import pickle
@@ -58,9 +59,9 @@ import sys
 import uuid
 import traceback
 
+from spyder_kernels.py3compat import PY2, PY3
 
-PY2 = sys.version[0] == '2'
-PY3 = sys.version[0] == '3'
+
 logger = logging.getLogger(__name__)
 
 # To be able to get and set variables between Python 2 and 3
