@@ -11,6 +11,7 @@ In addition to the remote_call mechanism implemented in CommBase:
 import os
 import time
 import threading
+import pickle
 
 from spyder_kernels.comms.commbase import CommBase, CommError
 from spyder_kernels.py3compat import TimeoutError, PY2
@@ -67,3 +68,5 @@ class FrontendComm(CommBase):
         A new comm is open!
         """
         self._register_comm(comm)
+        self._set_pickle_protocol(msg['content']['data']['pickle protocol'])
+        self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)

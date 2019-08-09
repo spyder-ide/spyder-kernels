@@ -52,6 +52,7 @@ The messages exchanged are:
 """
 
 import cloudpickle
+import pickle
 import logging
 import sys
 import uuid
@@ -63,7 +64,7 @@ PY3 = sys.version[0] == '3'
 logger = logging.getLogger(__name__)
 
 # To be able to get and set variables between Python 2 and 3
-PICKLE_PROTOCOL = 2
+DEFAULT_PICKLE_PROTOCOL = 2
 
 
 class CommError(RuntimeError):
@@ -136,6 +137,7 @@ class CommBase(object):
         # Lists of reply numbers
         self._reply_inbox = {}
         self._reply_waitlist = {}
+        self._pickle_protocol = DEFAULT_PICKLE_PROTOCOL
 
         self._register_message_handler(
             'remote_call', self._handle_remote_call)
@@ -149,6 +151,8 @@ class CommBase(object):
 
         self.register_call_handler('ping', pong_back)
         self.register_call_handler('pong', lambda: None)
+        self.register_call_handler('_set_pickle_protocol',
+                                   self._set_pickle_protocol)
 
     def close(self, comm_id=None):
         """Close the comm and notify the other side."""
@@ -210,13 +214,12 @@ class CommBase(object):
         """
         if not self.is_open(comm_id):
             raise CommError("The comm is not connected.")
-        import cloudpickle
         msg_dict = {
             'spyder_msg_type': spyder_msg_type,
             'content': content,
-            'PY2': PY2,
+            'pickle protocol': self._pickle_protocol,
             }
-        buffers = [cloudpickle.dumps(data, protocol=PICKLE_PROTOCOL)]
+        buffers = [cloudpickle.dumps(data, protocol=self._pickle_protocol)]
         if comm_id is None:
             # send to all the comms
             id_list = list(self._comms.keys())
@@ -224,6 +227,11 @@ class CommBase(object):
             id_list = [comm_id]
         for comm_id in id_list:
             self._comms[comm_id].send(msg_dict, buffers=buffers)
+
+    def _set_pickle_protocol(self, protocol):
+        """Set the pickle protocol used to send data."""
+        protocol = min(protocol, pickle.HIGHEST_PROTOCOL)
+        self._pickle_protocol = protocol
 
     @property
     def _comm_name(self):
@@ -273,7 +281,7 @@ class CommBase(object):
         self.calling_comm_id = msg['content']['comm_id']
         # Load the buffer. Only one is supported.
         try:
-            if PY3 and msg['content']['data']['PY2']:
+            if PY3:
                 # https://docs.python.org/3/library/pickle.html#pickle.loads
                 # Using encoding='latin1' is required for unpickling
                 # NumPy arrays and instances of datetime, date and time
