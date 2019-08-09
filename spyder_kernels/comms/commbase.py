@@ -104,6 +104,14 @@ class CommsErrorWrapper():
         for line in self.format_error():
             print(line, file=file)
 
+    def __str__(self):
+        """Get string representation"""
+        return str(self.error)
+
+    def __repr__(self):
+        """Get string representation"""
+        return repr(self.error)
+
 
 # Replace sys.excepthook to handle CommsErrorWrapper
 sys_excepthook = sys.excepthook
