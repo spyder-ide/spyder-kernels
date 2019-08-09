@@ -13,7 +13,6 @@ Tests for the console kernel.
 import ast
 import os
 import os.path as osp
-import time
 
 # Test imports
 from ipykernel.tests.test_embed_kernel import setup_kernel
@@ -23,13 +22,9 @@ import pytest
 
 # Local imports
 from spyder_kernels.py3compat import PY3, to_text_string
-from spyder_kernels.comms.commbase import PICKLE_PROTOCOL
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
-# Third-party imports
-import cloudpickle
-import IPython
 
 # =============================================================================
 # Constants
