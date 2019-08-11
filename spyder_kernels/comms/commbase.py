@@ -226,7 +226,8 @@ class CommBase(object):
         msg_dict = {
             'spyder_msg_type': spyder_msg_type,
             'content': content,
-            'pickle protocol': self._pickle_protocol,
+            'pickle_protocol': self._pickle_protocol,
+            'python_version': sys.version,
             }
         buffers = [cloudpickle.dumps(data, protocol=self._pickle_protocol)]
         if comm_id is None:

@@ -68,5 +68,5 @@ class FrontendComm(CommBase):
         A new comm is open!
         """
         self._register_comm(comm)
-        self._set_pickle_protocol(msg['content']['data']['pickle protocol'])
+        self._set_pickle_protocol(msg['content']['data']['pickle_protocol'])
         self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)
