@@ -313,6 +313,10 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 
     send_initial_notification = True
     starting = True
+    def __init__(self, *args, **kwargs):
+        """Init Pdb."""
+        self.continue_if_has_breakpoints = True
+        super(SpyderPdb, self).__init__(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
         """Init Pdb."""
@@ -894,7 +898,40 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
 builtins.runfile = runfile
 
 
-def runcell(cellname, filename):
+def get_debugger(filename):
+    """Get a debugger for a given filename."""
+    try:
+        # Save the open files so the debugging display is correct
+        _frontend_request().save_files()
+    except (CommError, TimeoutError):
+        logger.debug("Could not send save files before executing.")
+
+    debugger = pdb.Pdb()
+    filename = debugger.canonic(filename)
+    debugger._wait_for_mainpyfile = 1
+    debugger.mainpyfile = filename
+    debugger._user_requested_quit = 0
+    if os.name == 'nt':
+        filename = filename.replace('\\', '/')
+    return debugger, filename
+
+
+def debugfile(filename, args=None, wdir=None, post_mortem=False):
+    """
+    Debug filename
+    args: command line arguments (string)
+    wdir: working directory
+    post_mortem: boolean, included for compatiblity with runfile
+    """
+
+    debugger, filename = get_debugger(filename)
+    debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
+
+
+builtins.debugfile = debugfile
+
+
+def runcell(cellname, filename=None):
     """
     Run a code cell from an editor as a file.
 
@@ -904,9 +941,8 @@ def runcell(cellname, filename):
 
     Parameters
     ----------
-    cellname : str
-        Used as a reference in the history log of which
-        cell was run with the fuction. This variable is not used.
+    cellname : str or int
+        Cell name or index.
     filename : str
         Needed to allow for proper traceback links.
     """
@@ -917,46 +953,88 @@ def runcell(cellname, filename):
         # AttributeError --> systematically raised in Python 3
         pass
     ipython_shell = get_ipython()
-    namespace = _get_globals()
-    namespace['__file__'] = filename
     try:
-        cell_code = ipython_shell.cell_code
-    except AttributeError:
-        _print("--Run Cell Error--\n"
-               "Please use only through Spyder's Editor; "
-               "shouldn't be called manually from the console")
+        # Get code from spyder
+        cell_code = _frontend_request().run_cell(cellname, filename)
+        if not filename:
+            filename = _frontend_request().current_filename()
+    except (CommError, TimeoutError):
+        if hasattr(ipython_shell, "cell_code"):
+            # This is the old way of transmitting informations
+            cell_code = ipython_shell.cell_code
+            del ipython_shell.cell_code
+        else:
+            _print("--Run Cell Error--\n"
+                   "Please use only with Spyder; ")
+            return
+
+    if not cell_code:
+        # Nothing to execute
         return
+
+    namespace = _get_globals()
+    # Save previous __file__
+    namespace_has_file = '__file__' in namespace
+    if namespace_has_file:
+        namespace_filename = namespace['__file__']
+    namespace['__file__'] = filename
 
     # Trigger `post_execute` to exit the additional pre-execution.
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
 
     ipython_shell.run_cell(cell_code)
-    namespace.pop('__file__')
-    del ipython_shell.cell_code
+
+    # Restore __file__
+    if namespace_has_file:
+        namespace['__file__'] = namespace_filename
+    else:
+        namespace.pop('__file__')
 
 
 builtins.runcell = runcell
 
 
-def debugfile(filename, args=None, wdir=None, post_mortem=False):
+def cellcount(filename=None):
     """
-    Debug filename
-    args: command line arguments (string)
-    wdir: working directory
-    post_mortem: boolean, included for compatiblity with runfile
+    Get the number of cells for a file.
+
+    Parameters
+    ----------
+    filename : str
+        Needed to allow for proper traceback links.
     """
-    debugger = pdb.Pdb()
-    filename = debugger.canonic(filename)
-    debugger._wait_for_mainpyfile = 1
-    debugger.mainpyfile = filename
-    debugger._user_requested_quit = 0
-    if os.name == 'nt':
-        filename = filename.replace('\\', '/')
-    debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
+    try:
+        # Get code from spyder
+        cell_count = _frontend_request().cell_count(filename)
+        return int(cell_count)
+    except (CommError, TimeoutError):
+        _print("--Cell Count Error--\n"
+               "Please use only with Spyder; ")
+        return 0
 
 
-builtins.debugfile = debugfile
+builtins.cellcount = cellcount
+
+
+def debugcell(cellname, filename=None):
+    """Debug a cell."""
+    if not filename:
+        try:
+            filename = _frontend_request().current_filename()
+        except (CommError, TimeoutError):
+            pass
+
+    if not filename:
+        raise RuntimeError("Could not get the filename from Spyder.")
+
+    debugger, filename = get_debugger(filename)
+    # The breakpoint might not be in the cell
+    debugger.continue_if_has_breakpoints = False
+    debugger.run("runcell({}, {})".format(repr(cellname), repr(filename)))
+
+
+builtins.debugcell = debugcell
 
 
 #==============================================================================
