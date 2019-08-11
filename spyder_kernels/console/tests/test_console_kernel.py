@@ -25,6 +25,7 @@ import pytest
 from spyder_kernels.py3compat import PY3, to_text_string
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
+from spyder_kernels.customize.spydercustomize import SpyderPdb
 
 
 # =============================================================================
@@ -552,6 +553,23 @@ def test_matplotlib_inline(kernel):
 
         # Assert backend is inline
         assert 'inline' in value
+
+def test_do_complete(kernel):
+    """
+    Check do complete works in normal and debugging mode.
+    """
+    kernel.do_execute('abba = 1', True)
+    assert kernel.get_value('abba') == 1
+    match = kernel.do_complete('ab', 2)
+    assert 'abba' in match['matches']
+
+    # test pdb
+    pdb_obj = SpyderPdb()
+    pdb_obj.curframe = True
+    pdb_obj.completenames = lambda *ignore: ['baba']
+    kernel._pdb_obj = pdb_obj
+    match = kernel.do_complete('ba', 2)
+    assert 'baba' in match['matches']
 
 
 if __name__ == "__main__":

@@ -16,10 +16,11 @@ import sys
 
 # Third-party imports
 from ipykernel.ipkernel import IPythonKernel
+
+# Local imports
 from spyder_kernels.comms.frontendcomm import FrontendComm
+from spyder_kernels.py3compat import isidentifier, PY2
 
-
-PY2 = sys.version[0] == '2'
 
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
@@ -224,6 +225,62 @@ class SpyderKernel(IPythonKernel):
         return iofunctions.save(data, filename)
 
     # --- For Pdb
+    def is_debugging(self):
+        """
+        Check if we are currently debugging.
+        """
+        return bool(self._pdb_frame)
+
+    def do_complete(self, code, cursor_pos):
+        """
+        Call PdB complete if we are debugging.
+        """
+        if cursor_pos is None:
+            cursor_pos = len(code)
+        if self.is_debugging():
+            # Get text to complete
+            text = code[:cursor_pos].split(' ')[-1]
+            # Choose pdb function to complete, based on cmd.py
+            origline = code
+            line = origline.lstrip()
+            if not line:
+                return
+            stripped = len(origline) - len(line)
+            begidx = cursor_pos - len(text) - stripped
+            endidx = cursor_pos - stripped
+            if begidx > 0:
+                cmd, args, foo = self._pdb_obj.parseline(line)
+                if cmd == '':
+                    compfunc = self._pdb_obj.completedefault
+                else:
+                    try:
+                        compfunc = getattr(self._pdb_obj, 'complete_' + cmd)
+                    except AttributeError:
+                        compfunc = self._pdb_obj.completedefault
+            elif line[0] != '!':
+                compfunc = self._pdb_obj.completenames
+            else:
+                compfunc = self._pdb_obj.completedefault
+
+            def is_name_or_composed(text):
+                if not text or text[0] == '.':
+                    return False
+                # We want to keep value.subvalue
+                return isidentifier(text.replace('.', ''))
+
+            while text and not is_name_or_composed(text):
+                text = text[1:]
+                begidx += 1
+
+            matches = compfunc(text, line, begidx, endidx)
+
+            return {'matches': matches,
+                    'cursor_end': cursor_pos,
+                    'cursor_start': cursor_pos - len(text),
+                    'metadata': {},
+                    'status': 'ok'}
+        return super(SpyderKernel, self).do_complete(code, cursor_pos)
+
     def publish_pdb_state(self):
         """
         Publish Variable Explorer state and Pdb step through
