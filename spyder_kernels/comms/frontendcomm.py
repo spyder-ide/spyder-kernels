@@ -70,3 +70,9 @@ class FrontendComm(CommBase):
         self._register_comm(comm)
         self._set_pickle_protocol(msg['content']['data']['pickle_protocol'])
         self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)
+
+    def _async_error(self, error_wrapper):
+        """
+        Send an async error back to the frontend to be displayed.
+        """
+        self.remote_call()._async_error(error_wrapper)
