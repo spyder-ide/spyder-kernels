@@ -455,7 +455,7 @@ class CommBase(object):
         """
         Handle an error that was raised on the other side asyncronously.
         """
-        error_wrapper.raise_error()
+        error_wrapper.print_error()
 
     def _sync_error(self, error_wrapper):
         """
