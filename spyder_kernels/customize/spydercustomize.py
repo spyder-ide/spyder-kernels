@@ -841,7 +841,7 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     """
     try:
         # Save the open files
-        _frontend_request().savefiles()
+        _frontend_request().save_files()
     except (CommError, TimeoutError):
         logger.debug("Could not send save files before executing.")
 
