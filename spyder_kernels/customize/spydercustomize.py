@@ -839,6 +839,11 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
     wdir: working directory
     post_mortem: boolean, whether to enter post-mortem mode on error
     """
+    try:
+        # Save the open files
+        _frontend_request().save_files()
+    except (CommError, TimeoutError):
+        logger.debug("Could not send save files before executing.")
 
     try:
         filename = filename.decode('utf-8')
