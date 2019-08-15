@@ -313,10 +313,6 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 
     send_initial_notification = True
     starting = True
-    def __init__(self, *args, **kwargs):
-        """Init Pdb."""
-        self.continue_if_has_breakpoints = True
-        super(SpyderPdb, self).__init__(*args, **kwargs)
 
     def __init__(self, *args, **kwargs):
         """Init Pdb."""
@@ -923,7 +919,6 @@ def debugfile(filename, args=None, wdir=None, post_mortem=False):
     wdir: working directory
     post_mortem: boolean, included for compatiblity with runfile
     """
-
     debugger, filename = get_debugger(filename)
     debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
 
@@ -959,14 +954,9 @@ def runcell(cellname, filename=None):
         if not filename:
             filename = _frontend_request().current_filename()
     except (CommError, TimeoutError):
-        if hasattr(ipython_shell, "cell_code"):
-            # This is the old way of transmitting informations
-            cell_code = ipython_shell.cell_code
-            del ipython_shell.cell_code
-        else:
-            _print("--Run Cell Error--\n"
-                   "Please use only with Spyder; ")
-            return
+        _print("--Run Cell Error--\n"
+               "Please use only with Spyder; ")
+        return
 
     if not cell_code:
         # Nothing to execute
@@ -995,14 +985,14 @@ def runcell(cellname, filename=None):
 builtins.runcell = runcell
 
 
-def cellcount(filename=None):
+def cell_count(filename=None):
     """
-    Get the number of cells for a file.
+    Get the number of cells in a file.
 
     Parameters
     ----------
     filename : str
-        Needed to allow for proper traceback links.
+        The file to get the cells from. If None, the currently opened file.
     """
     try:
         # Get code from spyder
@@ -1014,7 +1004,7 @@ def cellcount(filename=None):
         return 0
 
 
-builtins.cellcount = cellcount
+builtins.cell_count = cell_count
 
 
 def debugcell(cellname, filename=None):
@@ -1026,7 +1016,7 @@ def debugcell(cellname, filename=None):
             pass
 
     if not filename:
-        raise RuntimeError("Could not get the filename from Spyder.")
+        raise RuntimeError("Could not get the file name from Spyder.")
 
     debugger, filename = get_debugger(filename)
     # The breakpoint might not be in the cell
