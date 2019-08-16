@@ -896,12 +896,6 @@ builtins.runfile = runfile
 
 def get_debugger(filename):
     """Get a debugger for a given filename."""
-    try:
-        # Save the open files so the debugging display is correct
-        _frontend_request().save_files()
-    except (CommError, TimeoutError):
-        logger.debug("Could not send save files before executing.")
-
     debugger = pdb.Pdb()
     filename = debugger.canonic(filename)
     debugger._wait_for_mainpyfile = 1
