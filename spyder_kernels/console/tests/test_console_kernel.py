@@ -382,36 +382,35 @@ def test_runfile(tmpdir):
         u = tmpdir.join("undefined-test.py")
         u.write(code)
 
-        # Run code
+        # Run code file `d` to define `result`
         client.execute("runfile(r'{}', current_namespace=False)"
                        .format(to_text_string(d)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
-        # Verify that the `result` variable is defined
+        # Verify that `result` is defined in the current namespace
         client.inspect('result')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
-        # Run code
+        # Run code file `u` without current namespace
         client.execute("runfile(r'{}', current_namespace=False)"
                        .format(to_text_string(u)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
-        # Verify that the `result2` variable is defined
+        # Verify that the variable `result2` is defined
         client.inspect('result2')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
-        # Run code
+        # Run code file `u` with current namespace
         client.execute("runfile(r'{}', current_namespace=True)"
                        .format(to_text_string(u)))
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
-        print(content)
 
-        # Verify that the `result3` variable is defined
+        # Verify that the variable `result3` is defined
         client.inspect('result3')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
