@@ -832,18 +832,45 @@ def _frontend_request(blocking=True):
         blocking=blocking, broadcast=False)
 
 
-def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
+def get_current_file_name():
+    """Get the current file name."""
+    try:
+        return _frontend_request().current_filename()
+    except Exception:
+        etype, error, _ = sys.exc_info()
+        get_ipython().showtraceback((etype, error, None))
+        return None
+
+
+def get_debugger(filename):
+    """Get a debugger for a given filename."""
+    debugger = pdb.Pdb()
+    filename = debugger.canonic(filename)
+    debugger._wait_for_mainpyfile = 1
+    debugger.mainpyfile = filename
+    debugger._user_requested_quit = 0
+    if os.name == 'nt':
+        filename = filename.replace('\\', '/')
+    return debugger, filename
+
+
+def runfile(filename=None, args=None, wdir=None, namespace=None,
+            post_mortem=False, is_pdb=False):
     """
     Run filename
     args: command line arguments (string)
     wdir: working directory
     post_mortem: boolean, whether to enter post-mortem mode on error
     """
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
     try:
         # Save the open files
         _frontend_request().save_files()
-    except (CommError, TimeoutError):
-        logger.debug("Could not send save files before executing.")
+    except Exception:
+        logger.debug("Could not save files before executing.")
 
     try:
         filename = filename.decode('utf-8')
@@ -894,18 +921,6 @@ def runfile(filename, args=None, wdir=None, namespace=None, post_mortem=False):
 builtins.runfile = runfile
 
 
-def get_debugger(filename):
-    """Get a debugger for a given filename."""
-    debugger = pdb.Pdb()
-    filename = debugger.canonic(filename)
-    debugger._wait_for_mainpyfile = 1
-    debugger.mainpyfile = filename
-    debugger._user_requested_quit = 0
-    if os.name == 'nt':
-        filename = filename.replace('\\', '/')
-    return debugger, filename
-
-
 def debugfile(filename, args=None, wdir=None, post_mortem=False):
     """
     Debug filename
@@ -913,6 +928,10 @@ def debugfile(filename, args=None, wdir=None, post_mortem=False):
     wdir: working directory
     post_mortem: boolean, included for compatiblity with runfile
     """
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
     debugger, filename = get_debugger(filename)
     debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
 
@@ -935,6 +954,10 @@ def runcell(cellname, filename=None):
     filename : str
         Needed to allow for proper traceback links.
     """
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
     try:
         filename = filename.decode('utf-8')
     except (UnicodeError, TypeError, AttributeError):
@@ -945,11 +968,9 @@ def runcell(cellname, filename=None):
     try:
         # Get code from spyder
         cell_code = _frontend_request().run_cell(cellname, filename)
-        if not filename:
-            filename = _frontend_request().current_filename()
-    except (CommError, TimeoutError):
-        _print("--Run Cell Error--\n"
-               "Please use only with Spyder; ")
+    except Exception:
+        etype, error, tb = sys.exc_info()
+        get_ipython().showtraceback((etype, error, None))
         return
 
     if not cell_code:
@@ -979,6 +1000,23 @@ def runcell(cellname, filename=None):
 builtins.runcell = runcell
 
 
+def debugcell(cellname, filename=None):
+    """Debug a cell."""
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
+
+    debugger, filename = get_debugger(filename)
+    # The breakpoint might not be in the cell
+    debugger.continue_if_has_breakpoints = False
+    debugger.run("runcell({}, {}, is_pdb=True)".format(
+        repr(cellname), repr(filename)))
+
+
+builtins.debugcell = debugcell
+
+
 def cell_count(filename=None):
     """
     Get the number of cells in a file.
@@ -988,37 +1026,20 @@ def cell_count(filename=None):
     filename : str
         The file to get the cells from. If None, the currently opened file.
     """
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            raise RuntimeError('Could not get cell count from frontend.')
     try:
         # Get code from spyder
         cell_count = _frontend_request().cell_count(filename)
-        return int(cell_count)
-    except (CommError, TimeoutError):
-        _print("--Cell Count Error--\n"
-               "Please use only with Spyder; ")
-        return 0
+        return cell_count
+    except Exception:
+        etype, error, tb = sys.exc_info()
+        raise etype(error)
 
 
 builtins.cell_count = cell_count
-
-
-def debugcell(cellname, filename=None):
-    """Debug a cell."""
-    if not filename:
-        try:
-            filename = _frontend_request().current_filename()
-        except (CommError, TimeoutError):
-            pass
-
-    if not filename:
-        raise RuntimeError("Could not get the file name from Spyder.")
-
-    debugger, filename = get_debugger(filename)
-    # The breakpoint might not be in the cell
-    debugger.continue_if_has_breakpoints = False
-    debugger.run("runcell({}, {})".format(repr(cellname), repr(filename)))
-
-
-builtins.debugcell = debugcell
 
 
 #==============================================================================
