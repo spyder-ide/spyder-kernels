@@ -12,12 +12,11 @@ Spyder kernel for Jupyter
 
 # Standard library imports
 import os
-import os.path as osp
-import pickle
 import sys
 
 # Third-party imports
 from ipykernel.ipkernel import IPythonKernel
+from spyder_kernels.comms.frontendcomm import FrontendComm
 
 
 PY2 = sys.version[0] == '2'
@@ -26,9 +25,6 @@ PY2 = sys.version[0] == '2'
 # shown at all there)
 EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 
-# To be able to get and set variables between Python 2 and 3
-PICKLE_PROTOCOL = 2
-
 
 class SpyderKernel(IPythonKernel):
     """Spyder kernel for Jupyter"""
@@ -36,12 +32,51 @@ class SpyderKernel(IPythonKernel):
     def __init__(self, *args, **kwargs):
         super(SpyderKernel, self).__init__(*args, **kwargs)
 
+        self.frontend_comm = FrontendComm(self)
+
+        # All functions that can be called through the comm
+        handlers = {
+            'set_breakpoints': self.set_spyder_breakpoints,
+            'get_value': self.get_value,
+            'load_data': self.load_data,
+            'save_namespace': self.save_namespace,
+            'is_defined': self.is_defined,
+            'get_doc': self.get_doc,
+            'get_source': self.get_source,
+            'set_value': self.set_value,
+            'remove_value': self.remove_value,
+            'copy_value': self.copy_value,
+            'set_cwd': self.set_cwd,
+            'get_cwd': self.get_cwd,
+            'get_syspath': self.get_syspath,
+            'get_env': self.get_env,
+            'close_all_mpl_figures': self.close_all_mpl_figures,
+            'show_mpl_backend_errors': self.show_mpl_backend_errors,
+            'get_namespace_view': self.get_namespace_view,
+            'set_namespace_view_settings': self.set_namespace_view_settings,
+            'get_var_properties': self.get_var_properties,
+            }
+        for call_id in handlers:
+            self.frontend_comm.register_call_handler(
+                call_id, handlers[call_id])
+
         self.namespace_view_settings = {}
 
         self._pdb_obj = None
         self._pdb_step = None
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
+
+    def frontend_call(self, blocking=False, broadcast=True):
+        """Call the frontend."""
+        # If not broadcast, send only to the calling comm
+        if broadcast:
+            comm_id = None
+        else:
+            comm_id = self.frontend_comm.calling_comm_id
+
+        return self.frontend_comm.remote_call(
+            blocking=blocking, comm_id=comm_id)
 
     @property
     def _pdb_frame(self):
@@ -60,8 +95,19 @@ class SpyderKernel(IPythonKernel):
         else:
             return {}
 
+    def set_spyder_breakpoints(self, breakpoints):
+        """
+        Handle a message from the frontend
+        """
+        if self._pdb_obj:
+            self._pdb_obj.set_spyder_breakpoints(breakpoints)
+
     # -- Public API ---------------------------------------------------
     # --- For the Variable Explorer
+    def set_namespace_view_settings(self, settings):
+        """Set namespace_view_settings."""
+        self.namespace_view_settings = settings
+
     def get_namespace_view(self):
         """
         Return the namespace view
@@ -81,10 +127,10 @@ class SpyderKernel(IPythonKernel):
         settings = self.namespace_view_settings
         if settings:
             ns = self._get_current_namespace()
-            view = repr(make_remote_view(ns, settings, EXCLUDED_NAMES))
+            view = make_remote_view(ns, settings, EXCLUDED_NAMES)
             return view
         else:
-            return repr(None)
+            return None
 
     def get_var_properties(self):
         """
@@ -114,71 +160,20 @@ class SpyderKernel(IPythonKernel):
                     'array_ndim': self._get_array_ndim(value)
                 }
 
-            return repr(properties)
+            return properties
         else:
-            return repr(None)
-
-    def send_spyder_msg(self, spyder_msg_type, content=None, data=None):
-        """
-        Publish custom messages to the Spyder frontend.
-
-        Parameters
-        ----------
-
-        spyder_msg_type: str
-            The spyder message type
-        content: dict
-            The (JSONable) content of the message
-        data: any
-            Any object that is serializable by cloudpickle (should be most
-            things). Will arrive as cloudpickled bytes in `.buffers[0]`.
-        """
-        import cloudpickle
-
-        if content is None:
-            content = {}
-        content['spyder_msg_type'] = spyder_msg_type
-        msg = self.session.send(
-            self.iopub_socket,
-            'spyder_msg',
-            content=content,
-            buffers=[cloudpickle.dumps(data, protocol=PICKLE_PROTOCOL)],
-            parent=self._parent_header,
-        )
-        self.log.debug(msg)
+            return None
 
     def get_value(self, name):
         """Get the value of a variable"""
         ns = self._get_current_namespace()
-        value = ns[name]
-        try:
-            self.send_spyder_msg('data', data=value)
-        except:
-            # * There is no need to inform users about
-            #   these errors.
-            # * value = None makes Spyder to ignore
-            #   petitions to display a value
-            self.send_spyder_msg('data', data=None)
         self._do_publish_pdb_state = False
+        return ns[name]
 
-    def set_value(self, name, value, PY2_frontend):
+    def set_value(self, name, value):
         """Set the value of a variable"""
-        import cloudpickle
         ns = self._get_reference_namespace(name)
-
-        # We send serialized values in a list of one element
-        # from Spyder to the kernel, to be able to send them
-        # at all in Python 2
-        svalue = value[0]
-
-        # We need to convert svalue to bytes if the frontend
-        # runs in Python 2 and the kernel runs in Python 3
-        if PY2_frontend and not PY2:
-            svalue = bytes(svalue, 'latin-1')
-
-        # Deserialize and set value in namespace
-        dvalue = cloudpickle.loads(svalue)
-        ns[name] = dvalue
+        ns[name] = value
         self.log.debug(ns)
 
     def remove_value(self, name):
@@ -237,7 +232,7 @@ class SpyderKernel(IPythonKernel):
             state = dict(namespace_view = self.get_namespace_view(),
                          var_properties = self.get_var_properties(),
                          step = self._pdb_step)
-            self.send_spyder_msg('pdb_state', content={'pdb_state': state})
+            self.frontend_call(blocking=False).pdb_state(state)
         self._do_publish_pdb_state = True
 
     def pdb_continue(self):
@@ -248,7 +243,7 @@ class SpyderKernel(IPythonKernel):
         Fixes issue 2034
         """
         if self._pdb_obj:
-            self.send_spyder_msg('pdb_continue')
+            self.frontend_call(blocking=False).pdb_continue()
 
     # --- For the Help plugin
     def is_defined(self, obj, force_import=False):
@@ -420,23 +415,6 @@ class SpyderKernel(IPythonKernel):
         """Register Pdb session to use it later"""
         self._pdb_obj = pdb_obj
 
-    def _set_spyder_breakpoints(self, breakpoints):
-        """Set all Spyder breakpoints in an active pdb session"""
-        if not self._pdb_obj:
-            return
-
-        # Breakpoints come serialized from Spyder. We send them
-        # in a list of one element to be able to send them at all
-        # in Python 2
-        serialized_breakpoints = breakpoints[0]
-        breakpoints = pickle.loads(serialized_breakpoints)
-
-        self._pdb_obj.set_spyder_breakpoints(breakpoints)
-
-    def _ask_spyder_for_breakpoints(self):
-        if self._pdb_obj:
-            self.send_spyder_msg('set_breakpoints')
-
     # --- For the Help plugin
     def _eval(self, text):
         """
@@ -502,7 +480,7 @@ class SpyderKernel(IPythonKernel):
 
         self._mpl_backend_error = error
 
-    def _show_mpl_backend_errors(self):
+    def show_mpl_backend_errors(self):
         """Show Matplotlib backend errors after the prompt is ready."""
         if self._mpl_backend_error is not None:
             print(self._mpl_backend_error)  # spyder: test-skip

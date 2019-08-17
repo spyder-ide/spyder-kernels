@@ -23,13 +23,9 @@ import pytest
 
 # Local imports
 from spyder_kernels.py3compat import PY3, to_text_string
-from spyder_kernels.console.kernel import PICKLE_PROTOCOL
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
-# Third-party imports
-import cloudpickle
-import IPython
 
 # =============================================================================
 # Constants
@@ -78,6 +74,7 @@ def kernel(request):
     def reset_kernel():
         kernel.do_execute('reset -f', True)
     request.addfinalizer(reset_kernel)
+
     return kernel
 
 
@@ -122,7 +119,7 @@ def test_get_namespace_view(kernel):
     """
     execute = kernel.do_execute('a = 1', True)
 
-    nsview = kernel.get_namespace_view()
+    nsview = repr(kernel.get_namespace_view())
     assert "'a':" in nsview
     assert "'type': 'int'" in nsview or "'type': u'int'" in nsview
     assert "'size': 1" in nsview
@@ -136,7 +133,7 @@ def test_get_var_properties(kernel):
     """
     execute = kernel.do_execute('a = 1', True)
 
-    var_properties = kernel.get_var_properties()
+    var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
     assert "'is_list': False" in var_properties
     assert "'is_dict': False" in var_properties
@@ -149,35 +146,21 @@ def test_get_var_properties(kernel):
     assert "'array_ndim': None" in var_properties
 
 
-def test_send_spyder_msg(kernel):
-    """
-    Test publishing custom messages to the Spyder frontend.
-    """
-    spyder_msg_type, content, data = 'TEST', None, None
-    kernel.send_spyder_msg(spyder_msg_type, content, data)
-    log_text = get_log_text(kernel)
-    assert "{'spyder_msg_type': 'TEST'}" in log_text
-
-
 def test_get_value(kernel):
     """Test getting the value of a variable."""
     name = 'a'
-    execute = kernel.do_execute("a = 1", True)
+    kernel.do_execute("a = 124", True)
 
     # Check data type send
-    kernel.get_value(name)
-    log_text = get_log_text(kernel)
-    assert "{'spyder_msg_type': 'data'}" in log_text
+    assert kernel.get_value(name) == 124
 
 
 def test_set_value(kernel):
     """Test setting the value of a variable."""
     name = 'a'
     execute = kernel.do_execute('a = 0', True)
-
-    value = [cloudpickle.dumps(10, protocol=PICKLE_PROTOCOL)]
-    PY2_frontend = False
-    kernel.set_value(name, value, PY2_frontend)
+    value = 10
+    kernel.set_value(name, value)
     log_text = get_log_text(kernel)
     assert "'__builtin__': <module " in log_text
     assert "'__builtins__': <module " in log_text
@@ -191,7 +174,7 @@ def test_remove_value(kernel):
     name = 'a'
     execute = kernel.do_execute('a = 1', True)
 
-    var_properties = kernel.get_var_properties()
+    var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
     assert "'is_list': False" in var_properties
     assert "'is_dict': False" in var_properties
@@ -203,7 +186,7 @@ def test_remove_value(kernel):
     assert "'array_shape': None" in var_properties
     assert "'array_ndim': None" in var_properties
     kernel.remove_value(name)
-    var_properties = kernel.get_var_properties()
+    var_properties = repr(kernel.get_var_properties())
     assert var_properties == '{}'
 
 
@@ -213,7 +196,7 @@ def test_copy_value(kernel):
     new_name = 'b'
     execute = kernel.do_execute('a = 1', True)
 
-    var_properties = kernel.get_var_properties()
+    var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
     assert "'is_list': False" in var_properties
     assert "'is_dict': False" in var_properties
@@ -225,7 +208,7 @@ def test_copy_value(kernel):
     assert "'array_shape': None" in var_properties
     assert "'array_ndim': None" in var_properties
     kernel.copy_value(orig_name, new_name)
-    var_properties = kernel.get_var_properties()
+    var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
     assert "'b'" in var_properties
     assert "'is_list': False" in var_properties
@@ -244,7 +227,7 @@ def test_load_data(kernel):
     namespace_file = osp.join(FILES_PATH, 'load_data.spydata')
     extention = '.spydata'
     kernel.load_data(namespace_file, extention)
-    var_properties = kernel.get_var_properties()
+    var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
     assert "'is_list': False" in var_properties
     assert "'is_dict': False" in var_properties
@@ -301,12 +284,6 @@ import ctypes
 libc = ctypes.CDLL(None)
 libc.printf(('Hello from C\\n').encode('utf8'))
 """
-
-    # Without Wurlitzer there's not output generated
-    # by the kernel
-    reply = kernel.do_execute(code, True)
-    captured = capsys.readouterr()
-    assert captured.out == ''
 
     # With Wurlitzer we have the expected output
     kernel._load_wurlitzer()
