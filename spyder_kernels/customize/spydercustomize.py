@@ -865,7 +865,7 @@ def get_debugger(filename):
 
 
 def runfile(filename=None, args=None, wdir=None, namespace=None,
-            post_mortem=False, is_pdb=False):
+            post_mortem=False):
     """
     Run filename
     args: command line arguments (string)
@@ -1021,7 +1021,7 @@ def debugcell(cellname, filename=None):
     debugger, filename = get_debugger(filename)
     # The breakpoint might not be in the cell
     debugger.continue_if_has_breakpoints = False
-    debugger.run("runcell({}, {}, is_pdb=True)".format(
+    debugger.run("runcell({}, {})".format(
         repr(cellname), repr(filename)))
 
 
