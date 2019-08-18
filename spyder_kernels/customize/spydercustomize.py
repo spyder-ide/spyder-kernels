@@ -847,9 +847,8 @@ def get_current_file_name():
     """Get the current file name."""
     try:
         return _frontend_request().current_filename()
-    except Exception:
-        etype, error, _ = sys.exc_info()
-        get_ipython().showtraceback((etype, error, None))
+    except BaseException:
+        get_ipython().showtraceback(exception_only=True)
         return None
 
 
@@ -880,7 +879,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     try:
         # Save the open files
         _frontend_request().save_files()
-    except Exception:
+    except BaseException:
         logger.debug("Could not save files before executing.")
 
     try:
@@ -979,9 +978,8 @@ def runcell(cellname, filename=None):
     try:
         # Get code from spyder
         cell_code = _frontend_request().run_cell(cellname, filename)
-    except Exception:
-        etype, error, tb = sys.exc_info()
-        get_ipython().showtraceback((etype, error, None))
+    except BaseException:
+        get_ipython().showtraceback(exception_only=True)
         return
 
     if not cell_code:
@@ -1047,7 +1045,7 @@ def cell_count(filename=None):
         # Get code from spyder
         cell_count = _frontend_request().cell_count(filename)
         return cell_count
-    except Exception:
+    except BaseException:
         etype, error, tb = sys.exc_info()
         raise etype(error)
 
