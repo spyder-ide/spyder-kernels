@@ -89,9 +89,10 @@ try:
     if os.name == 'nt':
         def encode(u):
             return u.encode('utf8', 'replace')
+
         def execfile(fname, glob=None, loc=None):
             loc = loc if (loc is not None) else glob
-            scripttext = builtins.open(fname).read()+ '\n'
+            scripttext = builtins.open(fname).read() + '\n'
             # compile converts unicode filename to str assuming
             # ascii. Let's do the conversion before calling compile
             if isinstance(fname, unicode):
@@ -100,12 +101,22 @@ try:
                 filename = fname
             exec(compile(scripttext, filename, 'exec'), glob, loc)
     else:
+        def encode(u):
+            return u.encode(sys.getfilesystemencoding())
+
         def execfile(fname, *where):
             if isinstance(fname, unicode):
-                filename = fname.encode(sys.getfilesystemencoding())
+                filename = encode(fname)
             else:
                 filename = fname
             builtins.execfile(filename, *where)
+
+    def maybe_encode(u):
+        if isinstance(u, unicode):
+            return encode(u)
+        else:
+            return u
+
 except ImportError:
     # Python 3
     import builtins
@@ -988,7 +999,9 @@ def runcell(cellname, filename=None):
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
 
-    ipython_shell.run_cell(cell_code)
+    if PY2:
+        filename = maybe_encode(filename)
+    exec(compile(cell_code, filename, 'exec'), namespace)
 
     # Restore __file__
     if namespace_has_file:
