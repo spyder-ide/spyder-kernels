@@ -864,7 +864,7 @@ def get_debugger(filename):
     return debugger, filename
 
 
-def runfile(filename, args=None, wdir=None, namespace=None,
+def runfile(filename=None, args=None, wdir=None, namespace=None,
             post_mortem=False, current_namespace=False):
     """
     Run filename
@@ -946,7 +946,7 @@ def runfile(filename, args=None, wdir=None, namespace=None,
 builtins.runfile = runfile
 
 
-def debugfile(filename, args=None, wdir=None, post_mortem=False):
+def debugfile(filename=None, args=None, wdir=None, post_mortem=False):
     """
     Debug filename
     args: command line arguments (string)
