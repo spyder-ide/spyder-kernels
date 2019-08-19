@@ -864,14 +864,17 @@ def get_debugger(filename):
     return debugger, filename
 
 
-def runfile(filename=None, args=None, wdir=None, namespace=None,
-            post_mortem=False):
+def runfile(filename, args=None, wdir=None, namespace=None,
+            post_mortem=False, current_namespace=False):
     """
     Run filename
     args: command line arguments (string)
     wdir: working directory
+    namespace: namespace for execution
     post_mortem: boolean, whether to enter post-mortem mode on error
+    current_namespace: if true, run the file in the current namespace
     """
+    ipython_shell = get_ipython()
     if filename is None:
         filename = get_current_file_name()
         if filename is None:
@@ -893,7 +896,13 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if namespace is None:
-        namespace = _get_globals()
+        if current_namespace:
+            namespace = _get_globals()
+        else:
+            main_mod = ipython_shell.new_main_mod(filename, '__main__')
+            namespace = main_mod.__dict__
+            # Needed to allow pickle to reference main
+            sys.modules['__main__'] = main_mod
     namespace['__file__'] = filename
     sys.argv = [filename]
     if args is not None:
@@ -912,13 +921,19 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     if __umr__.has_cython:
         # Cython files
         with io.open(filename, encoding='utf-8') as f:
-            ipython_shell = get_ipython()
             ipython_shell.run_cell_magic('cython', '', f.read())
     else:
         execfile(filename, namespace)
 
+    ipython_shell.user_ns.update(namespace)
+
     clear_post_mortem()
     sys.argv = ['']
+
+    try:
+        del sys.modules['__main__']
+    except KeyError:
+        pass
 
     # Avoid error when running `%reset -f` programmatically
     # See issue spyder-ide/spyder-kernels#91

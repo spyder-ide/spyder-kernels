@@ -13,6 +13,7 @@ Tests for the console kernel.
 import ast
 import os
 import os.path as osp
+from textwrap import dedent
 
 # Test imports
 from ipykernel.tests.test_embed_kernel import setup_kernel
@@ -352,6 +353,107 @@ if __name__ == '__main__':
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
+
+
+def test_runfile(tmpdir):
+    """
+    Test that runfile uses the proper name space for execution.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Remove all variables
+        client.execute("%reset -f")
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Write defined variable code to a file
+        code = u"result = 'hello world'"
+        d = tmpdir.join("defined-test.py")
+        d.write(code)
+
+        # Write undefined variable code to a file
+        code = dedent(u"""
+        try:
+            result3 = result
+        except NameError:
+            result2 = 'hello world'
+        """)
+        u = tmpdir.join("undefined-test.py")
+        u.write(code)
+
+        # Run code file `d` to define `result`
+        client.execute("runfile(r'{}', current_namespace=False)"
+                       .format(to_text_string(d)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that `result` is defined in the current namespace
+        client.inspect('result')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
+
+        # Run code file `u` without current namespace
+        client.execute("runfile(r'{}', current_namespace=False)"
+                       .format(to_text_string(u)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that the variable `result2` is defined
+        client.inspect('result2')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
+
+        # Run code file `u` with current namespace
+        client.execute("runfile(r'{}', current_namespace=True)"
+                       .format(to_text_string(u)))
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+
+        # Verify that the variable `result3` is defined
+        client.inspect('result3')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
+
+
+def test_runcell(tmpdir):
+    """Test the runcell command."""
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Write code with a cell to a file
+        code = u"result = 10; fname = __file__"
+        p = tmpdir.join("cell-test.py")
+        p.write(code)
+
+        # Attach cell_code to the IPython shell instance to simulate
+        # that the code was sent from Spyder's Editor
+        client.execute(u"get_ipython().cell_code = '{}'".format(code))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Execute runcell
+        client.execute(u"runcell('', r'{}')".format(to_text_string(p)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        # Verify that the `result` variable is defined
+        client.inspect('result')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
+
+        # Verify that the `fname` variable is `cell-test.py`
+        client.inspect('fname')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert "cell-test.py" in content['data']['text/plain']
+
+        # Verify that the `__file__` variable is undefined
+        client.inspect('__file__')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert not content['found']
 
 
 def test_np_threshold(kernel):
