@@ -55,6 +55,7 @@ class SpyderKernel(IPythonKernel):
             'get_namespace_view': self.get_namespace_view,
             'set_namespace_view_settings': self.set_namespace_view_settings,
             'get_var_properties': self.get_var_properties,
+            'set_equations_color': self.set_equations_color
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -507,3 +508,12 @@ class SpyderKernel(IPythonKernel):
                 get_ipython().run_line_magic('reload_ext', 'wurlitzer')
             except Exception:
                 pass
+    def set_equations_color(self, background_color):
+        try:
+            from sympy import init_printing
+            if background_color=="dark":
+                init_printing(forecolor='White')
+            else:
+                init_printing(forecolor='Black')
+        except:
+            pass
