@@ -508,12 +508,14 @@ class SpyderKernel(IPythonKernel):
                 get_ipython().run_line_magic('reload_ext', 'wurlitzer')
             except Exception:
                 pass
-    def set_equations_color(self, background_color):
+
+    def set_equations_color(self, background_color='dark'):
+        """Set sympy equations_color depending on background."""
         try:
             from sympy import init_printing
-            if background_color=="dark":
+            if background_color == 'dark':
                 init_printing(forecolor='White')
-            else:
+            elif background_color == 'light':
                 init_printing(forecolor='Black')
         except:
             pass
