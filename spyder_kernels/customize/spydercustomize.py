@@ -847,7 +847,10 @@ def get_current_file_name():
     """Get the current file name."""
     try:
         return _frontend_request().current_filename()
-    except BaseException:
+    except Exception:
+        _print("This command failed to be executed because an error occurred"
+               " while trying to get the current file name from Spyder's"
+               " editor. The error was:\n\n")
         get_ipython().showtraceback(exception_only=True)
         return None
 
@@ -882,7 +885,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     try:
         # Save the open files
         _frontend_request().save_files()
-    except BaseException:
+    except Exception:
         logger.debug("Could not save files before executing.")
 
     try:
@@ -993,7 +996,10 @@ def runcell(cellname, filename=None):
     try:
         # Get code from spyder
         cell_code = _frontend_request().run_cell(cellname, filename)
-    except BaseException:
+    except Exception:
+        _print("This command failed to be executed because an error occurred"
+               " while trying to get the cell code from Spyder's"
+               " editor. The error was:\n\n")
         get_ipython().showtraceback(exception_only=True)
         return
 
@@ -1060,7 +1066,7 @@ def cell_count(filename=None):
         # Get code from spyder
         cell_count = _frontend_request().cell_count(filename)
         return cell_count
-    except BaseException:
+    except Exception:
         etype, error, tb = sys.exc_info()
         raise etype(error)
 
