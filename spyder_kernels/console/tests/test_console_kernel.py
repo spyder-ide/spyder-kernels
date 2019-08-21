@@ -382,7 +382,7 @@ def test_runfile(tmpdir):
         u = tmpdir.join("undefined-test.py")
         u.write(code)
 
-        # Run code file `d` to define `result` even after error
+        # Run code file `d` to define `result` even after an error
         client.execute("runfile(r'{}', current_namespace=False)"
                        .format(to_text_string(d)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
