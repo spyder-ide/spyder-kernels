@@ -887,7 +887,8 @@ def runfile(filename, args=None, wdir=None, namespace=None,
         with io.open(filename, encoding='utf-8') as f:
             ipython_shell.run_cell_magic('cython', '', f.read())
     else:
-        execfile(filename, namespace)
+        ipython_shell.safe_execfile(filename, namespace,
+                                    exit_ignore=True)
 
     ipython_shell.user_ns.update(namespace)
 

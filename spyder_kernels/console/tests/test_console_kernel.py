@@ -368,7 +368,7 @@ def test_runfile(tmpdir):
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
         # Write defined variable code to a file
-        code = u"result = 'hello world'"
+        code = u"result = 'hello world'; error # make an error"
         d = tmpdir.join("defined-test.py")
         d.write(code)
 
@@ -382,7 +382,7 @@ def test_runfile(tmpdir):
         u = tmpdir.join("undefined-test.py")
         u.write(code)
 
-        # Run code file `d` to define `result`
+        # Run code file `d` to define `result` even after error
         client.execute("runfile(r'{}', current_namespace=False)"
                        .format(to_text_string(d)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
