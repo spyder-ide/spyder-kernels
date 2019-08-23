@@ -907,6 +907,8 @@ class FileNamespace():
         """
         Reset namespace['__file__']
         """
+        if not self.current_namespace:
+            get_ipython().user_ns.update(self.namespace)
         if self._previous_filename:
             self.namespace['__file__'] = self._previous_filename
         elif '__file__' in self.namespace:
@@ -985,7 +987,6 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
                 # tb offset is 1 because we wrap execfile
                 ipython_shell.showtraceback(tb_offset=2)
 
-        ipython_shell.user_ns.update(namespace)
         clear_post_mortem()
         sys.argv = ['']
 
