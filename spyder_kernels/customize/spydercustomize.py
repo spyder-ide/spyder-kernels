@@ -867,8 +867,60 @@ def get_debugger(filename):
     return debugger, filename
 
 
+class FileNamespace():
+    """
+    Get a namespace and handle __file__ correctly
+    """
+
+    def __init__(self, filename, namespace=None, current_namespace=False):
+        self.filename = filename
+        self.namespace = namespace
+        self.current_namespace = current_namespace
+        self._previous_filename = None
+        self._previous_main = None
+        self._reset_main = False
+
+    def __enter__(self):
+        """
+        Get namespace and create __file__
+        """
+        # Save previous __file__
+        if self.namespace is None:
+            if self.current_namespace:
+                self.namespace = _get_globals()
+            else:
+                ipython_shell = get_ipython()
+                main_mod = ipython_shell.new_main_mod(
+                    self.filename, '__main__')
+                self.namespace = main_mod.__dict__
+                # Needed to allow pickle to reference main
+                if '__main__' in sys.modules:
+                    self._previous_main = sys.modules['__main__']
+                sys.modules['__main__'] = main_mod
+                self._reset_main = True
+        if '__file__' in self.namespace:
+            self._previous_filename = self.namespace['__file__']
+        self.namespace['__file__'] = self.filename
+        return self.namespace
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Reset namespace['__file__']
+        """
+        if self._previous_filename:
+            self.namespace['__file__'] = self._previous_filename
+        elif '__file__' in self.namespace:
+            # Avoid error when running `%reset -f` programmatically
+            # See issue spyder-ide/spyder-kernels#91
+            self.namespace.pop('__file__')
+        if self._previous_main:
+            sys.modules['__main__'] = self._previous_main
+        elif '__main__' in sys.modules and self._reset_main:
+            del sys.modules['__main__']
+
+
 def runfile(filename=None, args=None, wdir=None, namespace=None,
-            post_mortem=False, current_namespace=False):
+            post_mortem=False, is_pdb=False, current_namespace=False):
     """
     Run filename
     args: command line arguments (string)
@@ -898,52 +950,44 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         __umr__.run()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
-    if namespace is None:
-        if current_namespace:
-            namespace = _get_globals()
+
+    with FileNamespace(filename, namespace, current_namespace) as namespace:
+        sys.argv = [filename]
+        if args is not None:
+            for arg in shlex.split(args):
+                sys.argv.append(arg)
+        if wdir is not None:
+            try:
+                wdir = wdir.decode('utf-8')
+            except (UnicodeError, TypeError, AttributeError):
+                # UnicodeError, TypeError --> eventually raised in Python 2
+                # AttributeError --> systematically raised in Python 3
+                pass
+            os.chdir(wdir)
+        if post_mortem:
+            set_post_mortem()
+
+        if __umr__.has_cython:
+            # Cython files
+            with io.open(filename, encoding='utf-8') as f:
+                ipython_shell.run_cell_magic('cython', '', f.read())
         else:
-            main_mod = ipython_shell.new_main_mod(filename, '__main__')
-            namespace = main_mod.__dict__
-            # Needed to allow pickle to reference main
-            sys.modules['__main__'] = main_mod
-    namespace['__file__'] = filename
-    sys.argv = [filename]
-    if args is not None:
-        for arg in shlex.split(args):
-            sys.argv.append(arg)
-    if wdir is not None:
-        try:
-            wdir = wdir.decode('utf-8')
-        except (UnicodeError, TypeError, AttributeError):
-            # UnicodeError, TypeError --> eventually raised in Python 2
-            # AttributeError --> systematically raised in Python 3
-            pass
-        os.chdir(wdir)
-    if post_mortem:
-        set_post_mortem()
-    if __umr__.has_cython:
-        # Cython files
-        with io.open(filename, encoding='utf-8') as f:
-            ipython_shell.run_cell_magic('cython', '', f.read())
-    else:
-        execfile(filename, namespace)
+            try:
+                execfile(filename, namespace)
+            except SystemExit as status:
+                # ignore exit(0)
+                if status.code:
+                    ipython_shell.showtraceback(exception_only=True)
+            except bdb.BdbQuit:
+                if not is_pdb:
+                    ipython_shell.showtraceback(tb_offset=2)
+            except BaseException:
+                # tb offset is 1 because we wrap execfile
+                ipython_shell.showtraceback(tb_offset=2)
 
-    ipython_shell.user_ns.update(namespace)
-
-    clear_post_mortem()
-    sys.argv = ['']
-
-    try:
-        del sys.modules['__main__']
-    except KeyError:
-        pass
-
-    # Avoid error when running `%reset -f` programmatically
-    # See issue spyder-ide/spyder-kernels#91
-    try:
-        namespace.pop('__file__')
-    except KeyError:
-        pass
+        ipython_shell.user_ns.update(namespace)
+        clear_post_mortem()
+        sys.argv = ['']
 
 
 builtins.runfile = runfile
@@ -961,13 +1005,14 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False):
         if filename is None:
             return
     debugger, filename = get_debugger(filename)
-    debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
+    debugger.run("runfile(%r, args=%r, wdir=%r, is_pdb=True)" % (
+        filename, args, wdir))
 
 
 builtins.debugfile = debugfile
 
 
-def runcell(cellname, filename=None):
+def runcell(cellname, filename=None, is_pdb=False):
     """
     Run a code cell from an editor as a file.
 
@@ -1007,26 +1052,25 @@ def runcell(cellname, filename=None):
         # Nothing to execute
         return
 
-    namespace = _get_globals()
-    # Save previous __file__
-    namespace_has_file = '__file__' in namespace
-    if namespace_has_file:
-        namespace_filename = namespace['__file__']
-    namespace['__file__'] = filename
-
     # Trigger `post_execute` to exit the additional pre-execution.
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
 
-    if PY2:
-        filename = maybe_encode(filename)
-    exec(compile(cell_code, filename, 'exec'), namespace)
-
-    # Restore __file__
-    if namespace_has_file:
-        namespace['__file__'] = namespace_filename
-    else:
-        namespace.pop('__file__')
+    with FileNamespace(filename, current_namespace=True) as namespace:
+        try:
+            if PY2:
+                filename = maybe_encode(filename)
+            exec(compile(cell_code, filename, 'exec'), namespace)
+        except SystemExit as status:
+            # ignore exit(0)
+            if status.code:
+                ipython_shell.showtraceback(exception_only=True)
+        except bdb.BdbQuit:
+            if not is_pdb:
+                ipython_shell.showtraceback(tb_offset=1)
+        except BaseException:
+            # tb offset is 1 because we wrap execfile
+            ipython_shell.showtraceback(tb_offset=1)
 
 
 builtins.runcell = runcell
@@ -1042,7 +1086,7 @@ def debugcell(cellname, filename=None):
     debugger, filename = get_debugger(filename)
     # The breakpoint might not be in the cell
     debugger.continue_if_has_breakpoints = False
-    debugger.run("runcell({}, {})".format(
+    debugger.run("runcell({}, {}, is_pdb=True)".format(
         repr(cellname), repr(filename)))
 
 
