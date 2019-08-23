@@ -89,9 +89,10 @@ try:
     if os.name == 'nt':
         def encode(u):
             return u.encode('utf8', 'replace')
+
         def execfile(fname, glob=None, loc=None):
             loc = loc if (loc is not None) else glob
-            scripttext = builtins.open(fname).read()+ '\n'
+            scripttext = builtins.open(fname).read() + '\n'
             # compile converts unicode filename to str assuming
             # ascii. Let's do the conversion before calling compile
             if isinstance(fname, unicode):
@@ -100,12 +101,22 @@ try:
                 filename = fname
             exec(compile(scripttext, filename, 'exec'), glob, loc)
     else:
+        def encode(u):
+            return u.encode(sys.getfilesystemencoding())
+
         def execfile(fname, *where):
             if isinstance(fname, unicode):
-                filename = fname.encode(sys.getfilesystemencoding())
+                filename = encode(fname)
             else:
                 filename = fname
             builtins.execfile(filename, *where)
+
+    def maybe_encode(u):
+        if isinstance(u, unicode):
+            return encode(u)
+        else:
+            return u
+
 except ImportError:
     # Python 3
     import builtins
@@ -832,7 +843,31 @@ def _frontend_request(blocking=True):
         blocking=blocking, broadcast=False)
 
 
-def runfile(filename, args=None, wdir=None, namespace=None,
+def get_current_file_name():
+    """Get the current file name."""
+    try:
+        return _frontend_request().current_filename()
+    except Exception:
+        _print("This command failed to be executed because an error occurred"
+               " while trying to get the current file name from Spyder's"
+               " editor. The error was:\n\n")
+        get_ipython().showtraceback(exception_only=True)
+        return None
+
+
+def get_debugger(filename):
+    """Get a debugger for a given filename."""
+    debugger = pdb.Pdb()
+    filename = debugger.canonic(filename)
+    debugger._wait_for_mainpyfile = 1
+    debugger.mainpyfile = filename
+    debugger._user_requested_quit = 0
+    if os.name == 'nt':
+        filename = filename.replace('\\', '/')
+    return debugger, filename
+
+
+def runfile(filename=None, args=None, wdir=None, namespace=None,
             post_mortem=False, current_namespace=False):
     """
     Run filename
@@ -843,11 +878,15 @@ def runfile(filename, args=None, wdir=None, namespace=None,
     current_namespace: if true, run the file in the current namespace
     """
     ipython_shell = get_ipython()
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
     try:
         # Save the open files
         _frontend_request().save_files()
-    except (CommError, TimeoutError):
-        logger.debug("Could not send save files before executing.")
+    except Exception:
+        logger.debug("Could not save files before executing.")
 
     try:
         filename = filename.decode('utf-8')
@@ -910,7 +949,25 @@ def runfile(filename, args=None, wdir=None, namespace=None,
 builtins.runfile = runfile
 
 
-def runcell(cellname, filename):
+def debugfile(filename=None, args=None, wdir=None, post_mortem=False):
+    """
+    Debug filename
+    args: command line arguments (string)
+    wdir: working directory
+    post_mortem: boolean, included for compatiblity with runfile
+    """
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
+    debugger, filename = get_debugger(filename)
+    debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
+
+
+builtins.debugfile = debugfile
+
+
+def runcell(cellname, filename=None):
     """
     Run a code cell from an editor as a file.
 
@@ -920,12 +977,15 @@ def runcell(cellname, filename):
 
     Parameters
     ----------
-    cellname : str
-        Used as a reference in the history log of which
-        cell was run with the fuction. This variable is not used.
+    cellname : str or int
+        Cell name or index.
     filename : str
         Needed to allow for proper traceback links.
     """
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
     try:
         filename = filename.decode('utf-8')
     except (UnicodeError, TypeError, AttributeError):
@@ -933,46 +993,85 @@ def runcell(cellname, filename):
         # AttributeError --> systematically raised in Python 3
         pass
     ipython_shell = get_ipython()
-    namespace = _get_globals()
-    namespace['__file__'] = filename
     try:
-        cell_code = ipython_shell.cell_code
-    except AttributeError:
-        _print("--Run Cell Error--\n"
-               "Please use only through Spyder's Editor; "
-               "shouldn't be called manually from the console")
+        # Get code from spyder
+        cell_code = _frontend_request().run_cell(cellname, filename)
+    except Exception:
+        _print("This command failed to be executed because an error occurred"
+               " while trying to get the cell code from Spyder's"
+               " editor. The error was:\n\n")
+        get_ipython().showtraceback(exception_only=True)
         return
+
+    if not cell_code:
+        # Nothing to execute
+        return
+
+    namespace = _get_globals()
+    # Save previous __file__
+    namespace_has_file = '__file__' in namespace
+    if namespace_has_file:
+        namespace_filename = namespace['__file__']
+    namespace['__file__'] = filename
 
     # Trigger `post_execute` to exit the additional pre-execution.
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
 
-    ipython_shell.run_cell(cell_code)
-    namespace.pop('__file__')
-    del ipython_shell.cell_code
+    if PY2:
+        filename = maybe_encode(filename)
+    exec(compile(cell_code, filename, 'exec'), namespace)
+
+    # Restore __file__
+    if namespace_has_file:
+        namespace['__file__'] = namespace_filename
+    else:
+        namespace.pop('__file__')
 
 
 builtins.runcell = runcell
 
 
-def debugfile(filename, args=None, wdir=None, post_mortem=False):
-    """
-    Debug filename
-    args: command line arguments (string)
-    wdir: working directory
-    post_mortem: boolean, included for compatiblity with runfile
-    """
-    debugger = pdb.Pdb()
-    filename = debugger.canonic(filename)
-    debugger._wait_for_mainpyfile = 1
-    debugger.mainpyfile = filename
-    debugger._user_requested_quit = 0
-    if os.name == 'nt':
-        filename = filename.replace('\\', '/')
-    debugger.run("runfile(%r, args=%r, wdir=%r)" % (filename, args, wdir))
+def debugcell(cellname, filename=None):
+    """Debug a cell."""
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
+
+    debugger, filename = get_debugger(filename)
+    # The breakpoint might not be in the cell
+    debugger.continue_if_has_breakpoints = False
+    debugger.run("runcell({}, {})".format(
+        repr(cellname), repr(filename)))
 
 
-builtins.debugfile = debugfile
+builtins.debugcell = debugcell
+
+
+def cell_count(filename=None):
+    """
+    Get the number of cells in a file.
+
+    Parameters
+    ----------
+    filename : str
+        The file to get the cells from. If None, the currently opened file.
+    """
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            raise RuntimeError('Could not get cell count from frontend.')
+    try:
+        # Get code from spyder
+        cell_count = _frontend_request().cell_count(filename)
+        return cell_count
+    except Exception:
+        etype, error, tb = sys.exc_info()
+        raise etype(error)
+
+
+builtins.cell_count = cell_count
 
 
 #==============================================================================
