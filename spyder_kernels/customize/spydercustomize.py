@@ -29,6 +29,7 @@ from IPython.core.getipython import get_ipython
 
 from spyder_kernels.py3compat import TimeoutError
 from spyder_kernels.comms import CommError
+from spyder_kernels.customize.namespace_manager import NamespaceManager
 
 
 logger = logging.getLogger(__name__)
@@ -824,12 +825,6 @@ if "SPYDER_EXCEPTHOOK" in os.environ:
 # ==============================================================================
 # runfile and debugfile commands
 # ==============================================================================
-def _get_globals():
-    """Return current namespace"""
-    ipython_shell = get_ipython()
-    return ipython_shell.user_ns
-
-
 def _frontend_request(blocking=True):
     """
     Send a request to the frontend.
@@ -867,60 +862,6 @@ def get_debugger(filename):
     return debugger, filename
 
 
-class FileNamespace():
-    """
-    Get a namespace and handle __file__ correctly
-    """
-
-    def __init__(self, filename, namespace=None, current_namespace=False):
-        self.filename = filename
-        self.namespace = namespace
-        self.current_namespace = current_namespace
-        self._previous_filename = None
-        self._previous_main = None
-        self._reset_main = False
-
-    def __enter__(self):
-        """
-        Get namespace and create __file__
-        """
-        # Save previous __file__
-        if self.namespace is None:
-            if self.current_namespace:
-                self.namespace = _get_globals()
-            else:
-                ipython_shell = get_ipython()
-                main_mod = ipython_shell.new_main_mod(
-                    self.filename, '__main__')
-                self.namespace = main_mod.__dict__
-                # Needed to allow pickle to reference main
-                if '__main__' in sys.modules:
-                    self._previous_main = sys.modules['__main__']
-                sys.modules['__main__'] = main_mod
-                self._reset_main = True
-        if '__file__' in self.namespace:
-            self._previous_filename = self.namespace['__file__']
-        self.namespace['__file__'] = self.filename
-        return self.namespace
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        Reset namespace['__file__']
-        """
-        if not self.current_namespace:
-            get_ipython().user_ns.update(self.namespace)
-        if self._previous_filename:
-            self.namespace['__file__'] = self._previous_filename
-        elif '__file__' in self.namespace:
-            # Avoid error when running `%reset -f` programmatically
-            # See issue spyder-ide/spyder-kernels#91
-            self.namespace.pop('__file__')
-        if self._previous_main:
-            sys.modules['__main__'] = self._previous_main
-        elif '__main__' in sys.modules and self._reset_main:
-            del sys.modules['__main__']
-
-
 def runfile(filename=None, args=None, wdir=None, namespace=None,
             post_mortem=False, is_pdb=False, current_namespace=False):
     """
@@ -953,7 +894,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
 
-    with FileNamespace(filename, namespace, current_namespace) as namespace:
+    with NamespaceManager(filename, namespace, current_namespace) as namespace:
         sys.argv = [filename]
         if args is not None:
             for arg in shlex.split(args):
@@ -980,12 +921,13 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
                 # ignore exit(0)
                 if status.code:
                     ipython_shell.showtraceback(exception_only=True)
-            except bdb.BdbQuit:
-                if not is_pdb:
+            except BaseException as error:
+                if isinstance(error, bdb.BdbQuit) and is_pdb:
+                    # Ignore BdbQuit if we are debugging, as it is expected.
+                    pass
+                else:
+                    # We ignore the call to execfile and exec
                     ipython_shell.showtraceback(tb_offset=2)
-            except BaseException:
-                # tb offset is 1 because we wrap execfile
-                ipython_shell.showtraceback(tb_offset=2)
 
         clear_post_mortem()
         sys.argv = ['']
@@ -1057,7 +999,7 @@ def runcell(cellname, filename=None, is_pdb=False):
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
 
-    with FileNamespace(filename, current_namespace=True) as namespace:
+    with NamespaceManager(filename, current_namespace=True) as namespace:
         try:
             if PY2:
                 filename = maybe_encode(filename)
@@ -1066,12 +1008,13 @@ def runcell(cellname, filename=None, is_pdb=False):
             # ignore exit(0)
             if status.code:
                 ipython_shell.showtraceback(exception_only=True)
-        except bdb.BdbQuit:
-            if not is_pdb:
+        except BaseException as error:
+            if isinstance(error, bdb.BdbQuit) and is_pdb:
+                # Ignore BdbQuit if we are debugging, as it is expected.
+                pass
+            else:
+                # We ignore the call to exec
                 ipython_shell.showtraceback(tb_offset=1)
-        except BaseException:
-            # tb offset is 1 because we wrap execfile
-            ipython_shell.showtraceback(tb_offset=1)
 
 
 builtins.runcell = runcell
