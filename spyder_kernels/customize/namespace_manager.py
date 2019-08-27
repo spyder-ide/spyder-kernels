@@ -4,6 +4,7 @@
 # Licensed under the terms of the MIT License
 # (see spyder_kernels/__init__.py for details)
 
+import os
 import sys
 
 from IPython.core.getipython import get_ipython
@@ -29,6 +30,7 @@ class NamespaceManager(object):
         self.current_namespace = current_namespace
         self._previous_filename = None
         self._previous_main = None
+        self._sys_path_0 = None
         self._reset_main = False
 
     def __enter__(self):
@@ -52,6 +54,10 @@ class NamespaceManager(object):
         if '__file__' in self.namespace:
             self._previous_filename = self.namespace['__file__']
         self.namespace['__file__'] = self.filename
+
+        self._sys_path_0 = os.path.dirname(os.path.abspath(self.filename))
+        sys.path.insert(0, self._sys_path_0)
+
         return self.namespace
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -68,3 +74,7 @@ class NamespaceManager(object):
             sys.modules['__main__'] = self._previous_main
         elif '__main__' in sys.modules and self._reset_main:
             del sys.modules['__main__']
+        if self._sys_path_0:
+            # Pop the first entry if we were the ones that added it
+            if sys.path[0] == self._sys_path_0:
+                sys.path = sys.path[1:]

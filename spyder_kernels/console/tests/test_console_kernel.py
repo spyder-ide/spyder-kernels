@@ -416,6 +416,42 @@ def test_runfile(tmpdir):
         content = msg['content']
         assert content['found']
 
+        # Check if file environment variables like __file__ and sys.path are set correctly
+        client.execute("%reset -f")
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        code = dedent(u"""
+        import os
+        import sys
+
+        try:
+            env_file = __file__
+        except NameError:
+            env_file = None
+
+        try:
+            env_sys_path_0 = sys.path[0]
+        except NameError:
+            env_sys_path_0 = None
+
+        if (env_file is not None
+                and env_sys_path_0 is not None
+                and (os.path.dirname(os.path.abspath(__file__)) ==
+                     os.path.abspath(env_sys_path_0))):
+            success = True
+        """)
+        u = tmpdir.join("env-vars-test.py")
+        u.write(code)
+
+        client.execute("runfile(r'{}', current_namespace=False)"
+                       .format(to_text_string(u)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
+        client.inspect('success')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert content['found']
+
 
 def test_np_threshold(kernel):
     """Test that setting Numpy threshold doesn't make the Variable Explorer slow."""
