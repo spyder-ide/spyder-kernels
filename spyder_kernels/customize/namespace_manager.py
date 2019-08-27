@@ -63,8 +63,6 @@ class NamespaceManager(object):
         if self._previous_filename:
             self.namespace['__file__'] = self._previous_filename
         elif '__file__' in self.namespace:
-            # Avoid error when running `%reset -f` programmatically
-            # See issue spyder-ide/spyder-kernels#91
             self.namespace.pop('__file__')
         if self._previous_main:
             sys.modules['__main__'] = self._previous_main
