@@ -335,7 +335,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
-            _frontend_request(blocking=False).set_debug_state(True)
+            _frontend_request(blocking=True).set_debug_state(True)
             if self.starting:
                 breakpoints = _frontend_request().get_breakpoints()
                 self.set_spyder_breakpoints(breakpoints)
@@ -345,7 +345,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     def postloop(self):
         """Notifies spyder that the loop has ended."""
         try:
-            _frontend_request(blocking=False).set_debug_state(False)
+            _frontend_request(blocking=True).set_debug_state(False)
         except (CommError, TimeoutError):
             logger.debug("Could not send debugging state to the frontend.")
         super(SpyderPdb, self).postloop()
