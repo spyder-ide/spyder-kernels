@@ -491,10 +491,11 @@ class SpyderKernel(IPythonKernel):
         if os.environ.get('SPY_SYMPY_O') == 'True':
             try:
                 from sympy import init_printing
+                from IPython.core.getipython import get_ipython
                 if background_color == 'dark':
-                    init_printing(forecolor='White')
+                    init_printing(forecolor='White', ip=get_ipython())
                 elif background_color == 'light':
-                    init_printing(forecolor='Black')
+                    init_printing(forecolor='Black', ip=get_ipython())
             except Exception:
                 pass
 
