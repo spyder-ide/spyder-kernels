@@ -55,6 +55,7 @@ class SpyderKernel(IPythonKernel):
             'get_namespace_view': self.get_namespace_view,
             'set_namespace_view_settings': self.set_namespace_view_settings,
             'get_var_properties': self.get_var_properties,
+            'set_sympy_forecolor': self.set_sympy_forecolor
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -484,6 +485,19 @@ class SpyderKernel(IPythonKernel):
         """Show Matplotlib backend errors after the prompt is ready."""
         if self._mpl_backend_error is not None:
             print(self._mpl_backend_error)  # spyder: test-skip
+
+    def set_sympy_forecolor(self, background_color='dark'):
+        """Set SymPy forecolor depending on console background."""
+        if os.environ.get('SPY_SYMPY_O') == 'True':
+            try:
+                from sympy import init_printing
+                from IPython.core.getipython import get_ipython
+                if background_color == 'dark':
+                    init_printing(forecolor='White', ip=get_ipython())
+                elif background_color == 'light':
+                    init_printing(forecolor='Black', ip=get_ipython())
+            except Exception:
+                pass
 
     # --- Others
     def _load_autoreload_magic(self):
