@@ -91,41 +91,14 @@ try:
         def encode(u):
             return u.encode('utf8', 'replace')
 
-        def execfile(fname, glob=None, loc=None):
-            loc = loc if (loc is not None) else glob
-            scripttext = builtins.open(fname).read() + '\n'
-            # compile converts unicode filename to str assuming
-            # ascii. Let's do the conversion before calling compile
-            if isinstance(fname, unicode):
-                filename = encode(fname)
-            else:
-                filename = fname
-            exec(compile(scripttext, filename, 'exec'), glob, loc)
     else:
         def encode(u):
             return u.encode(sys.getfilesystemencoding())
-
-        def execfile(fname, *where):
-            if isinstance(fname, unicode):
-                filename = encode(fname)
-            else:
-                filename = fname
-            builtins.execfile(filename, *where)
-
-    def maybe_encode(u):
-        if isinstance(u, unicode):
-            return encode(u)
-        else:
-            return u
 
 except ImportError:
     # Python 3
     import builtins
     basestring = (str,)
-    def execfile(filename, namespace):
-        # Open a source file correctly, whatever its encoding is
-        with open(filename, 'rb') as f:
-            exec(compile(f.read(), filename, 'exec'), namespace)
 
 
 #==============================================================================
@@ -363,11 +336,10 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         #------
         i = 0
         for fname, data in list(breakpoints.items()):
-            if osp.isfile(fname):
-                for linenumber, condition in data:
-                    i += 1
-                    self.set_break(self.canonic(fname), linenumber,
-                                   cond=condition)
+            for linenumber, condition in data:
+                i += 1
+                self.set_break(self.canonic(fname), linenumber,
+                               cond=condition)
 
         # Jump to first breakpoint.
         # Fixes issue 2034
@@ -862,6 +834,43 @@ def get_debugger(filename):
     return debugger, filename
 
 
+def exec_code(code, filename, namespace, is_pdb):
+    """Execute code and display any exception."""
+    if PY2 and isinstance(filename, unicode):
+        filename = encode(filename)
+
+    ipython_shell = get_ipython()
+    try:
+        exec(compile(code, filename, 'exec'), namespace)
+    except SystemExit as status:
+        # ignore exit(0)
+        if status.code:
+            ipython_shell.showtraceback(exception_only=True)
+    except BaseException as error:
+        if isinstance(error, bdb.BdbQuit) and is_pdb:
+            # Ignore BdbQuit if we are debugging, as it is expected.
+            pass
+        else:
+            # We ignore the call to exec
+            ipython_shell.showtraceback(tb_offset=1)
+
+
+def get_file_code(filename):
+    """Retrive the content of a file."""
+    try:
+        # Get code from spyder
+        file_code = _frontend_request().get_file_code(filename)
+        if not PY2:
+            file_code = file_code.encode()
+        return file_code
+    except Exception:
+        mode = 'rb'
+        if PY2:
+            mode = 'r'
+        with open(filename, mode) as f:
+            return f.read()
+
+
 def runfile(filename=None, args=None, wdir=None, namespace=None,
             post_mortem=False, is_pdb=False, current_namespace=False):
     """
@@ -877,11 +886,6 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         filename = get_current_file_name()
         if filename is None:
             return
-    try:
-        # Save the open files
-        _frontend_request().save_files()
-    except Exception:
-        logger.debug("Could not save files before executing.")
 
     try:
         filename = filename.decode('utf-8')
@@ -889,12 +893,19 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
+    if PY2 and isinstance(filename, unicode):
+        filename = encode(filename)
     if __umr__.enabled:
         __umr__.run()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
+    file_code = get_file_code(filename)
+    if file_code is None:
+        return
 
-    with NamespaceManager(filename, namespace, current_namespace) as namespace:
+    with NamespaceManager(
+            filename, namespace, current_namespace, file_code=file_code
+            ) as namespace:
         sys.argv = [filename]
         if args is not None:
             for arg in shlex.split(args):
@@ -915,19 +926,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
             with io.open(filename, encoding='utf-8') as f:
                 ipython_shell.run_cell_magic('cython', '', f.read())
         else:
-            try:
-                execfile(filename, namespace)
-            except SystemExit as status:
-                # ignore exit(0)
-                if status.code:
-                    ipython_shell.showtraceback(exception_only=True)
-            except BaseException as error:
-                if isinstance(error, bdb.BdbQuit) and is_pdb:
-                    # Ignore BdbQuit if we are debugging, as it is expected.
-                    pass
-                else:
-                    # We ignore the call to execfile and exec
-                    ipython_shell.showtraceback(tb_offset=2)
+            exec_code(file_code, filename, namespace, is_pdb)
 
         clear_post_mortem()
         sys.argv = ['']
@@ -999,22 +998,10 @@ def runcell(cellname, filename=None, is_pdb=False):
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
 
-    with NamespaceManager(filename, current_namespace=True) as namespace:
-        try:
-            if PY2:
-                filename = maybe_encode(filename)
-            exec(compile(cell_code, filename, 'exec'), namespace)
-        except SystemExit as status:
-            # ignore exit(0)
-            if status.code:
-                ipython_shell.showtraceback(exception_only=True)
-        except BaseException as error:
-            if isinstance(error, bdb.BdbQuit) and is_pdb:
-                # Ignore BdbQuit if we are debugging, as it is expected.
-                pass
-            else:
-                # We ignore the call to exec
-                ipython_shell.showtraceback(tb_offset=1)
+    file_code = get_file_code(filename)
+    with NamespaceManager(filename, current_namespace=True,
+                          file_code=file_code) as namespace:
+        exec_code(cell_code, filename, namespace, is_pdb)
 
 
 builtins.runcell = runcell
