@@ -864,11 +864,7 @@ def get_file_code(filename):
             file_code = file_code.encode()
         return file_code
     except Exception:
-        mode = 'rb'
-        if PY2:
-            mode = 'r'
-        with open(filename, mode) as f:
-            return f.read()
+        return None
 
 
 def runfile(filename=None, args=None, wdir=None, namespace=None,
@@ -901,11 +897,11 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         raise TypeError("expected a character buffer object")
     file_code = get_file_code(filename)
     if file_code is None:
+        _print("Could not get code from editor.\n")
         return
 
-    with NamespaceManager(
-            filename, namespace, current_namespace, file_code=file_code
-            ) as namespace:
+    with NamespaceManager(filename, namespace, current_namespace,
+                          file_code=file_code) as namespace:
         sys.argv = [filename]
         if args is not None:
             for arg in shlex.split(args):
@@ -917,7 +913,10 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
                 # UnicodeError, TypeError --> eventually raised in Python 2
                 # AttributeError --> systematically raised in Python 3
                 pass
-            os.chdir(wdir)
+            if os.path.isdir(wdir):
+                os.chdir(wdir)
+            else:
+                _print("Working directory {} doesn't exist.\n".format(wdir))
         if post_mortem:
             set_post_mortem()
 
@@ -990,8 +989,8 @@ def runcell(cellname, filename=None, is_pdb=False):
         get_ipython().showtraceback(exception_only=True)
         return
 
-    if not cell_code:
-        # Nothing to execute
+    if not cell_code or cell_code.strip() == '':
+        _print("Nothing to execute, this cell is empty.\n")
         return
 
     # Trigger `post_execute` to exit the additional pre-execution.
