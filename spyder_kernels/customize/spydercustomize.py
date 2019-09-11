@@ -867,13 +867,14 @@ def get_file_code(filename):
         return None
 
 
-def runfile(filename=None, args=None, wdir=None, namespace=None,
+def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
             post_mortem=False, is_pdb=False, current_namespace=False):
     """
     Run filename
     args: command line arguments (string)
     wdir: working directory
     namespace: namespace for execution
+    local: boolean, should the file be locally loaded?
     post_mortem: boolean, whether to enter post-mortem mode on error
     current_namespace: if true, run the file in the current namespace
     """
@@ -895,7 +896,11 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         __umr__.run()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
-    file_code = get_file_code(filename)
+    if local:
+        with open(filename, 'r') as f:
+            file_code = f.read()
+    else:
+        file_code = get_file_code(filename)
     if file_code is None:
         _print("Could not get code from editor.\n")
         return
@@ -934,20 +939,22 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
 builtins.runfile = runfile
 
 
-def debugfile(filename=None, args=None, wdir=None, post_mortem=False):
+def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
+              local=False):
     """
     Debug filename
     args: command line arguments (string)
     wdir: working directory
     post_mortem: boolean, included for compatiblity with runfile
+    local: boolean, should the file be locally loaded?
     """
     if filename is None:
         filename = get_current_file_name()
         if filename is None:
             return
     debugger, filename = get_debugger(filename)
-    debugger.run("runfile(%r, args=%r, wdir=%r, is_pdb=True)" % (
-        filename, args, wdir))
+    debugger.run("runfile(%r, args=%r, wdir=%r, is_pdb=True, local=%r)" % (
+        filename, args, wdir, local))
 
 
 builtins.debugfile = debugfile
