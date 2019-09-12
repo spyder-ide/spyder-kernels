@@ -906,6 +906,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
                 " while trying to get the file code from Spyder's"
                 " editor. The error was:\n\n")
             get_ipython().showtraceback(exception_only=True)
+            return
     if file_code is None:
         _print("Could not get code from editor.\n")
         return
