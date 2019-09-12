@@ -857,14 +857,11 @@ def exec_code(code, filename, namespace, is_pdb):
 
 def get_file_code(filename):
     """Retrive the content of a file."""
-    try:
-        # Get code from spyder
-        file_code = _frontend_request().get_file_code(filename)
-        if not PY2:
-            file_code = file_code.encode()
-        return file_code
-    except Exception:
-        return None
+    # Get code from spyder
+    file_code = _frontend_request().get_file_code(filename)
+    if not PY2:
+        file_code = file_code.encode()
+    return file_code
 
 
 def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
@@ -901,7 +898,14 @@ def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
         with open(filename, 'r') as f:
             file_code = f.read()
     else:
-        file_code = get_file_code(filename)
+        try:
+            file_code = get_file_code(filename)
+        except Exception:
+            _print(
+                "This command failed to be executed because an error occurred"
+                " while trying to get the file code from Spyder's"
+                " editor. The error was:\n\n")
+            get_ipython().showtraceback(exception_only=True)
     if file_code is None:
         _print("Could not get code from editor.\n")
         return
@@ -1004,8 +1008,10 @@ def runcell(cellname, filename=None, is_pdb=False):
     # Trigger `post_execute` to exit the additional pre-execution.
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
-
-    file_code = get_file_code(filename)
+    try:
+        file_code = get_file_code(filename)
+    except Exception:
+        file_code = None
     with NamespaceManager(filename, current_namespace=True,
                           file_code=file_code) as namespace:
         exec_code(cell_code, filename, namespace, is_pdb)
