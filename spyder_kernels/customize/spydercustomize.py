@@ -897,6 +897,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
     if local:
+        _print("Warning: Use %run magic to run local files.\n")
         with open(filename, 'r') as f:
             file_code = f.read()
     else:
