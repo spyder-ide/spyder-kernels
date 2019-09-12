@@ -76,3 +76,14 @@ class FrontendComm(CommBase):
         Send an async error back to the frontend to be displayed.
         """
         self.remote_call()._async_error(error_wrapper)
+
+    def _register_comm(self, comm):
+        """
+        Remove side effect ipykernel has.
+        """
+        def handle_msg(msg):
+            """Handle a comm_msg message"""
+            if comm._msg_callback:
+                comm._msg_callback(msg)
+        comm.handle_msg = handle_msg
+        super(FrontendComm, self)._register_comm(comm)
