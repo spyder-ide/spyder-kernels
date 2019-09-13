@@ -839,6 +839,9 @@ def exec_code(code, filename, namespace, is_pdb):
     if PY2 and isinstance(filename, unicode):
         filename = encode(filename)
 
+    if PY2 and isinstance(code, unicode):
+        code = encode(code)
+
     ipython_shell = get_ipython()
     try:
         exec(compile(code, filename, 'exec'), namespace)
