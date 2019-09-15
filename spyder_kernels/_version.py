@@ -8,5 +8,5 @@
 
 """Version File."""
 
-VERSION_INFO = (1, 5, 0)
+VERSION_INFO = (1, 6, 0, 'dev0')
 __version__ = '.'.join(map(str, VERSION_INFO))
