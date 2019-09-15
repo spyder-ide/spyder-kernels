@@ -330,6 +330,8 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
                  skip=None, nosigint=False):
         """Init Pdb."""
         self.continue_if_has_breakpoints = True
+        self.step_into_open_code = True
+        self.is_stepping = False
         super(SpyderPdb, self).__init__()
 
     # --- Methods overriden by us
@@ -338,8 +340,9 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         try:
             _frontend_request(blocking=True).set_debug_state(True)
             if self.starting:
-                breakpoints = _frontend_request().get_breakpoints()
-                self.set_spyder_breakpoints(breakpoints)
+                pdb_settings = _frontend_request().get_pdb_settings()
+                self.set_spyder_breakpoints(pdb_settings['breakpoints'])
+                self.step_into_open_code = pdb_settings['step_into_open_code']
         except (CommError, TimeoutError):
             logger.debug("Could not get breakpoints from the frontend.")
 
@@ -447,6 +450,15 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
             self._cmdloop()
             self.forget()
 
+    def stop_here(self, frame):
+        """Check if pdb should stop here."""
+        if not super(SpyderPdb, self).stop_here(frame):
+            return False
+        if (self.step_into_open_code and self.is_stepping
+                and not is_file_open(frame.f_code.co_filename)):
+            return False
+        return True
+
     def _cmdloop(self):
         while True:
             try:
@@ -469,6 +481,10 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     # XXX: notify spyder on any pdb command (is that good or too lazy?
     #     i.e. is more specific behaviour desired?)
     def postcmd(self, stop, line):
+        if line.strip() in ['s', 'step']:
+            self.is_stepping = True
+        else:
+            self.is_stepping = False
         if '!get_ipython().kernel' not in line:
             self.notify_spyder(self.curframe)
         return super(SpyderPdb, self).postcmd(stop, line)
@@ -797,6 +813,15 @@ def get_current_file_name():
                " editor. The error was:\n\n")
         get_ipython().showtraceback(exception_only=True)
         return None
+
+
+def is_file_open(filename):
+    """Check if filename is open."""
+    try:
+        return _frontend_request().is_file_open(filename)
+    except Exception:
+        # Assume it is open.
+        return True
 
 
 def get_debugger(filename):
