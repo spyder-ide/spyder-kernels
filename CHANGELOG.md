@@ -1,5 +1,44 @@
 # History of changes
 
+## Version 1.5.0 (2019-09-15)
+
+### New features
+
+* Add a new debugcell builtin command.
+* Make runfile work in an empty namespace by default.
+* Improve the display of tracebacks.
+* Use the highest pickle protocol available to serialize data.
+* Use Jupyter comms to communicate with the Spyder frontend.
+
+### Issues Closed
+
+* [Issue 147](https://github.com/spyder-ide/spyder-kernels/issues/147) - debugfile() got an unexpected keyword argument 'current_namespace' ([PR 150](https://github.com/spyder-ide/spyder-kernels/pull/150))
+* [Issue 145](https://github.com/spyder-ide/spyder-kernels/issues/145) - KeyError on comms when restarting the kernel ([PR 146](https://github.com/spyder-ide/spyder-kernels/pull/146))
+* [Issue 97](https://github.com/spyder-ide/spyder-kernels/issues/97) - Can't repeat runcell from terminal ([PR 112](https://github.com/spyder-ide/spyder-kernels/pull/112))
+* [Issue 73](https://github.com/spyder-ide/spyder-kernels/issues/73) - Select a higher Pickle protocol in case Spyder and the kernel are running in Python 3.4+ ([PR 111](https://github.com/spyder-ide/spyder-kernels/pull/111))
+
+In this release 4 issues were closed.
+
+### Pull Requests Merged
+
+* [PR 150](https://github.com/spyder-ide/spyder-kernels/pull/150) - PR: Add current_namespace kwarg to debugfile ([147](https://github.com/spyder-ide/spyder-kernels/issues/147))
+* [PR 146](https://github.com/spyder-ide/spyder-kernels/pull/146) - PR: Set closed flag before deleting comms  ([145](https://github.com/spyder-ide/spyder-kernels/issues/145))
+* [PR 144](https://github.com/spyder-ide/spyder-kernels/pull/144) - PR: Solve error with exit command not being defined in the debugger
+* [PR 142](https://github.com/spyder-ide/spyder-kernels/pull/142) - PR: Set debug state before asking for input
+* [PR 140](https://github.com/spyder-ide/spyder-kernels/pull/140) - PR: Update jupyter-client minimal required version
+* [PR 137](https://github.com/spyder-ide/spyder-kernels/pull/137) - PR: Add a way to change foreground color of Sympy repr's
+* [PR 136](https://github.com/spyder-ide/spyder-kernels/pull/136) - PR: Ask the frontend to save files before running them
+* [PR 134](https://github.com/spyder-ide/spyder-kernels/pull/134) - PR: Improve the display of tracebacks and better handle namespace and __file__ during execution
+* [PR 131](https://github.com/spyder-ide/spyder-kernels/pull/131) - PR: Make runfile work in an empty namespace
+* [PR 130](https://github.com/spyder-ide/spyder-kernels/pull/130) - PR: Add .pickle files to .gitignore
+* [PR 128](https://github.com/spyder-ide/spyder-kernels/pull/128) - PR: Fix deprecated import
+* [PR 112](https://github.com/spyder-ide/spyder-kernels/pull/112) - PR: Use the comms API to improve runcell and add a new debugcell command ([97](https://github.com/spyder-ide/spyder-kernels/issues/97))
+* [PR 111](https://github.com/spyder-ide/spyder-kernels/pull/111) - PR: Use Jupyter comms to communicate with the Spyder frontend ([73](https://github.com/spyder-ide/spyder-kernels/issues/73))
+
+In this release 13 pull requests were closed.
+
+----
+
 ## Version 1.4.0 (2019-06-24)
 
 ### New features
