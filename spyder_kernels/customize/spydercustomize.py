@@ -26,17 +26,17 @@ import warnings
 import logging
 
 from IPython.core.getipython import get_ipython
-from IPython.core.inputtransformer2 import TransformerManager
 
-from spyder_kernels.py3compat import TimeoutError
+from spyder_kernels.py3compat import TimeoutError, PY2
 from spyder_kernels.comms import CommError
 from spyder_kernels.customize.namespace_manager import NamespaceManager
+
+if not PY2:
+    from IPython.core.inputtransformer2 import TransformerManager
 
 
 logger = logging.getLogger(__name__)
 
-# We are in Python 2?
-PY2 = sys.version[0] == '2'
 
 
 #==============================================================================
@@ -845,10 +845,11 @@ def exec_code(code, filename, namespace, is_pdb):
 
     ipython_shell = get_ipython()
     try:
-        tm = TransformerManager()
-        # Avoid removing lines
-        tm.cleanup_transforms = []
-        code = tm.transform_cell(code)
+        if not PY2:
+            tm = TransformerManager()
+            # Avoid removing lines
+            tm.cleanup_transforms = []
+            code = tm.transform_cell(code)
         exec(compile(code, filename, 'exec'), namespace)
     except SystemExit as status:
         # ignore exit(0)
