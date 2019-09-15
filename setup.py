@@ -48,7 +48,8 @@ TEST_REQUIREMENTS = ['numpy',
                      'pytest-cov',
                      'mock',
                      'cython',
-                     'matplotlib']
+                     'matplotlib',
+                     'xarray']
 
 setup(
     name='spyder-kernels',
