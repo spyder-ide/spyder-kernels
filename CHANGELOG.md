@@ -139,6 +139,23 @@ Initial release for Spyder 4
 
 ----
 
+## Version 0.5.2 (2019-09-15)
+
+### Issues Closed
+
+* [Issue 132](https://github.com/spyder-ide/spyder-kernels/issues/132) - tests use removed pandas.Panel ([PR 135](https://github.com/spyder-ide/spyder-kernels/pull/135))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 149](https://github.com/spyder-ide/spyder-kernels/pull/149) - PR: Add xarray to our test deps in setup.py
+* [PR 135](https://github.com/spyder-ide/spyder-kernels/pull/135) - PR: Replace usage of Pandas Panel for Xarray Dataset in our tests ([132](https://github.com/spyder-ide/spyder-kernels/issues/132))
+
+In this release 2 pull requests were closed.
+
+----
+
 ## Version 0.5.1 (2019-07-11)
 
 ### Issues Closed
