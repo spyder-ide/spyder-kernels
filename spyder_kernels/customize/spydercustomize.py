@@ -960,7 +960,7 @@ builtins.runfile = runfile
 
 
 def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
-              local=False):
+              current_namespace=False, local=False):
     """
     Debug filename
     args: command line arguments (string)
@@ -973,8 +973,9 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
         if filename is None:
             return
     debugger, filename = get_debugger(filename)
-    debugger.run("runfile(%r, args=%r, wdir=%r, is_pdb=True, local=%r)" % (
-        filename, args, wdir, local))
+    debugger.run("runfile(%r, args=%r, wdir=%r, is_pdb=True, "
+                          "current_namespace=%r, local=%r)" % (
+        filename, args, wdir, current_namespace, local))
 
 
 builtins.debugfile = debugfile
