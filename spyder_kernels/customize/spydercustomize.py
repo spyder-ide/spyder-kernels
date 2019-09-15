@@ -846,14 +846,17 @@ def exec_code(code, filename, namespace, is_pdb):
         code = encode(code)
 
     ipython_shell = get_ipython()
+    is_ipython = os.path.splitext(filename)[1] == '.ipy'
     try:
-        if not PY2:
-            tm = TransformerManager()
-            # Avoid removing lines
-            tm.cleanup_transforms = []
-        else:
-            tm = IPythonInputSplitter()
-        code = tm.transform_cell(code)
+        if is_ipython:
+            # transform code
+            if not PY2:
+                tm = TransformerManager()
+                # Avoid removing lines
+                tm.cleanup_transforms = []
+            else:
+                tm = IPythonInputSplitter()
+            code = tm.transform_cell(code)
         exec(compile(code, filename, 'exec'), namespace)
     except SystemExit as status:
         # ignore exit(0)
