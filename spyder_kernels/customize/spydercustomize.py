@@ -24,6 +24,7 @@ import sysconfig
 import time
 import warnings
 import logging
+import traceback
 
 from IPython.core.getipython import get_ipython
 
@@ -422,6 +423,39 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
             kernel.publish_pdb_state()
         except (CommError, TimeoutError):
             logger.debug("Could not send Pdb state to the frontend.")
+
+    def default(self, line):
+        """
+        Default way of running pdb statment.
+
+        The only difference with Pdb.default is that if line contains multiple
+        statments, the code will be compiled with 'exec'. It will not print the
+        result but will run without failing.
+        """
+        if line[:1] == '!': line = line[1:]
+        locals = self.curframe_locals
+        globals = self.curframe.f_globals
+        try:
+            try:
+                code = compile(line + '\n', '<stdin>', 'single')
+            except SyntaxError:
+                # support multiline statments
+                code = compile(line + '\n', '<stdin>', 'exec')
+            save_stdout = sys.stdout
+            save_stdin = sys.stdin
+            save_displayhook = sys.displayhook
+            try:
+                sys.stdin = self.stdin
+                sys.stdout = self.stdout
+                sys.displayhook = self.displayhook
+                exec(code, globals, locals)
+            finally:
+                sys.stdout = save_stdout
+                sys.stdin = save_stdin
+                sys.displayhook = save_displayhook
+        except:
+            exc_info = sys.exc_info()[:2]
+            self.error(traceback.format_exception_only(*exc_info)[-1].strip())
 
 
 pdb.Pdb = SpyderPdb
