@@ -424,7 +424,6 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         except (CommError, TimeoutError):
             logger.debug("Could not send Pdb state to the frontend.")
 
-
     def user_return(self, frame, return_value):
         """This function is called when a return trap is set here."""
         # This is useful when debugging in an active interpreter (otherwise,
