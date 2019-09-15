@@ -9,6 +9,8 @@
 * Improve the display of tracebacks.
 * Use the highest pickle protocol available to serialize data.
 * Use Jupyter comms to communicate with the Spyder frontend.
+* This release also contains all fixes present in versions 0.5.1
+  and 0.5.2.
 
 ### Issues Closed
 
