@@ -26,6 +26,7 @@ import warnings
 import logging
 
 from IPython.core.getipython import get_ipython
+from IPython.core.inputtransformer2 import TransformerManager
 
 from spyder_kernels.py3compat import TimeoutError
 from spyder_kernels.comms import CommError
@@ -844,6 +845,10 @@ def exec_code(code, filename, namespace, is_pdb):
 
     ipython_shell = get_ipython()
     try:
+        tm = TransformerManager()
+        # Avoid removing lines
+        tm.cleanup_transforms = []
+        code = tm.transform_cell(code)
         exec(compile(code, filename, 'exec'), namespace)
     except SystemExit as status:
         # ignore exit(0)
@@ -862,8 +867,6 @@ def get_file_code(filename):
     """Retrive the content of a file."""
     # Get code from spyder
     file_code = _frontend_request().get_file_code(filename)
-    if not PY2:
-        file_code = file_code.encode()
     return file_code
 
 
