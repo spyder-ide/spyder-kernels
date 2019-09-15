@@ -339,10 +339,11 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
             _frontend_request(blocking=True).set_debug_state(True)
+            pdb_settings = _frontend_request().get_pdb_settings()
+            self.step_into_open_code = pdb_settings['step_into_open_code']
             if self.starting:
-                pdb_settings = _frontend_request().get_pdb_settings()
                 self.set_spyder_breakpoints(pdb_settings['breakpoints'])
-                self.step_into_open_code = pdb_settings['step_into_open_code']
+
         except (CommError, TimeoutError):
             logger.debug("Could not get breakpoints from the frontend.")
 
@@ -454,8 +455,12 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         """Check if pdb should stop here."""
         if not super(SpyderPdb, self).stop_here(frame):
             return False
+        filename = frame.f_code.co_filename
+        if filename.startswith('<'):
+            # This is not a file
+            return True
         if (self.step_into_open_code and self.is_stepping
-                and not is_file_open(frame.f_code.co_filename)):
+                and not is_file_open(filename)):
             return False
         return True
 
