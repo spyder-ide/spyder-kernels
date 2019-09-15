@@ -326,10 +326,11 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     send_initial_notification = True
     starting = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, completekey='tab', stdin=None, stdout=None,
+                 skip=None, nosigint=False):
         """Init Pdb."""
         self.continue_if_has_breakpoints = True
-        super(SpyderPdb, self).__init__(*args, **kwargs)
+        super(SpyderPdb, self).__init__()
 
     # --- Methods overriden by us
     def preloop(self):
@@ -424,138 +425,87 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
             logger.debug("Could not send Pdb state to the frontend.")
 
 
-pdb.Pdb = SpyderPdb
+    def user_return(self, frame, return_value):
+        """This function is called when a return trap is set here."""
+        # This is useful when debugging in an active interpreter (otherwise,
+        # the debugger will stop before reaching the target file)
+        if self._wait_for_mainpyfile:
+            if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
+                    or frame.f_lineno <= 0):
+                return
+            self._wait_for_mainpyfile = 0
+        super(SpyderPdb, self).user_return(frame, return_value)
 
+    def interaction(self, frame, traceback):
+        if (frame is not None
+                and "spydercustomize.py" in frame.f_code.co_filename):
+            self.onecmd('exit')
+        else:
+            self.setup(frame, traceback)
+            if self.send_initial_notification:
+                self.notify_spyder(frame)
+            self.print_stack_entry(self.stack[self.curindex])
+            self._cmdloop()
+            self.forget()
 
-#XXX: I know, this function is now also implemented as is in utils/misc.py but
-#     I'm kind of reluctant to import spyder in sitecustomize, even if this
-#     import is very clean.
-def monkeypatch_method(cls, patch_name):
-    # This function's code was inspired from the following thread:
-    # "[Python-Dev] Monkeypatching idioms -- elegant or ugly?"
-    # by Robert Brewer <fumanchu at aminus.org>
-    # (Tue Jan 15 19:13:25 CET 2008)
-    """
-    Add the decorated method to the given class; replace as needed.
+    def _cmdloop(self):
+        while True:
+            try:
+                # keyboard interrupts allow for an easy way to cancel
+                # the current command, so allow them during interactive input
+                self.allow_kbdint = True
+                self.cmdloop()
+                self.allow_kbdint = False
+                break
+            except KeyboardInterrupt:
+                _print("--KeyboardInterrupt--\n"
+                       "For copying text while debugging, use Ctrl+Shift+C",
+                       file=self.stdout)
 
-    If the named method already exists on the given class, it will
-    be replaced, and a reference to the old method is created as
-    cls._old<patch_name><name>. If the "_old_<patch_name>_<name>" attribute
-    already exists, KeyError is raised.
-    """
-    def decorator(func):
-        fname = func.__name__
-        old_func = getattr(cls, fname, None)
-        if old_func is not None:
-            # Add the old func to a list of old funcs.
-            old_ref = "_old_%s_%s" % (patch_name, fname)
+    def reset(self):
+        super(SpyderPdb, self).reset()
+        kernel = get_ipython().kernel
+        kernel._register_pdb_session(self)
 
-            old_attr = getattr(cls, old_ref, None)
-            if old_attr is None:
-                setattr(cls, old_ref, old_func)
+    # XXX: notify spyder on any pdb command (is that good or too lazy?
+    #     i.e. is more specific behaviour desired?)
+    def postcmd(self, stop, line):
+        if '!get_ipython().kernel' not in line:
+            self.notify_spyder(self.curframe)
+        return super(SpyderPdb, self).postcmd(stop, line)
+
+    # Breakpoints don't work for files with non-ascii chars in Python 2
+    # Fixes Issue 1484
+    if PY2:
+        def break_here(self, frame):
+            from bdb import effective
+            filename = self.canonic(frame.f_code.co_filename)
+            try:
+                filename = unicode(filename, "utf-8")
+            except TypeError:
+                pass
+            if filename not in self.breaks:
+                return False
+            lineno = frame.f_lineno
+            if lineno not in self.breaks[filename]:
+                # The line itself has no breakpoint, but maybe the line is the
+                # first line of a function with breakpoint set by function name
+                lineno = frame.f_code.co_firstlineno
+                if lineno not in self.breaks[filename]:
+                    return False
+
+            # flag says ok to delete temp. bp
+            (bp, flag) = effective(filename, lineno, frame)
+            if bp:
+                self.currentbp = bp.number
+                if (flag and bp.temporary):
+                    self.do_clear(str(bp.number))
+                return True
             else:
-                raise KeyError("%s.%s already exists."
-                               % (cls.__name__, old_ref))
-        setattr(cls, fname, func)
-        return func
-    return decorator
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def __init__(self, completekey='tab', stdin=None, stdout=None,
-             skip=None, nosigint=False):
-    self._old_Pdb___init__()
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def user_return(self, frame, return_value):
-    """This function is called when a return trap is set here."""
-    # This is useful when debugging in an active interpreter (otherwise,
-    # the debugger will stop before reaching the target file)
-    if self._wait_for_mainpyfile:
-        if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
-            or frame.f_lineno<= 0):
-            return
-        self._wait_for_mainpyfile = 0
-    self._old_Pdb_user_return(frame, return_value)
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def interaction(self, frame, traceback):
-    if frame is not None and "spydercustomize.py" in frame.f_code.co_filename:
-        self.onecmd('exit')
-    else:
-        self.setup(frame, traceback)
-        if self.send_initial_notification:
-            self.notify_spyder(frame)
-        self.print_stack_entry(self.stack[self.curindex])
-        self._cmdloop()
-        self.forget()
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def _cmdloop(self):
-    while True:
-        try:
-            # keyboard interrupts allow for an easy way to cancel
-            # the current command, so allow them during interactive input
-            self.allow_kbdint = True
-            self.cmdloop()
-            self.allow_kbdint = False
-            break
-        except KeyboardInterrupt:
-            _print("--KeyboardInterrupt--\n"
-                   "For copying text while debugging, use Ctrl+Shift+C",
-                   file=self.stdout)
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def reset(self):
-    self._old_Pdb_reset()
-    kernel = get_ipython().kernel
-    kernel._register_pdb_session(self)
-
-
-#XXX: notify spyder on any pdb command (is that good or too lazy? i.e. is more
-#     specific behaviour desired?)
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def postcmd(self, stop, line):
-    if ("_set_spyder_breakpoints" not in line and
-            '!get_ipython().kernel' not in line):
-        self.notify_spyder(self.curframe)
-    return self._old_Pdb_postcmd(stop, line)
-
-
-# Breakpoints don't work for files with non-ascii chars in Python 2
-# Fixes Issue 1484
-if PY2:
-    @monkeypatch_method(pdb.Pdb, 'Pdb')
-    def break_here(self, frame):
-        from bdb import effective
-        filename = self.canonic(frame.f_code.co_filename)
-        try:
-            filename = unicode(filename, "utf-8")
-        except TypeError:
-            pass
-        if not filename in self.breaks:
-            return False
-        lineno = frame.f_lineno
-        if not lineno in self.breaks[filename]:
-            # The line itself has no breakpoint, but maybe the line is the
-            # first line of a function with breakpoint set by function name.
-            lineno = frame.f_code.co_firstlineno
-            if not lineno in self.breaks[filename]:
                 return False
 
-        # flag says ok to delete temp. bp
-        (bp, flag) = effective(filename, lineno, frame)
-        if bp:
-            self.currentbp = bp.number
-            if (flag and bp.temporary):
-                self.do_clear(str(bp.number))
-            return True
-        else:
-            return False
+
+pdb.Pdb = SpyderPdb
 
 
 #==============================================================================
