@@ -443,7 +443,8 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
             self.setup(frame, traceback)
             if self.send_initial_notification:
                 self.notify_spyder(frame)
-            self.print_stack_entry(self.stack[self.curindex])
+            if get_ipython().kernel._pdb_print_code:
+                self.print_stack_entry(self.stack[self.curindex])
             self._cmdloop()
             self.forget()
 
