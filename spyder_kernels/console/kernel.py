@@ -37,6 +37,7 @@ class SpyderKernel(IPythonKernel):
         # All functions that can be called through the comm
         handlers = {
             'set_breakpoints': self.set_spyder_breakpoints,
+            'set_pdb_ignore_lib': self.set_pdb_ignore_lib,
             'get_value': self.get_value,
             'load_data': self.load_data,
             'save_namespace': self.save_namespace,
@@ -102,6 +103,13 @@ class SpyderKernel(IPythonKernel):
         """
         if self._pdb_obj:
             self._pdb_obj.set_spyder_breakpoints(breakpoints)
+
+    def set_pdb_ignore_lib(self, state):
+        """
+        Handle a message from the frontend
+        """
+        if self._pdb_obj:
+            self._pdb_obj.pdb_ignore_lib = state
 
     # -- Public API ---------------------------------------------------
     # --- For the Variable Explorer
