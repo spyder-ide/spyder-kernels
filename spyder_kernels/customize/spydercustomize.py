@@ -24,6 +24,7 @@ import sysconfig
 import time
 import warnings
 import logging
+import site
 
 from IPython.core.getipython import get_ipython
 
@@ -330,8 +331,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
                  skip=None, nosigint=False):
         """Init Pdb."""
         self.continue_if_has_breakpoints = True
-        self.step_into_open_code = True
-        self.is_stepping = False
+        self.pdb_ignore_lib = False
         super(SpyderPdb, self).__init__()
 
     # --- Methods overriden by us
@@ -340,7 +340,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         try:
             _frontend_request(blocking=True).set_debug_state(True)
             pdb_settings = _frontend_request().get_pdb_settings()
-            self.step_into_open_code = pdb_settings['step_into_open_code']
+            self.pdb_ignore_lib = pdb_settings['pdb_ignore_lib']
             if self.starting:
                 self.set_spyder_breakpoints(pdb_settings['breakpoints'])
 
@@ -459,10 +459,23 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         if filename.startswith('<'):
             # This is not a file
             return True
-        if (self.step_into_open_code and self.is_stepping
-                and not is_file_open(filename)):
+        if self.pdb_ignore_lib and self.path_is_lib(filename):
             return False
         return True
+
+    def path_is_lib(self, path):
+        """Check if path points to a python lib."""
+        path = osp.realpath(path)
+        # Get global site-packages folders
+        libpaths = [osp.realpath(lib) for lib in site.getsitepackages()]
+        # Get user site-packages folders
+        libpaths.append(osp.realpath(site.getusersitepackages()))
+        # Get platform-dependent library folder
+        libpaths.append(osp.realpath(osp.join(sys.exec_prefix, 'lib')))
+        # Get platform-independent library folder
+        libpaths.append(osp.realpath(osp.join(sys.prefix, 'lib')))
+        # Check if file is in any of these
+        return any([path.startswith(lib) for lib in libpaths])
 
     def _cmdloop(self):
         while True:
@@ -486,10 +499,6 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     # XXX: notify spyder on any pdb command (is that good or too lazy?
     #     i.e. is more specific behaviour desired?)
     def postcmd(self, stop, line):
-        if line.strip() in ['s', 'step']:
-            self.is_stepping = True
-        else:
-            self.is_stepping = False
         if '!get_ipython().kernel' not in line:
             self.notify_spyder(self.curframe)
         return super(SpyderPdb, self).postcmd(stop, line)
