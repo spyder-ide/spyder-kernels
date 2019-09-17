@@ -34,7 +34,7 @@ from spyder_kernels.customize.namespace_manager import NamespaceManager
 if not PY2:
     from IPython.core.inputtransformer2 import TransformerManager
 else:
-    from IPython.core.inputsplitter import IPythonInputSplitter
+    from IPython.core.inputsplitter import IPythonInputSplitter as TransformerManager
 
 
 logger = logging.getLogger(__name__)
@@ -850,12 +850,10 @@ def exec_code(code, filename, namespace, is_pdb):
     try:
         if is_ipython:
             # transform code
+            tm = TransformerManager()
             if not PY2:
-                tm = TransformerManager()
                 # Avoid removing lines
                 tm.cleanup_transforms = []
-            else:
-                tm = IPythonInputSplitter()
             code = tm.transform_cell(code)
         exec(compile(code, filename, 'exec'), namespace)
     except SystemExit as status:
