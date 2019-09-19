@@ -13,9 +13,15 @@ Spyder kernel for Jupyter
 # Standard library imports
 import os
 import sys
+import zmq
+import time
 
 # Third-party imports
 from ipykernel.ipkernel import IPythonKernel
+from ipykernel.jsonutil import json_clean
+from ipython_genutils import py3compat
+
+# Local imports
 from spyder_kernels.comms.frontendcomm import FrontendComm
 
 
@@ -521,3 +527,58 @@ class SpyderKernel(IPythonKernel):
                 get_ipython().run_line_magic('reload_ext', 'wurlitzer')
             except Exception:
                 pass
+
+    def _input_request(self, prompt, ident, parent, password=False):
+        """Send an input request to the frontend and wait for the reply."""
+        # matplotlib needs to be imported after app.launch_new_instance()
+        try:
+            from matplotlib._pylab_helpers import Gcf
+        except ImportError:
+            Gcf = None
+
+        # Flush output before making the request.
+        sys.stderr.flush()
+        sys.stdout.flush()
+        # flush the stdin socket, to purge stale replies
+        while True:
+            try:
+                self.stdin_socket.recv_multipart(zmq.NOBLOCK)
+            except zmq.ZMQError as e:
+                if e.errno == zmq.EAGAIN:
+                    break
+                else:
+                    raise
+
+        # Send the input request.
+        content = json_clean(dict(prompt=prompt, password=password))
+        self.session.send(self.stdin_socket, u'input_request', content, parent,
+                          ident=ident)
+
+        # Await a response.
+        reply = None
+        while reply is None:
+            try:
+                ident, reply = self.session.recv(
+                    self.stdin_socket, zmq.NOBLOCK)
+                if not reply:
+                    time.sleep(0.01)
+                    # Allow comms and other messages to be processed
+                    self.do_one_iteration()
+                    # Allow matplotlib figures with e.g. qt5 to update
+                    if Gcf and Gcf.get_active():
+                        Gcf.get_active().canvas.flush_events()
+
+            except Exception:
+                self.log.warning("Invalid Message:", exc_info=True)
+            except KeyboardInterrupt:
+                # re-raise KeyboardInterrupt, to truncate traceback
+                raise KeyboardInterrupt
+        try:
+            value = py3compat.unicode_to_str(reply['content']['value'])
+        except:
+            self.log.error("Bad input_reply: %s", parent)
+            value = ''
+        if value == '\x04':
+            # EOF
+            raise EOFError
+        return value
