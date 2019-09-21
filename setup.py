@@ -39,7 +39,8 @@ REQUIREMENTS = ['ipykernel>=4.8.2',
                 'pyzmq>=17',
                 'jupyter-client>=5.2.5',
                 'cloudpickle',
-                'wurlitzer>=1.0.3;platform_system!="Windows"']
+                'wurlitzer>=1.0.3;platform_system!="Windows"',
+                'appnope;platform_system=="Darwin"']
 
 TEST_REQUIREMENTS = ['numpy',
                      'pandas',

@@ -43,6 +43,7 @@ This project depends on:
 * [ipykernel](https://github.com/ipython/ipykernel/)
 * [cloudpickle](https://github.com/cloudpipe/cloudpickle)
 * [wurlitzer](https://github.com/minrk/wurlitzer) (only on Linux and macOS).
+* [appnope](https://github.com/minrk/appnope) (only on macOS).
 
 
 ## Changelog
