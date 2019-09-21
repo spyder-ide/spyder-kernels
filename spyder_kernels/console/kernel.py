@@ -18,6 +18,9 @@ import sys
 from ipykernel.ipkernel import IPythonKernel
 from spyder_kernels.comms.frontendcomm import FrontendComm
 
+if sys.platform == 'darwin':
+    import appnope
+
 
 PY2 = sys.version[0] == '2'
 
@@ -67,6 +70,10 @@ class SpyderKernel(IPythonKernel):
         self._pdb_step = None
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
+
+        if sys.platform == 'darwin':
+            # Disable app-nap as the kernel is not a gui but can have guis
+            appnope.nope()
 
     def frontend_call(self, blocking=False, broadcast=True):
         """Call the frontend."""
