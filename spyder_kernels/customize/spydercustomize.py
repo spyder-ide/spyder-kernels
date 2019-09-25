@@ -377,6 +377,9 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 
             # Get all breakpoints for the file we're going to debug
             frame = self.curframe
+            if not frame:
+                # We are not debugging, return. Solves #10290
+                return
             lineno = frame.f_lineno
             breaks = self.get_file_breaks(frame.f_code.co_filename)
 
