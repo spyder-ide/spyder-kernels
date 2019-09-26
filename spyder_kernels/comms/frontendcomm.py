@@ -12,9 +12,9 @@ import os
 import time
 import threading
 import pickle
-import asyncio
+from tornado import ioloop
 
-from spyder_kernels.comms.commbase import CommBase, CommError
+from spyder_kernels.comms.commbase import CommBase
 from spyder_kernels.py3compat import TimeoutError, PY2
 
 
@@ -46,14 +46,11 @@ class FrontendComm(CommBase):
 
         # There is no get_ident in Py2
         if not PY2 and self._main_thread_id != threading.get_ident():
-            # We can't call kernel.do_one_iteration from this thread.
-            # And we have no reason to think the main thread is not busy.
+            # A new event loop is needed to call do_one_iteration
             try:
-                asyncio.get_event_loop()
+                ioloop.IOLoop.current()
             except RuntimeError:
-                # No event loop
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                ioloop.IOLoop().initialize()
 
         t_start = time.time()
         while call_id not in self._reply_inbox:
