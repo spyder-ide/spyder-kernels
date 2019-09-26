@@ -13,6 +13,7 @@ Spyder kernel for Jupyter
 # Standard library imports
 import os
 import sys
+import threading
 
 # Third-party imports
 from ipykernel.ipkernel import IPythonKernel
@@ -67,6 +68,7 @@ class SpyderKernel(IPythonKernel):
         self._pdb_step = None
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
+        self.lock = threading.Lock()
 
     def frontend_call(self, blocking=False, broadcast=True):
         """Call the frontend."""

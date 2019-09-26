@@ -12,6 +12,7 @@ import os
 import time
 import threading
 import pickle
+import asyncio
 
 from spyder_kernels.comms.commbase import CommBase, CommError
 from spyder_kernels.py3compat import TimeoutError, PY2
@@ -47,8 +48,12 @@ class FrontendComm(CommBase):
         if not PY2 and self._main_thread_id != threading.get_ident():
             # We can't call kernel.do_one_iteration from this thread.
             # And we have no reason to think the main thread is not busy.
-            raise CommError(
-                "Can't make blocking calls from non-main threads.")
+            try:
+                asyncio.get_event_loop()
+            except RuntimeError:
+                # No event loop
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
 
         t_start = time.time()
         while call_id not in self._reply_inbox:
@@ -58,7 +63,8 @@ class FrontendComm(CommBase):
                         call_name))
             priority = 0
             while priority is not None:
-                priority = self.kernel.do_one_iteration()
+                with self.kernel.lock:
+                    priority = self.kernel.do_one_iteration()
                 if priority is not None:
                     # For Python2
                     priority = priority.result()
