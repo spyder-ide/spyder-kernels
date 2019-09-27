@@ -837,7 +837,7 @@ def get_debugger(filename):
     return debugger, filename
 
 
-def exec_code(code, filename, namespace, is_pdb):
+def exec_code(code, filename, namespace):
     """Execute code and display any exception."""
     if PY2 and isinstance(filename, unicode):
         filename = encode(filename)
@@ -861,9 +861,10 @@ def exec_code(code, filename, namespace, is_pdb):
         if status.code:
             ipython_shell.showtraceback(exception_only=True)
     except BaseException as error:
-        if isinstance(error, bdb.BdbQuit) and is_pdb:
+        if (isinstance(error, bdb.BdbQuit)
+                and ipython_shell.kernel._pdb_obj):
             # Ignore BdbQuit if we are debugging, as it is expected.
-            pass
+            ipython_shell.kernel._pdb_obj = None
         else:
             # We ignore the call to exec
             ipython_shell.showtraceback(tb_offset=1)
@@ -877,7 +878,7 @@ def get_file_code(filename):
 
 
 def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
-            post_mortem=False, is_pdb=False, current_namespace=False):
+            post_mortem=False, current_namespace=False):
     """
     Run filename
     args: command line arguments (string)
@@ -948,7 +949,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
             with io.open(filename, encoding='utf-8') as f:
                 ipython_shell.run_cell_magic('cython', '', f.read())
         else:
-            exec_code(file_code, filename, namespace, is_pdb)
+            exec_code(file_code, filename, namespace)
 
         clear_post_mortem()
         sys.argv = ['']
@@ -971,7 +972,7 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
         if filename is None:
             return
     debugger, filename = get_debugger(filename)
-    debugger.run("runfile(%r, args=%r, wdir=%r, is_pdb=True, "
+    debugger.run("runfile(%r, args=%r, wdir=%r, "
                           "current_namespace=%r, local=%r)" % (
         filename, args, wdir, current_namespace, local))
 
@@ -979,7 +980,7 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
 builtins.debugfile = debugfile
 
 
-def runcell(cellname, filename=None, is_pdb=False):
+def runcell(cellname, filename=None):
     """
     Run a code cell from an editor as a file.
 
@@ -1028,7 +1029,7 @@ def runcell(cellname, filename=None, is_pdb=False):
         file_code = None
     with NamespaceManager(filename, current_namespace=True,
                           file_code=file_code) as namespace:
-        exec_code(cell_code, filename, namespace, is_pdb)
+        exec_code(cell_code, filename, namespace)
 
 
 builtins.runcell = runcell
@@ -1044,7 +1045,7 @@ def debugcell(cellname, filename=None):
     debugger, filename = get_debugger(filename)
     # The breakpoint might not be in the cell
     debugger.continue_if_has_breakpoints = False
-    debugger.run("runcell({}, {}, is_pdb=True)".format(
+    debugger.run("runcell({}, {})".format(
         repr(cellname), repr(filename)))
 
 
