@@ -874,6 +874,9 @@ def get_file_code(filename):
     """Retrive the content of a file."""
     # Get code from spyder
     file_code = _frontend_request().get_file_code(filename)
+    if file_code is None:
+        with open(filename, 'r') as f:
+            return f.read()
     return file_code
 
 
