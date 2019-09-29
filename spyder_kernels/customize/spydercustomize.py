@@ -873,13 +873,7 @@ def exec_code(code, filename, namespace):
 def get_file_code(filename):
     """Retrive the content of a file."""
     # Get code from spyder
-    try:
-        file_code = _frontend_request().get_file_code(filename)
-    except (CommError, TimeoutError):
-        file_code = None
-    if file_code is None:
-        with open(filename, 'r') as f:
-            return f.read()
+    file_code = _frontend_request().get_file_code(filename)
     return file_code
 
 
