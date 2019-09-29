@@ -345,7 +345,7 @@ if __name__ == '__main__':
         p.write(code)
 
         # Run code
-        client.execute("runfile(r'{}', local=True)".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(to_text_string(p)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
         # Verify that the `result` variable is defined
@@ -383,7 +383,7 @@ def test_runfile(tmpdir):
         u.write(code)
 
         # Run code file `d` to define `result` even after an error
-        client.execute("runfile(r'{}', current_namespace=False, local=True)"
+        client.execute("runfile(r'{}', current_namespace=False)"
                        .format(to_text_string(d)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
@@ -394,7 +394,7 @@ def test_runfile(tmpdir):
         assert content['found']
 
         # Run code file `u` without current namespace
-        client.execute("runfile(r'{}', current_namespace=False, local=True)"
+        client.execute("runfile(r'{}', current_namespace=False)"
                        .format(to_text_string(u)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
@@ -405,7 +405,7 @@ def test_runfile(tmpdir):
         assert content['found']
 
         # Run code file `u` with current namespace
-        client.execute("runfile(r'{}', current_namespace=True, local=True)"
+        client.execute("runfile(r'{}', current_namespace=True)"
                        .format(to_text_string(u)))
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
         content = msg['content']
@@ -508,7 +508,7 @@ turtle.bye()
         p.write(code)
 
         # Run code
-        client.execute("runfile(r'{}', local=True)".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(to_text_string(p)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
         # Verify that the `tess` variable is defined
@@ -524,7 +524,7 @@ turtle.bye()
         p.write(code)
 
         # Run code again
-        client.execute("runfile(r'{}', local=True)".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(to_text_string(p)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
         # Verify that the `a` variable is defined
