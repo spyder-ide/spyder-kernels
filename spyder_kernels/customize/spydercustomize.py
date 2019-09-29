@@ -877,13 +877,14 @@ def get_file_code(filename):
     return file_code
 
 
-def runfile(filename=None, args=None, wdir=None, namespace=None,
+def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
             post_mortem=False, current_namespace=False):
     """
     Run filename
     args: command line arguments (string)
     wdir: working directory
     namespace: namespace for execution
+    local: boolean, should the file be locally loaded?
     post_mortem: boolean, whether to enter post-mortem mode on error
     current_namespace: if true, run the file in the current namespace
     """
@@ -905,15 +906,20 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         __umr__.run()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
-    try:
-        file_code = get_file_code(filename)
-    except Exception:
-        _print(
-            "This command failed to be executed because an error occurred"
-            " while trying to get the file code from Spyder's"
-            " editor. The error was:\n\n")
-        get_ipython().showtraceback(exception_only=True)
-        return
+    if local:
+        _print("Warning: Use %run magic to run local files.\n")
+        with open(filename, 'r') as f:
+            file_code = f.read()
+    else:
+        try:
+            file_code = get_file_code(filename)
+        except Exception:
+            _print(
+                "This command failed to be executed because an error occurred"
+                " while trying to get the file code from Spyder's"
+                " editor. The error was:\n\n")
+            get_ipython().showtraceback(exception_only=True)
+            return
     if file_code is None:
         _print("Could not get code from editor.\n")
         return
@@ -953,20 +959,22 @@ builtins.runfile = runfile
 
 
 def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
-              current_namespace=False):
+              current_namespace=False, local=False):
     """
     Debug filename
     args: command line arguments (string)
     wdir: working directory
     post_mortem: boolean, included for compatiblity with runfile
+    local: boolean, should the file be locally loaded?
     """
     if filename is None:
         filename = get_current_file_name()
         if filename is None:
             return
     debugger, filename = get_debugger(filename)
-    debugger.run("runfile(%r, args=%r, wdir=%r, current_namespace=%r)" % (
-        filename, args, wdir, current_namespace))
+    debugger.run("runfile(%r, args=%r, wdir=%r, "
+                          "current_namespace=%r, local=%r)" % (
+        filename, args, wdir, current_namespace, local))
 
 
 builtins.debugfile = debugfile
