@@ -373,8 +373,8 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 
     def set_trace(self, frame=None):
         """Start debugging from frame."""
-        super(SpyderPdb, self).set_trace(frame)
         threading.settrace(self.trace_dispatch)
+        super(SpyderPdb, self).set_trace(frame)
 
     def trace_dispatch(self, frame, event, arg):
         """Reimplement trace dispatch to support multithreading."""
