@@ -331,8 +331,22 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         """Init Pdb."""
         self.continue_if_has_breakpoints = True
         super(SpyderPdb, self).__init__()
+        self._pdb_breaking = False
 
     # --- Methods overriden by us
+    def sigint_handler(self, signum, frame):
+        """
+        Handle a sigint signal. Break here even if the call is blocking.
+        """
+        if self.allow_kbdint:
+            raise KeyboardInterrupt
+        self.message("\nProgram interrupted. (Use 'cont' to resume).")
+        # avoid stopping in set_trace
+        sys.settrace(None)
+        self._pdb_breaking = True
+        self.set_step()
+        self.set_trace(sys._getframe())
+
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
@@ -436,6 +450,10 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         super(SpyderPdb, self).user_return(frame, return_value)
 
     def interaction(self, frame, traceback):
+        if self._pdb_breaking:
+            self._pdb_breaking = False
+            if frame and frame.f_back:
+                return self.interaction(frame.f_back, traceback)
         if (frame is not None
                 and "spydercustomize.py" in frame.f_code.co_filename):
             self.onecmd('exit')
