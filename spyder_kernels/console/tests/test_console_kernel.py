@@ -19,6 +19,7 @@ from textwrap import dedent
 from ipykernel.tests.test_embed_kernel import setup_kernel
 import IPython
 import pytest
+from flaky import flaky
 
 
 # Local imports
@@ -292,6 +293,7 @@ libc.printf(('Hello from C\\n').encode('utf8'))
     assert captured.out == "Hello from C\n"
 
 
+@flaky(max_runs=3)
 @pytest.mark.skipif(IPython.__version__ >= '7.2.0',
                     reason="This problem was fixed in IPython 7.2+")
 def test_cwd_in_sys_path():
@@ -316,6 +318,7 @@ def test_cwd_in_sys_path():
         assert value[0] == ''
 
 
+@flaky(max_runs=3)
 @pytest.mark.skipif(not (os.name == 'nt' and PY3),
                     reason="Only meant for Windows and Python 3")
 def test_multiprocessing(tmpdir):
@@ -355,6 +358,7 @@ if __name__ == '__main__':
         assert content['found']
 
 
+@flaky(max_runs=3)
 def test_runfile(tmpdir):
     """
     Test that runfile uses the proper name space for execution.
@@ -417,6 +421,7 @@ def test_runfile(tmpdir):
         assert content['found']
 
 
+@flaky(max_runs=3)
 def test_np_threshold(kernel):
     """Test that setting Numpy threshold doesn't make the Variable Explorer slow."""
 
@@ -474,6 +479,8 @@ f = np.get_printoptions()['formatter']
         content = msg['content']['data']['text/plain']
         assert "{'float_kind': <built-in method format of str object" in content
 
+
+@flaky(max_runs=3)
 @pytest.mark.skipif(not TKINTER_INSTALLED,
                     reason="Doesn't work on Python installations without Tk")
 def test_turtle_launch(tmpdir):
@@ -534,6 +541,7 @@ turtle.bye()
         assert content['found']
 
 
+@flaky(max_runs=3)
 def test_matplotlib_inline(kernel):
     """Test that the default backend for our kernels is 'inline'."""
     # Command to start the kernel
