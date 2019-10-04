@@ -33,4 +33,4 @@ install:
 build: false
 
 test_script:
-  - "pytest -x -vv --cov=spyder_kernels spyder_kernels"
+  - "pytest -x -vv spyder_kernels"
