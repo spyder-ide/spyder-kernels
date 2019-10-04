@@ -3,6 +3,8 @@ pandas
 scipy
 pytest
 pytest-cov
+pytest-faulthandler
+flaky
 mock
 cython
 matplotlib
