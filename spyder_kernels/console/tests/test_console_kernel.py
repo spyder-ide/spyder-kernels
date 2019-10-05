@@ -16,29 +16,28 @@ import os.path as osp
 from textwrap import dedent
 from contextlib import contextmanager
 import time
-import warnings
+from subprocess import Popen, PIPE
+import sys
 
 # Test imports
-from ipykernel.tests.test_embed_kernel import setup_kernel as ipykernel_setup
 import IPython
 import pytest
+from jupyter_core import paths
+from jupyter_client import BlockingKernelClient
+from ipython_genutils import py3compat
 
 
 # Local imports
 from spyder_kernels.py3compat import PY3, to_text_string
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
-from spyder_kernels.py3compat import PY2
 
-if PY2:
-    JSONDecodeError = ValueError
-else:
-    from json.decoder import JSONDecodeError
 # =============================================================================
 # Constants
 # =============================================================================
 FILES_PATH = os.path.dirname(os.path.realpath(__file__))
 TIMEOUT = 15
+SETUP_TIMEOUT = 60
 
 TKINTER_INSTALLED = False
 try:
@@ -49,18 +48,46 @@ except:
 
 
 @contextmanager
-def setup_kernel(cmd, n=3):
-    """Flaky breaks the tests with AppVeyor, so this is a home-made flaky."""
+def setup_kernel(cmd):
+    """start an embedded kernel in a subprocess, and wait for it to be ready
+
+    Returns
+    -------
+    kernel_manager: connected KernelManager instance
+    """
+    kernel = Popen([sys.executable, '-c', cmd], stdout=PIPE, stderr=PIPE)
+    connection_file = os.path.join(
+        paths.jupyter_runtime_dir(),
+        'kernel-%i.json' % kernel.pid,
+    )
+    # wait for connection file to exist, timeout after 5s
+    tic = time.time()
+    while not os.path.exists(connection_file) \
+        and kernel.poll() is None \
+        and time.time() < tic + SETUP_TIMEOUT:
+        time.sleep(0.1)
+
+    if kernel.poll() is not None:
+        o,e = kernel.communicate()
+        e = py3compat.cast_unicode(e)
+        raise IOError("Kernel failed to start:\n%s" % e)
+
+    if not os.path.exists(connection_file):
+        if kernel.poll() is None:
+            kernel.terminate()
+        raise IOError("Connection file %r never arrived" % connection_file)
+
+    client = BlockingKernelClient(connection_file=connection_file)
     try:
-        with ipykernel_setup(cmd) as client:
+        client.load_connection_file()
+        client.start_channels()
+        client.wait_for_ready()
+        try:
             yield client
-    except JSONDecodeError:
-        if n == 0:
-            raise
-        warnings.warn('JSONDecodeError while opening kenel, retrying.')
-        time.sleep(1)
-        with setup_kernel(cmd, n - 1) as client:
-            yield client
+        finally:
+            client.stop_channels()
+    finally:
+        kernel.terminate()
 
 
 # =============================================================================
