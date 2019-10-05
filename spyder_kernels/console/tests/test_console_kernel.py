@@ -14,9 +14,12 @@ import ast
 import os
 import os.path as osp
 from textwrap import dedent
+from contextlib import contextmanager
+import time
+import warnings
 
 # Test imports
-from ipykernel.tests.test_embed_kernel import setup_kernel
+from ipykernel.tests.test_embed_kernel import setup_kernel as ipykernel_setup
 import IPython
 import pytest
 
@@ -25,8 +28,12 @@ import pytest
 from spyder_kernels.py3compat import PY3, to_text_string
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
+from spyder_kernels.py3compat import PY2
 
-
+if PY2:
+    JSONDecodeError = ValueError
+else:
+    from json.decoder import JSONDecodeError
 # =============================================================================
 # Constants
 # =============================================================================
@@ -39,6 +46,22 @@ try:
     TKINTER_INSTALLED = True
 except:
     pass
+
+
+@contextmanager
+def setup_kernel(cmd, n=3):
+    """Flaky breaks the tests with AppVeyor, so this is a home-made flaky."""
+    try:
+        with ipykernel_setup(cmd) as client:
+            yield client
+    except JSONDecodeError:
+        if n == 0:
+            raise
+        warnings.warn('JSONDecodeError while opening kenel, retrying.')
+        time.sleep(1)
+        with setup_kernel(cmd, n - 1) as client:
+            yield client
+
 
 # =============================================================================
 # Fixtures
