@@ -40,6 +40,9 @@ class FrontendComm(CommBase):
     # --- Private --------
     def _wait_reply(self, call_id, call_name, timeout):
         """Wait until the frontend replies to a request."""
+        if self.kernel.lock.locked():
+            # This can cause problems with messages ordering.
+            raise RuntimeError('Recursive call to _wait_reply.')
         if call_id in self._reply_inbox:
             return
 
