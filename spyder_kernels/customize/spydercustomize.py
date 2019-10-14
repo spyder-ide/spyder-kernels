@@ -454,8 +454,16 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
                 sys.stdin = save_stdin
                 sys.displayhook = save_displayhook
         except:
-            exc_info = sys.exc_info()[:2]
-            self.error(traceback.format_exception_only(*exc_info)[-1].strip())
+            if PY2:
+                t, v = sys.exc_info()[:2]
+                if type(t) == type(''):
+                    exc_type_name = t
+                else: exc_type_name = t.__name__
+                print >>self.stdout, '***', exc_type_name + ':', v
+            else:
+                exc_info = sys.exc_info()[:2]
+                self.error(
+                    traceback.format_exception_only(*exc_info)[-1].strip())
 
 
 pdb.Pdb = SpyderPdb
