@@ -18,6 +18,7 @@ console, please read our [documentation](https://docs.spyder-ide.org/ipythoncons
 For advice on managing packages and environments with `spyder-kernels`, please visit
 our [wiki](https://github.com/spyder-ide/spyder/wiki/Working-with-packages-and-environments-in-Spyder).
 
+
 ## Installation
 
 To install this package, you can use either the ``pip`` or ``conda`` package
