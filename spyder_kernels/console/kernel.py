@@ -234,6 +234,8 @@ class SpyderKernel(IPythonKernel):
     def do_complete(self, code, cursor_pos):
         """
         Call PdB complete if we are debugging.
+
+        Public method of ipykernel overwritten for debugging.
         """
         if cursor_pos is None:
             cursor_pos = len(code)
@@ -249,7 +251,7 @@ class SpyderKernel(IPythonKernel):
             begidx = cursor_pos - len(text) - stripped
             endidx = cursor_pos - stripped
             if begidx > 0:
-                cmd, args, foo = self._pdb_obj.parseline(line)
+                cmd, args, _ = self._pdb_obj.parseline(line)
                 if cmd == '':
                     compfunc = self._pdb_obj.completedefault
                 else:
