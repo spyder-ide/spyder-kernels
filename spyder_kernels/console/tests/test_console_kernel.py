@@ -52,6 +52,9 @@ except:
 def setup_kernel(cmd):
     """start an embedded kernel in a subprocess, and wait for it to be ready
 
+    This function was taken from the ipykernel project.
+    We plan to remove it when dropping support for python 2.
+
     Returns
     -------
     kernel_manager: connected KernelManager instance
