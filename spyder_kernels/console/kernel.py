@@ -106,7 +106,11 @@ class SpyderKernel(IPythonKernel):
             self._pdb_obj.set_spyder_breakpoints(breakpoints)
 
     def set_pdb_echo_code(self, state):
-        """Set if pdb should echo the code."""
+        """Set if pdb should echo the code.
+
+        This might change for each pdb statment and is therefore not included
+        in pdb settings.
+        """
         self._pdb_print_code = state
 
     # -- Public API ---------------------------------------------------
