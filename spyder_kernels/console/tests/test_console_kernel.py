@@ -14,11 +14,18 @@ import ast
 import os
 import os.path as osp
 from textwrap import dedent
+from contextlib import contextmanager
+import time
+from subprocess import Popen, PIPE
+import sys
 
 # Test imports
-from ipykernel.tests.test_embed_kernel import setup_kernel
 import IPython
 import pytest
+from flaky import flaky
+from jupyter_core import paths
+from jupyter_client import BlockingKernelClient
+from ipython_genutils import py3compat
 
 
 # Local imports
@@ -26,12 +33,12 @@ from spyder_kernels.py3compat import PY3, to_text_string
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
-
 # =============================================================================
 # Constants
 # =============================================================================
 FILES_PATH = os.path.dirname(os.path.realpath(__file__))
 TIMEOUT = 15
+SETUP_TIMEOUT = 60
 
 TKINTER_INSTALLED = False
 try:
@@ -39,6 +46,53 @@ try:
     TKINTER_INSTALLED = True
 except:
     pass
+
+
+@contextmanager
+def setup_kernel(cmd):
+    """start an embedded kernel in a subprocess, and wait for it to be ready
+
+    This function was taken from the ipykernel project.
+    We plan to remove it when dropping support for python 2.
+
+    Returns
+    -------
+    kernel_manager: connected KernelManager instance
+    """
+    kernel = Popen([sys.executable, '-c', cmd], stdout=PIPE, stderr=PIPE)
+    try:
+        connection_file = os.path.join(
+            paths.jupyter_runtime_dir(),
+            'kernel-%i.json' % kernel.pid,
+        )
+        # wait for connection file to exist, timeout after 5s
+        tic = time.time()
+        while not os.path.exists(connection_file) \
+            and kernel.poll() is None \
+            and time.time() < tic + SETUP_TIMEOUT:
+            time.sleep(0.1)
+
+        if kernel.poll() is not None:
+            o,e = kernel.communicate()
+            e = py3compat.cast_unicode(e)
+            raise IOError("Kernel failed to start:\n%s" % e)
+
+        if not os.path.exists(connection_file):
+            if kernel.poll() is None:
+                kernel.terminate()
+            raise IOError("Connection file %r never arrived" % connection_file)
+
+        client = BlockingKernelClient(connection_file=connection_file)
+        client.load_connection_file()
+        client.start_channels()
+        client.wait_for_ready()
+        try:
+            yield client
+        finally:
+            client.stop_channels()
+    finally:
+        kernel.terminate()
+
 
 # =============================================================================
 # Fixtures
@@ -292,6 +346,7 @@ libc.printf(('Hello from C\\n').encode('utf8'))
     assert captured.out == "Hello from C\n"
 
 
+@flaky(max_runs=3)
 @pytest.mark.skipif(IPython.__version__ >= '7.2.0',
                     reason="This problem was fixed in IPython 7.2+")
 def test_cwd_in_sys_path():
@@ -316,6 +371,7 @@ def test_cwd_in_sys_path():
         assert value[0] == ''
 
 
+@flaky(max_runs=3)
 @pytest.mark.skipif(not (os.name == 'nt' and PY3),
                     reason="Only meant for Windows and Python 3")
 def test_multiprocessing(tmpdir):
@@ -355,6 +411,7 @@ if __name__ == '__main__':
         assert content['found']
 
 
+@flaky(max_runs=3)
 def test_runfile(tmpdir):
     """
     Test that runfile uses the proper name space for execution.
@@ -417,6 +474,7 @@ def test_runfile(tmpdir):
         assert content['found']
 
 
+@flaky(max_runs=3)
 def test_np_threshold(kernel):
     """Test that setting Numpy threshold doesn't make the Variable Explorer slow."""
 
@@ -474,6 +532,8 @@ f = np.get_printoptions()['formatter']
         content = msg['content']['data']['text/plain']
         assert "{'float_kind': <built-in method format of str object" in content
 
+
+@flaky(max_runs=3)
 @pytest.mark.skipif(not TKINTER_INSTALLED,
                     reason="Doesn't work on Python installations without Tk")
 def test_turtle_launch(tmpdir):
@@ -534,6 +594,7 @@ turtle.bye()
         assert content['found']
 
 
+@flaky(max_runs=3)
 def test_matplotlib_inline(kernel):
     """Test that the default backend for our kernels is 'inline'."""
     # Command to start the kernel
