@@ -71,6 +71,14 @@ class FrontendComm(CommBase):
         self._set_pickle_protocol(msg['content']['data']['pickle_protocol'])
         self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)
 
+    def _comm_close(self, msg):
+        """Close comm."""
+        comm_id = msg['content']['comm_id']
+        comm = self._comms[comm_id]
+        # Pretend it is already closed to avoid problems when closing
+        comm._closed = True
+        del self._comms[comm_id]
+
     def _async_error(self, error_wrapper):
         """
         Send an async error back to the frontend to be displayed.
