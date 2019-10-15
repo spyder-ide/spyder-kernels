@@ -804,15 +804,6 @@ def get_current_file_name():
         return None
 
 
-def is_file_open(filename):
-    """Check if filename is open."""
-    try:
-        return _frontend_request().is_file_open(filename)
-    except Exception:
-        # Assume it is open.
-        return True
-
-
 def get_debugger(filename):
     """Get a debugger for a given filename."""
     debugger = pdb.Pdb()
