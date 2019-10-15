@@ -303,10 +303,11 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     send_initial_notification = True
     starting = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, completekey='tab', stdin=None, stdout=None,
+                 skip=None, nosigint=False):
         """Init Pdb."""
         self.continue_if_has_breakpoints = True
-        super(SpyderPdb, self).__init__(*args, **kwargs)
+        super(SpyderPdb, self).__init__()
 
     # --- Methods overriden by us
     def preloop(self):
@@ -399,6 +400,17 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         except (CommError, TimeoutError):
             logger.debug("Could not send Pdb state to the frontend.")
 
+    def user_return(self, frame, return_value):
+        """This function is called when a return trap is set here."""
+        # This is useful when debugging in an active interpreter (otherwise,
+        # the debugger will stop before reaching the target file)
+        if self._wait_for_mainpyfile:
+            if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
+                    or frame.f_lineno <= 0):
+                return
+            self._wait_for_mainpyfile = 0
+        super(SpyderPdb, self).user_return(frame, return_value)
+
     def default(self, line):
         """
         Default way of running pdb statment.
@@ -431,142 +443,87 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
                 sys.stdin = save_stdin
                 sys.displayhook = save_displayhook
         except:
-            exc_info = sys.exc_info()[:2]
-            self.error(traceback.format_exception_only(*exc_info)[-1].strip())
+            if PY2:
+                t, v = sys.exc_info()[:2]
+                if type(t) == type(''):
+                    exc_type_name = t
+                else: exc_type_name = t.__name__
+                print >>self.stdout, '***', exc_type_name + ':', v
+            else:
+                exc_info = sys.exc_info()[:2]
+                self.error(
+                    traceback.format_exception_only(*exc_info)[-1].strip())
+
+    def interaction(self, frame, traceback):
+        if (frame is not None
+                and "spydercustomize.py" in frame.f_code.co_filename):
+            self.onecmd('exit')
+        else:
+            self.setup(frame, traceback)
+            if self.send_initial_notification:
+                self.notify_spyder(frame)
+            self.print_stack_entry(self.stack[self.curindex])
+            self._cmdloop()
+            self.forget()
+
+    def _cmdloop(self):
+        while True:
+            try:
+                # keyboard interrupts allow for an easy way to cancel
+                # the current command, so allow them during interactive input
+                self.allow_kbdint = True
+                self.cmdloop()
+                self.allow_kbdint = False
+                break
+            except KeyboardInterrupt:
+                _print("--KeyboardInterrupt--\n"
+                       "For copying text while debugging, use Ctrl+Shift+C",
+                       file=self.stdout)
+
+    def reset(self):
+        super(SpyderPdb, self).reset()
+        kernel = get_ipython().kernel
+        kernel._register_pdb_session(self)
+
+    # XXX: notify spyder on any pdb command (is that good or too lazy?
+    #     i.e. is more specific behaviour desired?)
+    def postcmd(self, stop, line):
+        if '!get_ipython().kernel' not in line:
+            self.notify_spyder(self.curframe)
+        return super(SpyderPdb, self).postcmd(stop, line)
+
+    # Breakpoints don't work for files with non-ascii chars in Python 2
+    # Fixes Issue 1484
+    if PY2:
+        def break_here(self, frame):
+            from bdb import effective
+            filename = self.canonic(frame.f_code.co_filename)
+            try:
+                filename = unicode(filename, "utf-8")
+            except TypeError:
+                pass
+            if filename not in self.breaks:
+                return False
+            lineno = frame.f_lineno
+            if lineno not in self.breaks[filename]:
+                # The line itself has no breakpoint, but maybe the line is the
+                # first line of a function with breakpoint set by function name
+                lineno = frame.f_code.co_firstlineno
+                if lineno not in self.breaks[filename]:
+                    return False
+
+            # flag says ok to delete temp. bp
+            (bp, flag) = effective(filename, lineno, frame)
+            if bp:
+                self.currentbp = bp.number
+                if (flag and bp.temporary):
+                    self.do_clear(str(bp.number))
+                return True
+            else:
+                return False
 
 
 pdb.Pdb = SpyderPdb
-
-
-#XXX: I know, this function is now also implemented as is in utils/misc.py but
-#     I'm kind of reluctant to import spyder in sitecustomize, even if this
-#     import is very clean.
-def monkeypatch_method(cls, patch_name):
-    # This function's code was inspired from the following thread:
-    # "[Python-Dev] Monkeypatching idioms -- elegant or ugly?"
-    # by Robert Brewer <fumanchu at aminus.org>
-    # (Tue Jan 15 19:13:25 CET 2008)
-    """
-    Add the decorated method to the given class; replace as needed.
-
-    If the named method already exists on the given class, it will
-    be replaced, and a reference to the old method is created as
-    cls._old<patch_name><name>. If the "_old_<patch_name>_<name>" attribute
-    already exists, KeyError is raised.
-    """
-    def decorator(func):
-        fname = func.__name__
-        old_func = getattr(cls, fname, None)
-        if old_func is not None:
-            # Add the old func to a list of old funcs.
-            old_ref = "_old_%s_%s" % (patch_name, fname)
-
-            old_attr = getattr(cls, old_ref, None)
-            if old_attr is None:
-                setattr(cls, old_ref, old_func)
-            else:
-                raise KeyError("%s.%s already exists."
-                               % (cls.__name__, old_ref))
-        setattr(cls, fname, func)
-        return func
-    return decorator
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def __init__(self, completekey='tab', stdin=None, stdout=None,
-             skip=None, nosigint=False):
-    self._old_Pdb___init__()
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def user_return(self, frame, return_value):
-    """This function is called when a return trap is set here."""
-    # This is useful when debugging in an active interpreter (otherwise,
-    # the debugger will stop before reaching the target file)
-    if self._wait_for_mainpyfile:
-        if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
-            or frame.f_lineno<= 0):
-            return
-        self._wait_for_mainpyfile = 0
-    self._old_Pdb_user_return(frame, return_value)
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def interaction(self, frame, traceback):
-    if frame is not None and "spydercustomize.py" in frame.f_code.co_filename:
-        self.onecmd('exit')
-    else:
-        self.setup(frame, traceback)
-        if self.send_initial_notification:
-            self.notify_spyder(frame)
-        self.print_stack_entry(self.stack[self.curindex])
-        self._cmdloop()
-        self.forget()
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def _cmdloop(self):
-    while True:
-        try:
-            # keyboard interrupts allow for an easy way to cancel
-            # the current command, so allow them during interactive input
-            self.allow_kbdint = True
-            self.cmdloop()
-            self.allow_kbdint = False
-            break
-        except KeyboardInterrupt:
-            _print("--KeyboardInterrupt--\n"
-                   "For copying text while debugging, use Ctrl+Shift+C",
-                   file=self.stdout)
-
-
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def reset(self):
-    self._old_Pdb_reset()
-    kernel = get_ipython().kernel
-    kernel._register_pdb_session(self)
-
-
-#XXX: notify spyder on any pdb command (is that good or too lazy? i.e. is more
-#     specific behaviour desired?)
-@monkeypatch_method(pdb.Pdb, 'Pdb')
-def postcmd(self, stop, line):
-    if ("_set_spyder_breakpoints" not in line and
-            '!get_ipython().kernel' not in line):
-        self.notify_spyder(self.curframe)
-    return self._old_Pdb_postcmd(stop, line)
-
-
-# Breakpoints don't work for files with non-ascii chars in Python 2
-# Fixes Issue 1484
-if PY2:
-    @monkeypatch_method(pdb.Pdb, 'Pdb')
-    def break_here(self, frame):
-        from bdb import effective
-        filename = self.canonic(frame.f_code.co_filename)
-        try:
-            filename = unicode(filename, "utf-8")
-        except TypeError:
-            pass
-        if not filename in self.breaks:
-            return False
-        lineno = frame.f_lineno
-        if not lineno in self.breaks[filename]:
-            # The line itself has no breakpoint, but maybe the line is the
-            # first line of a function with breakpoint set by function name.
-            lineno = frame.f_code.co_firstlineno
-            if not lineno in self.breaks[filename]:
-                return False
-
-        # flag says ok to delete temp. bp
-        (bp, flag) = effective(filename, lineno, frame)
-        if bp:
-            self.currentbp = bp.number
-            if (flag and bp.temporary):
-                self.do_clear(str(bp.number))
-            return True
-        else:
-            return False
 
 
 #==============================================================================
@@ -873,7 +830,7 @@ def get_debugger(filename):
     return debugger, filename
 
 
-def exec_code(code, filename, namespace, is_pdb):
+def exec_code(code, filename, namespace):
     """Execute code and display any exception."""
     if PY2 and isinstance(filename, unicode):
         filename = encode(filename)
@@ -897,9 +854,10 @@ def exec_code(code, filename, namespace, is_pdb):
         if status.code:
             ipython_shell.showtraceback(exception_only=True)
     except BaseException as error:
-        if isinstance(error, bdb.BdbQuit) and is_pdb:
+        if (isinstance(error, bdb.BdbQuit)
+                and ipython_shell.kernel._pdb_obj):
             # Ignore BdbQuit if we are debugging, as it is expected.
-            pass
+            ipython_shell.kernel._pdb_obj = None
         else:
             # We ignore the call to exec
             ipython_shell.showtraceback(tb_offset=1)
@@ -908,18 +866,23 @@ def exec_code(code, filename, namespace, is_pdb):
 def get_file_code(filename):
     """Retrive the content of a file."""
     # Get code from spyder
-    file_code = _frontend_request().get_file_code(filename)
+    try:
+        file_code = _frontend_request().get_file_code(filename)
+    except (CommError, TimeoutError):
+        file_code = None
+    if file_code is None:
+        with open(filename, 'r') as f:
+            return f.read()
     return file_code
 
 
-def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
-            post_mortem=False, is_pdb=False, current_namespace=False):
+def runfile(filename=None, args=None, wdir=None, namespace=None,
+            post_mortem=False, current_namespace=False):
     """
     Run filename
     args: command line arguments (string)
     wdir: working directory
     namespace: namespace for execution
-    local: boolean, should the file be locally loaded?
     post_mortem: boolean, whether to enter post-mortem mode on error
     current_namespace: if true, run the file in the current namespace
     """
@@ -941,20 +904,15 @@ def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
         __umr__.run()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
-    if local:
-        _print("Warning: Use %run magic to run local files.\n")
-        with open(filename, 'r') as f:
-            file_code = f.read()
-    else:
-        try:
-            file_code = get_file_code(filename)
-        except Exception:
-            _print(
-                "This command failed to be executed because an error occurred"
-                " while trying to get the file code from Spyder's"
-                " editor. The error was:\n\n")
-            get_ipython().showtraceback(exception_only=True)
-            return
+    try:
+        file_code = get_file_code(filename)
+    except Exception:
+        _print(
+            "This command failed to be executed because an error occurred"
+            " while trying to get the file code from Spyder's"
+            " editor. The error was:\n\n")
+        get_ipython().showtraceback(exception_only=True)
+        return
     if file_code is None:
         _print("Could not get code from editor.\n")
         return
@@ -984,7 +942,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None, local=False,
             with io.open(filename, encoding='utf-8') as f:
                 ipython_shell.run_cell_magic('cython', '', f.read())
         else:
-            exec_code(file_code, filename, namespace, is_pdb)
+            exec_code(file_code, filename, namespace)
 
         clear_post_mortem()
         sys.argv = ['']
@@ -994,28 +952,26 @@ builtins.runfile = runfile
 
 
 def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
-              current_namespace=False, local=False):
+              current_namespace=False):
     """
     Debug filename
     args: command line arguments (string)
     wdir: working directory
     post_mortem: boolean, included for compatiblity with runfile
-    local: boolean, should the file be locally loaded?
     """
     if filename is None:
         filename = get_current_file_name()
         if filename is None:
             return
     debugger, filename = get_debugger(filename)
-    debugger.run("runfile(%r, args=%r, wdir=%r, is_pdb=True, "
-                          "current_namespace=%r, local=%r)" % (
-        filename, args, wdir, current_namespace, local))
+    debugger.run("runfile(%r, args=%r, wdir=%r, current_namespace=%r)" % (
+        filename, args, wdir, current_namespace))
 
 
 builtins.debugfile = debugfile
 
 
-def runcell(cellname, filename=None, is_pdb=False):
+def runcell(cellname, filename=None):
     """
     Run a code cell from an editor as a file.
 
@@ -1064,7 +1020,7 @@ def runcell(cellname, filename=None, is_pdb=False):
         file_code = None
     with NamespaceManager(filename, current_namespace=True,
                           file_code=file_code) as namespace:
-        exec_code(cell_code, filename, namespace, is_pdb)
+        exec_code(cell_code, filename, namespace)
 
 
 builtins.runcell = runcell
@@ -1080,7 +1036,7 @@ def debugcell(cellname, filename=None):
     debugger, filename = get_debugger(filename)
     # The breakpoint might not be in the cell
     debugger.continue_if_has_breakpoints = False
-    debugger.run("runcell({}, {}, is_pdb=True)".format(
+    debugger.run("runcell({}, {})".format(
         repr(cellname), repr(filename)))
 
 
