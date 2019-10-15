@@ -312,7 +312,9 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     # --- Methods overriden by us
     def sigint_handler(self, signum, frame):
         """
-        Handle a sigint signal. Break here even if the call is blocking.
+        Handle a sigint signal. Break on the frame above this one.
+
+        This method is not present in python2 so this won't be called there.
         """
         if self.allow_kbdint:
             raise KeyboardInterrupt
