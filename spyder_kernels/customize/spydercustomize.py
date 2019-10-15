@@ -305,6 +305,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     def __init__(self, completekey='tab', stdin=None, stdout=None,
                  skip=None, nosigint=False):
         """Init Pdb."""
+        # Only set to true when calling debugfile
         self.continue_if_has_breakpoints = False
         super(SpyderPdb, self).__init__()
 
