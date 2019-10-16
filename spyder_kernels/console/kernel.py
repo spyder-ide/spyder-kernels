@@ -13,6 +13,10 @@ Spyder kernel for Jupyter
 # Standard library imports
 import os
 import sys
+import signal
+import logging
+import pdb
+import traceback
 
 # Third-party imports
 from ipykernel.ipkernel import IPythonKernel
@@ -26,12 +30,18 @@ from spyder_kernels.py3compat import isidentifier, PY2
 # shown at all there)
 EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 
+logger = logging.getLogger(__name__)
+
 
 class SpyderKernel(IPythonKernel):
     """Spyder kernel for Jupyter"""
 
     def __init__(self, *args, **kwargs):
         super(SpyderKernel, self).__init__(*args, **kwargs)
+
+        if hasattr(signal, 'SIGUSR1'):
+            signal.signal(signal.SIGUSR1, self._signal_process_messages)
+            self._handling_interrupt = False
 
         self.frontend_comm = FrontendComm(self)
 
@@ -68,6 +78,69 @@ class SpyderKernel(IPythonKernel):
         self._pdb_step = None
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
+
+    def _signal_process_messages(self, signum, frame):
+        """
+        Handle a SIGUSR1 signal.
+
+        This blocks if the kernel is executing something,
+        until we get a reply from the frontend.
+        This will process any message that are waiting.
+
+        Using signals might be a problem if the code being executed uses the
+        kernel streams. It should not happen while executing because the ioloop
+        is blocked unless kernel.do_one_iteration() is called.
+        """
+        if not self._signal_should_stop():
+            # Only run if executing
+            return
+
+        if len(self.frontend_comm._reply_waitlist) != 0:
+            # If we are already waiting, no need to wait
+            return
+
+        if self._handling_interrupt:
+            return
+
+        self._handling_interrupt = True
+        try:
+            self.frontend_comm.remote_call(blocking=True).pong()
+        except TimeoutError:
+            logger.debug("Timeout after SIGUSR1")
+        finally:
+            self._handling_interrupt = False
+
+    def _signal_should_stop(self):
+        """
+        Check if the kernel is executing and not calling do_one_iteration.
+
+        It is important to avoid breaking into message processing code
+        to avoid deadlocks on a mutex. We only proceed if the kernel is
+        executing something, and that this code does not call
+        do_one_iteration.
+        """
+        stack = traceback.extract_stack()
+        # Loop backwards as we want to know if do_execute is near the bottom.
+        for frame in stack[::-1]:
+            if PY2:
+                name, filename = frame[2], frame[0]
+            else:
+                name, filename = frame.name, frame.filename
+            if (name == 'do_execute'
+                    and 'ipykernel/ipkernel.py' in filename):
+                # We are executing
+                return True
+            elif (name == 'process_one'
+                    and 'ipykernel/kernelbase.py' in filename):
+                # We are doing something else
+                return False
+            elif (name == 'do_one_iteration'
+                    and 'ipykernel/kernelbase.py' in filename):
+                # We are calling do_one_iteration.
+                # Stopping here might trigger a deadlock if we call
+                # do_one_iteration again
+                return False
+        return False
 
     def frontend_call(self, blocking=False, broadcast=True):
         """Call the frontend."""
