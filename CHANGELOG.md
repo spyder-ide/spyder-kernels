@@ -1,5 +1,37 @@
 # History of changes
 
+## Version 1.6.0 (2019-10-16)
+
+### New features
+
+* Allow IPython magics in Pdb.
+* Allow Pdb to run multiline statments.
+* Make `runfile` to retrieve code from Spyder.
+* Add code completion to Pdb.
+
+### Issues Closed
+
+* [Issue 139](https://github.com/spyder-ide/spyder-kernels/issues/139) - Regression: runfile doesn't execute ipython magic ([PR 143](https://github.com/spyder-ide/spyder-kernels/pull/143))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 163](https://github.com/spyder-ide/spyder-kernels/pull/163) - PR: Fix tests that use setup_kernel
+* [PR 162](https://github.com/spyder-ide/spyder-kernels/pull/162) - PR: Improve Pdb sigint handler
+* [PR 161](https://github.com/spyder-ide/spyder-kernels/pull/161) - PR: Fix post-mortem debugging
+* [PR 157](https://github.com/spyder-ide/spyder-kernels/pull/157) - PR: Fix breakpoint update ([10290](https://github.com/spyder-ide/spyder/issues/10290))
+* [PR 154](https://github.com/spyder-ide/spyder-kernels/pull/154) - PR: Allow IPython magics in Pdb
+* [PR 153](https://github.com/spyder-ide/spyder-kernels/pull/153) - PR: Add a setting to disable printing the stack on every Pdb command
+* [PR 151](https://github.com/spyder-ide/spyder-kernels/pull/151) - PR: Remove Pdb Monkeypatching
+* [PR 148](https://github.com/spyder-ide/spyder-kernels/pull/148) - PR: Allow Pdb to run multiline statments
+* [PR 143](https://github.com/spyder-ide/spyder-kernels/pull/143) - PR: Make runfile to retrieve code from the Spyder editor and add it to linecache ([1643](https://github.com/spyder-ide/spyder/issues/1643), [139](https://github.com/spyder-ide/spyder-kernels/issues/139))
+* [PR 133](https://github.com/spyder-ide/spyder-kernels/pull/133) - PR: Add code completion to Pdb
+
+In this release 10 pull requests were closed.
+
+----
+
 ## Version 1.5.0 (2019-09-15)
 
 ### New features
