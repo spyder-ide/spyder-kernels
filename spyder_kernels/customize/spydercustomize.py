@@ -579,13 +579,11 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 pdb.Pdb = SpyderPdb
 
 
-def create_pathlist(initial_pathlist=None):
+def create_pathlist():
     """
     Add to pathlist Python library paths to be skipped from module
     reloading.
     """
-    if initial_pathlist is None:
-        initial_pathlist = []
     # Get standard installation paths
     try:
         paths = sysconfig.get_paths()
@@ -613,12 +611,18 @@ def create_pathlist(initial_pathlist=None):
     except Exception:
         user_path = []
 
-    return initial_pathlist + standard_paths + user_path
+    return standard_paths + user_path
 
 
 def path_is_library(modpath, initial_pathlist=None):
     """Decide if a path is in user code or a library according to its path."""
-    pathlist = create_pathlist(initial_pathlist)
+    if not hasattr(path_is_library, 'default_pathlist'):
+        path_is_library.default_pathlist = create_pathlist()
+
+    if initial_pathlist is None:
+        initial_pathlist = []
+
+    pathlist = initial_pathlist + path_is_library.default_pathlist
     # Skip module according to different criteria
     if modpath is None:
         # *module* is a C module that is statically linked into the
