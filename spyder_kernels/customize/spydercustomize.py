@@ -306,10 +306,27 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
     def __init__(self, completekey='tab', stdin=None, stdout=None,
                  skip=None, nosigint=False):
         """Init Pdb."""
-        self.continue_if_has_breakpoints = True
+        # Only set to true when calling debugfile
+        self.continue_if_has_breakpoints = False
         super(SpyderPdb, self).__init__()
+        self._pdb_breaking = False
 
     # --- Methods overriden by us
+    def sigint_handler(self, signum, frame):
+        """
+        Handle a sigint signal. Break on the frame above this one.
+
+        This method is not present in python2 so this won't be called there.
+        """
+        if self.allow_kbdint:
+            raise KeyboardInterrupt
+        self.message("\nProgram interrupted. (Use 'cont' to resume).")
+        # avoid stopping in set_trace
+        sys.settrace(None)
+        self._pdb_breaking = True
+        self.set_step()
+        self.set_trace(sys._getframe())
+
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
@@ -354,6 +371,9 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 
             # Get all breakpoints for the file we're going to debug
             frame = self.curframe
+            if not frame:
+                # We are not debugging, return. Solves #10290
+                return
             lineno = frame.f_lineno
             breaks = self.get_file_breaks(frame.f_code.co_filename)
 
@@ -454,7 +474,26 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
                 self.error(
                     traceback.format_exception_only(*exc_info)[-1].strip())
 
+    def completenames(self, text, line, begidx, endidx):
+        """
+        Try to complete with command names, otherwise goes to default.
+        """
+        matched_names = super(SpyderPdb, self).completenames(
+            text, line, begidx, endidx)
+        matched_default = self.completedefault(text, line, begidx, endidx)
+        return matched_names + matched_default
+
+    def completedefault(self, text, line, begidx, endidx):
+        """
+        Default completion.
+        """
+        return self._complete_expression(text, line, begidx, endidx)
+
     def interaction(self, frame, traceback):
+        if self._pdb_breaking:
+            self._pdb_breaking = False
+            if frame and frame.f_back:
+                return self.interaction(frame.f_back, traceback)
         if (frame is not None
                 and "spydercustomize.py" in frame.f_code.co_filename):
             self.onecmd('exit')
@@ -964,6 +1003,7 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
         if filename is None:
             return
     debugger, filename = get_debugger(filename)
+    debugger.continue_if_has_breakpoints = True
     debugger.run("runfile(%r, args=%r, wdir=%r, current_namespace=%r)" % (
         filename, args, wdir, current_namespace))
 
