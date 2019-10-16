@@ -17,7 +17,8 @@ import pytest
 
 # Local imports
 from spyder_kernels.customize.spydercustomize import (UserModuleReloader,
-                                                      path_is_library)
+                                                      path_is_library,
+                                                      create_pathlist)
 from spyder_kernels.py3compat import to_text_string
 
 
@@ -124,8 +125,6 @@ def test_umr_pathlist(user_module):
 
 def test_user_sitepackages_in_pathlist():
     """Test that we include users site-packages in UMR's pathlist."""
-    # Create UMR
-    umr = UserModuleReloader()
 
     if sys.platform.startswith('linux'):
         user_path = 'local'
@@ -134,4 +133,4 @@ def test_user_sitepackages_in_pathlist():
     else:
         user_path = 'Roaming'
 
-    assert any([user_path in path for path in umr.pathlist])
+    assert any([user_path in path for path in create_pathlist()])
