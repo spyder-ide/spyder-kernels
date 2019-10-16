@@ -185,7 +185,7 @@ class CommBase(object):
         Check to see if the other side replied.
 
         The check is made with _set_pickle_protocol as this is the first call
-        made. If comm_id is not specified, chack all comms.
+        made. If comm_id is not specified, check all comms.
         """
         if comm_id is None:
             # close all the comms
