@@ -16,7 +16,8 @@ import sys
 import pytest
 
 # Local imports
-from spyder_kernels.customize.spydercustomize import UserModuleReloader
+from spyder_kernels.customize.spydercustomize import (UserModuleReloader,
+                                                      path_is_library)
 from spyder_kernels.py3compat import to_text_string
 
 
@@ -110,15 +111,15 @@ def test_umr_pathlist(user_module):
 
     # Don't reload stdlib modules
     import xml
-    assert umr.is_module_in_pathlist(xml)
+    assert path_is_library(getattr(xml, '__file__', None))
 
     # Don't reload third-party modules
     import numpy
-    assert umr.is_module_in_pathlist(numpy)
+    assert path_is_library(getattr(numpy, '__file__', None))
 
     # Reload user modules
     import foo3
-    assert umr.is_module_in_pathlist(foo3) == False
+    assert not path_is_library(getattr(foo3, '__file__', None))
 
 
 def test_user_sitepackages_in_pathlist():
