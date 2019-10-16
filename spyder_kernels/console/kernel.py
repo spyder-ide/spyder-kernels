@@ -56,7 +56,8 @@ class SpyderKernel(IPythonKernel):
             'get_namespace_view': self.get_namespace_view,
             'set_namespace_view_settings': self.set_namespace_view_settings,
             'get_var_properties': self.get_var_properties,
-            'set_sympy_forecolor': self.set_sympy_forecolor
+            'set_sympy_forecolor': self.set_sympy_forecolor,
+            'set_pdb_echo_code': self.set_pdb_echo_code,
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -66,6 +67,7 @@ class SpyderKernel(IPythonKernel):
 
         self._pdb_obj = None
         self._pdb_step = None
+        self._pdb_print_code = True
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
 
@@ -103,6 +105,14 @@ class SpyderKernel(IPythonKernel):
         """
         if self._pdb_obj:
             self._pdb_obj.set_spyder_breakpoints(breakpoints)
+
+    def set_pdb_echo_code(self, state):
+        """Set if pdb should echo the code.
+
+        This might change for each pdb statment and is therefore not included
+        in pdb settings.
+        """
+        self._pdb_print_code = state
 
     # -- Public API ---------------------------------------------------
     # --- For the Variable Explorer
