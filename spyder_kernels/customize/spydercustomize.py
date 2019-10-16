@@ -24,6 +24,7 @@ import sysconfig
 import time
 import warnings
 import logging
+import traceback
 import threading
 
 from IPython.core.getipython import get_ipython
@@ -485,6 +486,47 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
                 return
             self._wait_for_mainpyfile = 0
         super(SpyderPdb, self).user_return(frame, return_value)
+
+    def default(self, line):
+        """
+        Default way of running pdb statment.
+
+        The only difference with Pdb.default is that if line contains multiple
+        statments, the code will be compiled with 'exec'. It will not print the
+        result but will run without failing.
+        """
+        if line[:1] == '!': line = line[1:]
+        locals = self.curframe_locals
+        globals = self.curframe.f_globals
+        try:
+            try:
+                code = compile(line + '\n', '<stdin>', 'single')
+            except SyntaxError:
+                # support multiline statments
+                code = compile(line + '\n', '<stdin>', 'exec')
+            save_stdout = sys.stdout
+            save_stdin = sys.stdin
+            save_displayhook = sys.displayhook
+            try:
+                sys.stdin = self.stdin
+                sys.stdout = self.stdout
+                sys.displayhook = self.displayhook
+                exec(code, globals, locals)
+            finally:
+                sys.stdout = save_stdout
+                sys.stdin = save_stdin
+                sys.displayhook = save_displayhook
+        except:
+            if PY2:
+                t, v = sys.exc_info()[:2]
+                if type(t) == type(''):
+                    exc_type_name = t
+                else: exc_type_name = t.__name__
+                print >>self.stdout, '***', exc_type_name + ':', v
+            else:
+                exc_info = sys.exc_info()[:2]
+                self.error(
+                    traceback.format_exception_only(*exc_info)[-1].strip())
 
     def completenames(self, text, line, begidx, endidx):
         """
