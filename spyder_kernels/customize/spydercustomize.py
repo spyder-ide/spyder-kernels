@@ -474,23 +474,9 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         if filename.startswith('<'):
             # This is not a file
             return True
-        if self.pdb_ignore_lib and self.path_is_lib(filename):
+        if self.pdb_ignore_lib and path_is_library(filename):
             return False
         return True
-
-    def path_is_lib(self, path):
-        """Check if path points to a python lib."""
-        path = osp.realpath(path)
-        # Get global site-packages folders
-        libpaths = [osp.realpath(lib) for lib in site.getsitepackages()]
-        # Get user site-packages folders
-        libpaths.append(osp.realpath(site.getusersitepackages()))
-        # Get platform-dependent library folder
-        libpaths.append(osp.realpath(osp.join(sys.exec_prefix, 'lib')))
-        # Get platform-independent library folder
-        libpaths.append(osp.realpath(osp.join(sys.prefix, 'lib')))
-        # Check if file is in any of these
-        return any([path.startswith(lib) for lib in libpaths])
 
     def _cmdloop(self):
         while True:
@@ -552,9 +538,81 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 pdb.Pdb = SpyderPdb
 
 
-#==============================================================================
+def create_pathlist(initial_pathlist=None):
+    """
+    Add to pathlist Python library paths to be skipped from module
+    reloading.
+    """
+    if initial_pathlist is None:
+        initial_pathlist = []
+    # Get standard installation paths
+    try:
+        paths = sysconfig.get_paths()
+        standard_paths = [paths['stdlib'],
+                          paths['purelib'],
+                          paths['scripts'],
+                          paths['data']]
+    except Exception:
+        standard_paths = []
+
+    # Get user installation path
+    # See Spyder issue 8776
+    try:
+        import site
+        if getattr(site, 'getusersitepackages', False):
+            # Virtualenvs don't have this function but
+            # conda envs do
+            user_path = [site.getusersitepackages()]
+        elif getattr(site, 'USER_SITE', False):
+            # However, it seems virtualenvs have this
+            # constant
+            user_path = [site.USER_SITE]
+        else:
+            user_path = []
+    except Exception:
+        user_path = []
+
+    return initial_pathlist + standard_paths + user_path
+
+
+def path_is_library(modpath, initial_pathlist=None):
+    """Decide if a path is in user code or a library according to its path."""
+    pathlist = create_pathlist(initial_pathlist)
+    # Skip module according to different criteria
+    if modpath is None:
+        # *module* is a C module that is statically linked into the
+        # interpreter. There is no way to know its path, so we
+        # choose to ignore it.
+        return True
+    elif any([p in modpath for p in pathlist]):
+        # We don't want to reload modules that belong to the
+        # standard library or installed to site-packages,
+        # just modules created by the user.
+        return True
+    elif not os.name == 'nt':
+        # Module paths containing the strings below can be ihherited
+        # from the default Linux installation, Homebrew or the user
+        # site-packages in a virtualenv.
+        patterns = [r'^/usr/lib.*',
+                    r'^/usr/local/lib.*',
+                    r'^/usr/.*/dist-packages/.*',
+                    r'^/home/.*/.local/lib.*',
+                    r'^/Library/.*',
+                    r'^/Users/.*/Library/.*',
+                    r'^/Users/.*/.local/.*',
+                    ]
+
+        if [p for p in patterns if re.search(p, modpath)]:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
+# =============================================================================
 # User module reloader
-#==============================================================================
+# =============================================================================
 class UserModuleReloader(object):
     """
     User Module Reloader (UMR) aims at deleting user modules
@@ -563,6 +621,7 @@ class UserModuleReloader(object):
     pathlist [list]: blacklist in terms of module path
     namelist [list]: blacklist in terms of module name
     """
+
     def __init__(self, namelist=None, pathlist=None):
         if namelist is None:
             namelist = []
@@ -590,9 +649,7 @@ class UserModuleReloader(object):
             other_modules = other_modules + py2_modules
         self.namelist = namelist + spy_modules + mpl_modules + other_modules
 
-        if pathlist is None:
-            pathlist = []
-        self.pathlist = self.create_pathlist(pathlist)
+        self.pathlist = pathlist
 
         # List of previously loaded modules
         self.previous_modules = list(sys.modules.keys())
@@ -612,47 +669,14 @@ class UserModuleReloader(object):
         verbose = os.environ.get("SPY_UMR_VERBOSE", "")
         self.verbose = verbose.lower() == "true"
 
-    def create_pathlist(self, initial_pathlist):
-        """
-        Add to pathlist Python library paths to be skipped from module
-        reloading.
-        """
-        # Get standard installation paths
-        try:
-            paths = sysconfig.get_paths()
-            standard_paths = [paths['stdlib'],
-                              paths['purelib'],
-                              paths['scripts'],
-                              paths['data']]
-        except Exception:
-            standard_paths = []
-
-        # Get user installation path
-        # See Spyder issue 8776
-        try:
-            import site
-            if getattr(site, 'getusersitepackages', False):
-                # Virtualenvs don't have this function but
-                # conda envs do
-                user_path = [site.getusersitepackages()]
-            elif getattr(site, 'USER_SITE', False):
-                # However, it seems virtualenvs have this
-                # constant
-                user_path = [site.USER_SITE]
-            else:
-                user_path = []
-        except Exception:
-            user_path = []
-
-        return initial_pathlist + standard_paths + user_path
-
     def is_module_reloadable(self, module, modname):
         """Decide if a module is reloadable or not."""
         if self.has_cython:
             # Don't return cached inline compiled .PYX files
             return False
         else:
-            if (self.is_module_in_pathlist(module) or
+            if (path_is_library(getattr(module, '__file__', None),
+                                self.pathlist) or
                     self.is_module_in_namelist(modname)):
                 return False
             else:
@@ -661,41 +685,6 @@ class UserModuleReloader(object):
     def is_module_in_namelist(self, modname):
         """Decide if a module can be reloaded or not according to its name."""
         return set(modname.split('.')) & set(self.namelist)
-
-    def is_module_in_pathlist(self, module):
-        """Decide if a module can be reloaded or not according to its path."""
-        modpath = getattr(module, '__file__', None)
-
-        # Skip module according to different criteria
-        if modpath is None:
-            # *module* is a C module that is statically linked into the
-            # interpreter. There is no way to know its path, so we
-            # choose to ignore it.
-            return True
-        elif any([p in modpath for p in self.pathlist]):
-            # We don't want to reload modules that belong to the
-            # standard library or installed to site-packages,
-            # just modules created by the user.
-            return True
-        elif not os.name == 'nt':
-            # Module paths containing the strings below can be ihherited
-            # from the default Linux installation, Homebrew or the user
-            # site-packages in a virtualenv.
-            patterns = [r'^/usr/lib.*',
-                        r'^/usr/local/lib.*',
-                        r'^/usr/.*/dist-packages/.*',
-                        r'^/home/.*/.local/lib.*',
-                        r'^/Library/.*',
-                        r'^/Users/.*/Library/.*',
-                        r'^/Users/.*/.local/.*',
-            ]
-
-            if [p for p in patterns if re.search(p, modpath)]:
-                return True
-            else:
-                return False
-        else:
-            return False
 
     def activate_cython(self):
         """
