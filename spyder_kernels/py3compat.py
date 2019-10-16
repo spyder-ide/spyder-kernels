@@ -293,5 +293,16 @@ if PY2:
 else:
     TimeoutError = TimeoutError
 
+if PY2:
+    import re
+    import tokenize
+    def isidentifier(string):
+        """Check if string can be a variable name."""
+        return re.match(tokenize.Name + r'\Z', string) is not None
+else:
+    def isidentifier(string):
+        """Check if string can be a variable name."""
+        return string.isidentifier()
+
 if __name__ == '__main__':
     pass

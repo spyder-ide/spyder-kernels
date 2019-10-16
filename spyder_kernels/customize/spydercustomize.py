@@ -430,6 +430,21 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
             self._wait_for_mainpyfile = 0
         super(SpyderPdb, self).user_return(frame, return_value)
 
+    def completenames(self, text, line, begidx, endidx):
+        """
+        Try to complete with command names, otherwise goes to default.
+        """
+        matched_names = super(SpyderPdb, self).completenames(
+            text, line, begidx, endidx)
+        matched_default = self.completedefault(text, line, begidx, endidx)
+        return matched_names + matched_default
+
+    def completedefault(self, text, line, begidx, endidx):
+        """
+        Default completion.
+        """
+        return self._complete_expression(text, line, begidx, endidx)
+
     def interaction(self, frame, traceback):
         if self._pdb_breaking:
             self._pdb_breaking = False
