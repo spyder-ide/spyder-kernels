@@ -146,7 +146,6 @@ class CommBase(object):
         # Lists of reply numbers
         self._reply_inbox = {}
         self._reply_waitlist = {}
-        self._pickle_protocol = DEFAULT_PICKLE_PROTOCOL
 
         self._register_message_handler(
             'remote_call', self._handle_remote_call)
@@ -172,7 +171,7 @@ class CommBase(object):
             id_list = [comm_id]
 
         for comm_id in id_list:
-            self._comms[comm_id].close()
+            self._comms[comm_id]['comm'].close()
             del self._comms[comm_id]
 
     def is_open(self, comm_id=None):
@@ -180,6 +179,22 @@ class CommBase(object):
         if comm_id is None:
             return len(self._comms) > 0
         return comm_id in self._comms
+
+    def is_ready(self, comm_id=None):
+        """
+        Check to see if the other side replied.
+
+        The check is made with _set_pickle_protocol as this is the first call
+        made. If comm_id is not specified, chack all comms.
+        """
+        if comm_id is None:
+            # close all the comms
+            id_list = list(self._comms.keys())
+        else:
+            id_list = [comm_id]
+        if len(id_list) == 0:
+            return False
+        return all([self._comms[cid]['status'] == 'ready' for cid in id_list])
 
     def register_call_handler(self, call_name, handler):
         """
@@ -223,25 +238,27 @@ class CommBase(object):
         """
         if not self.is_open(comm_id):
             raise CommError("The comm is not connected.")
-        msg_dict = {
-            'spyder_msg_type': spyder_msg_type,
-            'content': content,
-            'pickle_protocol': self._pickle_protocol,
-            'python_version': sys.version,
-            }
-        buffers = [cloudpickle.dumps(data, protocol=self._pickle_protocol)]
         if comm_id is None:
             # send to all the comms
             id_list = list(self._comms.keys())
         else:
             id_list = [comm_id]
         for comm_id in id_list:
-            self._comms[comm_id].send(msg_dict, buffers=buffers)
+            msg_dict = {
+                'spyder_msg_type': spyder_msg_type,
+                'content': content,
+                'pickle_protocol': self._comms[comm_id]['pickle_protocol'],
+                'python_version': sys.version,
+                }
+            buffers = [cloudpickle.dumps(
+                data, protocol=self._comms[comm_id]['pickle_protocol'])]
+            self._comms[comm_id]['comm'].send(msg_dict, buffers=buffers)
 
     def _set_pickle_protocol(self, protocol):
         """Set the pickle protocol used to send data."""
         protocol = min(protocol, pickle.HIGHEST_PROTOCOL)
-        self._pickle_protocol = protocol
+        self._comms[self.calling_comm_id]['pickle_protocol'] = protocol
+        self._comms[self.calling_comm_id]['status'] = 'ready'
 
     @property
     def _comm_name(self):
@@ -277,7 +294,11 @@ class CommBase(object):
         """
         comm.on_msg(self._comm_message)
         comm.on_close(self._comm_close)
-        self._comms[comm.comm_id] = comm
+        self._comms[comm.comm_id] = {
+            'comm': comm,
+            'pickle_protocol': DEFAULT_PICKLE_PROTOCOL,
+            'status': 'opening',
+            }
 
     def _comm_close(self, msg):
         """Close comm."""

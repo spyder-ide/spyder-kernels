@@ -8,7 +8,6 @@
 In addition to the remote_call mechanism implemented in CommBase:
  - Implements _wait_reply, so blocking calls can be made.
 """
-import os
 import time
 import threading
 import pickle
@@ -24,7 +23,6 @@ class FrontendComm(CommBase):
         super(FrontendComm, self).__init__()
 
         # Comms
-        self._pid = os.getpid()
         self.kernel = kernel
         self.kernel.comm_manager.register_target(
             self._comm_name, self._comm_open)
@@ -67,6 +65,7 @@ class FrontendComm(CommBase):
         """
         A new comm is open!
         """
+        self.calling_comm_id = comm.comm_id
         self._register_comm(comm)
         self._set_pickle_protocol(msg['content']['data']['pickle_protocol'])
         self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)
@@ -74,7 +73,7 @@ class FrontendComm(CommBase):
     def _comm_close(self, msg):
         """Close comm."""
         comm_id = msg['content']['comm_id']
-        comm = self._comms[comm_id]
+        comm = self._comms[comm_id]['comm']
         # Pretend it is already closed to avoid problems when closing
         comm._closed = True
         del self._comms[comm_id]
