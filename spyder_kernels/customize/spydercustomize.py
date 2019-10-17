@@ -25,6 +25,7 @@ import time
 import warnings
 import logging
 import traceback
+import threading
 
 from IPython.core.getipython import get_ipython
 
@@ -310,6 +311,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         self.continue_if_has_breakpoints = False
         super(SpyderPdb, self).__init__()
         self._pdb_breaking = False
+        self._threading_lock = threading.RLock()
 
     # --- Methods overriden by us
     def sigint_handler(self, signum, frame):
@@ -326,6 +328,60 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         self._pdb_breaking = True
         self.set_step()
         self.set_trace(sys._getframe())
+
+    def do_debug(self, arg):
+        """debug code
+        """
+        threading.settrace(None)
+        super(SpyderPdb, self).do_debug(arg)
+        threading.settrace(self.trace_dispatch)
+
+    def runcall(self, *args, **kwds):
+        """Debug a single function call."""
+        threading.settrace(self.trace_dispatch)
+        try:
+            return super(SpyderPdb, self).runcall(*args, **kwds)
+        finally:
+            threading.settrace(None)
+
+    def runeval(self, expr, globals=None, locals=None):
+        """Debug an expression executed via the eval() function."""
+        threading.settrace(self.trace_dispatch)
+        try:
+            return super(SpyderPdb, self).runeval(
+                expr, globals=None, locals=None)
+        finally:
+            threading.settrace(None)
+
+    def run(self, cmd, globals=None, locals=None):
+        """Debug a statement executed via the exec() function."""
+        threading.settrace(self.trace_dispatch)
+        try:
+            return super(SpyderPdb, self).run(cmd, globals=None, locals=None)
+        finally:
+            threading.settrace(None)
+
+    def set_quit(self):
+        """Set quitting attribute to True."""
+        super(SpyderPdb, self).set_quit()
+        threading.settrace(None)
+
+    def set_trace(self, frame=None):
+        """Start debugging from frame."""
+        threading.settrace(self.trace_dispatch)
+        super(SpyderPdb, self).set_trace(frame)
+
+    def trace_dispatch(self, frame, event, arg):
+        """Reimplement trace dispatch to support multithreading."""
+        if self._threading_lock.acquire(blocking=False):
+            # only dispatch if another thread is not dispatching
+            try:
+                return super(SpyderPdb, self).trace_dispatch(frame, event, arg)
+            finally:
+                self._threading_lock.release()
+        else:
+            # If another thread is debugging, we have to ignore this.
+            return self.trace_dispatch
 
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
