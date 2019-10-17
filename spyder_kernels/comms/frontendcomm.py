@@ -45,6 +45,8 @@ class FrontendComm(CommBase):
         if not PY2:
             self._main_thread_id = threading.get_ident()
 
+        self.comm_port = None
+
         if self.kernel.parent:
             # self.kernel.parent is IPKernelApp unless we are in tests
             # Create a new socket
