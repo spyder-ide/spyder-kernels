@@ -67,16 +67,17 @@ class FrontendComm(CommBase):
 
             # patch parent.close
             self.comm_thread_close = threading.Event()
-            super_close = self.kernel.parent.close
+            if not PY2:
+                super_close = self.kernel.parent.close
 
-            def close():
-                """Close comm_socket_thread."""
-                self.comm_thread_close.set()
-                context.term()
-                self.comm_socket_thread.join()
-                super_close()
+                def close():
+                    """Close comm_socket_thread."""
+                    self.comm_thread_close.set()
+                    context.term()
+                    self.comm_socket_thread.join()
+                    super_close()
 
-            self.kernel.parent.close = close
+                self.kernel.parent.close = close
 
     def poll_thread(self):
         """Recieve messages from comm socket"""
