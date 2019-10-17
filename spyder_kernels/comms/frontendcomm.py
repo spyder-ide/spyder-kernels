@@ -69,6 +69,7 @@ class FrontendComm(CommBase):
             # Create an event loop to handle some messages
             ioloop.IOLoop().initialize()
         while True:
+            out_stream = self.kernel.shell_streams[0]
             try:
                 ident, msg = self.kernel.session.recv(self.comm_socket, 0)
             except Exception:
@@ -81,13 +82,15 @@ class FrontendComm(CommBase):
             else:
                 try:
                     # shell_streams[0] handles replies
-                    handler(self.kernel.shell_streams[0], ident, msg)
+                    handler(out_stream, ident, msg)
                 except Exception:
                     self.kernel.log.error("Exception in message handler:",
                                           exc_info=True)
 
             sys.stdout.flush()
             sys.stderr.flush()
+            # flush to ensure reply is sent
+            out_stream.flush(zmq.POLLOUT)
 
     def remote_call(self, comm_id=None, blocking=False, callback=None):
         """Get a handler for remote calls."""
