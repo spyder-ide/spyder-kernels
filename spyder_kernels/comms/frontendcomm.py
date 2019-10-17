@@ -11,13 +11,24 @@ In addition to the remote_call mechanism implemented in CommBase:
 import time
 import threading
 import pickle
-from tornado import ioloop
 import zmq
 import sys
 from zmq.eventloop.zmqstream import ZMQStream
+import socket
+from jupyter_client.localinterfaces import localhost
 
-from spyder_kernels.comms.commbase import CommBase, CommError
+from spyder_kernels.comms.commbase import CommBase
 from spyder_kernels.py3compat import TimeoutError, PY2
+
+
+def get_port():
+    sock = socket.socket()
+    # struct.pack('ii', (0,0)) is 8 null bytes
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, b'\0' * 8)
+    sock.bind((localhost(), 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
 
 
 class FrontendComm(CommBase):
@@ -39,7 +50,7 @@ class FrontendComm(CommBase):
         self.comm_socket = context.socket(zmq.ROUTER)
         self.comm_socket.linger = 1000
 
-        self.comm_port = 6027 # Some random number
+        self.comm_port = get_port()
         self.comm_port = self.kernel.parent._bind_socket(
             self.comm_socket, self.comm_port)
         if hasattr(zmq, 'ROUTER_HANDOVER'):
