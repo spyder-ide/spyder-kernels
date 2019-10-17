@@ -11,6 +11,10 @@ In addition to the remote_call mechanism implemented in CommBase:
 import time
 import threading
 import pickle
+from tornado import ioloop
+import zmq
+import sys
+from zmq.eventloop.zmqstream import ZMQStream
 
 from spyder_kernels.comms.commbase import CommBase, CommError
 from spyder_kernels.py3compat import TimeoutError, PY2
@@ -29,6 +33,46 @@ class FrontendComm(CommBase):
 
         if not PY2:
             self._main_thread_id = threading.get_ident()
+
+        # Create a new socket
+        context = zmq.Context()
+        self.comm_socket = context.socket(zmq.ROUTER)
+        self.comm_socket.linger = 1000
+
+        self.comm_port = 6027 # Some random number
+        self.comm_port = self.kernel.parent._bind_socket(
+            self.comm_socket, self.comm_port)
+        if hasattr(zmq, 'ROUTER_HANDOVER'):
+            # set router-handover to workaround zeromq reconnect problems
+            # in certain rare circumstances
+            # see ipython/ipykernel#270 and zeromq/libzmq#2892
+            self.comm_socket.router_handover = 1
+        self.comm_stream = ZMQStream(self.comm_socket)
+
+        self.comm_socket_thread = threading.Thread(target=self.poll_thread)
+        self.comm_socket_thread.start()
+
+    def poll_thread(self):
+        """Recieve messages from comm socket"""
+        while True:
+            try:
+                ident, msg = self.kernel.session.recv(self.comm_socket, 0)
+            except Exception:
+                self.kernel.log.warning("Invalid Message:", exc_info=True)
+            msg_type = msg['header']['msg_type']
+
+            handler = self.kernel.shell_handlers.get(msg_type, None)
+            if handler is None:
+                self.kernel.log.warning("Unknown message type: %r", msg_type)
+            else:
+                try:
+                    handler(self.comm_stream, ident, msg)
+                except Exception:
+                    self.kernel.log.error("Exception in message handler:",
+                                          exc_info=True)
+
+            sys.stdout.flush()
+            sys.stderr.flush()
 
     def remote_call(self, comm_id=None, blocking=False, callback=None):
         """Get a handler for remote calls."""
@@ -69,6 +113,7 @@ class FrontendComm(CommBase):
         self._register_comm(comm)
         self._set_pickle_protocol(msg['content']['data']['pickle_protocol'])
         self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)
+        self.remote_call()._set_comm_port(self.comm_port)
 
     def _comm_close(self, msg):
         """Close comm."""
