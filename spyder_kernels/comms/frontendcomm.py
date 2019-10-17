@@ -64,11 +64,11 @@ class FrontendComm(CommBase):
                 # see ipython/ipykernel#270 and zeromq/libzmq#2892
                 self.comm_socket.router_handover = 1
 
+            self.comm_thread_close = threading.Event()
             self.comm_socket_thread = threading.Thread(target=self.poll_thread)
             self.comm_socket_thread.start()
 
             # patch parent.close
-            self.comm_thread_close = threading.Event()
             if not PY2:
                 super_close = self.kernel.parent.close
 
