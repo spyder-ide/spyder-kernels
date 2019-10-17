@@ -85,25 +85,14 @@ class FrontendComm(CommBase):
         if call_id in self._reply_inbox:
             return
 
-        # There is no get_ident in Py2
-        if not PY2 and self._main_thread_id != threading.get_ident():
-            # We can't call kernel.do_one_iteration from this thread.
-            # And we have no reason to think the main thread is not busy.
-            raise CommError(
-                "Can't make blocking calls from non-main threads.")
-
         t_start = time.time()
         while call_id not in self._reply_inbox:
             if time.time() > t_start + timeout:
                 raise TimeoutError(
                     "Timeout while waiting for '{}' reply".format(
                         call_name))
-            priority = 0
-            while priority is not None:
-                priority = self.kernel.do_one_iteration()
-                if priority is not None:
-                    # For Python2
-                    priority = priority.result()
+            # Wait 10ms for a reply
+            time.sleep(0.01)
 
     def _comm_open(self, comm, msg):
         """

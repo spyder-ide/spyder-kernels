@@ -151,14 +151,6 @@ class CommBase(object):
             'remote_call', self._handle_remote_call)
         self._register_message_handler(
             'remote_call_reply', self._handle_remote_call_reply)
-
-        # Dummy functions for testing and to trigger side effects such as
-        # an interruption or waiting for a reply.
-        def pong_back():
-            self.remote_call(self.calling_comm_id).pong()
-
-        self.register_call_handler('ping', pong_back)
-        self.register_call_handler('pong', lambda: None)
         self.register_call_handler('_set_pickle_protocol',
                                    self._set_pickle_protocol)
 
