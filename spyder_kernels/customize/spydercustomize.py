@@ -438,8 +438,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
             # Fixes issue 4681
             if (self.continue_if_has_breakpoints and
                     breaks and
-                    lineno < breaks[0] and
-                    osp.isfile(fname)):
+                    lineno < breaks[0]):
                 try:
                     get_ipython().kernel.pdb_continue()
                 except (CommError, TimeoutError):
@@ -465,8 +464,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         # Set step of the current frame (if any)
         step = {}
         if isinstance(fname, basestring) and isinstance(lineno, int):
-            if osp.isfile(fname):
-                step = dict(fname=fname, lineno=lineno)
+            step = dict(fname=fname, lineno=lineno)
 
         # Publish Pdb state so we can update the Variable Explorer
         # and the Editor on the Spyder side
