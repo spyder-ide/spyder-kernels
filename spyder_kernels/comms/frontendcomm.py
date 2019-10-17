@@ -13,7 +13,6 @@ import threading
 import pickle
 import zmq
 import sys
-from zmq.eventloop.zmqstream import ZMQStream
 import socket
 from jupyter_client.localinterfaces import localhost
 from tornado import ioloop
@@ -46,30 +45,48 @@ class FrontendComm(CommBase):
         if not PY2:
             self._main_thread_id = threading.get_ident()
 
-        # Create a new socket
-        context = zmq.Context()
-        self.comm_socket = context.socket(zmq.ROUTER)
-        self.comm_socket.linger = 1000
+        if self.kernel.parent:
+            # self.kernel.parent is IPKernelApp unless we are in tests
+            # Create a new socket
+            context = zmq.Context()
+            self.comm_socket = context.socket(zmq.ROUTER)
+            self.comm_socket.linger = 1000
 
-        self.comm_port = get_port()
-        self.comm_port = self.kernel.parent._bind_socket(
-            self.comm_socket, self.comm_port)
-        if hasattr(zmq, 'ROUTER_HANDOVER'):
-            # set router-handover to workaround zeromq reconnect problems
-            # in certain rare circumstances
-            # see ipython/ipykernel#270 and zeromq/libzmq#2892
-            self.comm_socket.router_handover = 1
+            self.comm_port = get_port()
 
-        self.comm_socket_thread = threading.Thread(target=self.poll_thread)
-        self.comm_socket_thread.start()
+            self.comm_port = self.kernel.parent._bind_socket(
+                self.comm_socket, self.comm_port)
+            if hasattr(zmq, 'ROUTER_HANDOVER'):
+                # set router-handover to workaround zeromq reconnect problems
+                # in certain rare circumstances
+                # see ipython/ipykernel#270 and zeromq/libzmq#2892
+                self.comm_socket.router_handover = 1
+
+            self.comm_socket_thread = threading.Thread(target=self.poll_thread)
+            self.comm_socket_thread.start()
+
+            # patch parent.close
+            self.comm_thread_close = threading.Event()
+            super_close = self.kernel.parent.close
+
+            def close():
+                """Close comm_socket_thread."""
+                self.comm_thread_close.set()
+                context.term()
+                self.comm_socket_thread.join()
+                super_close()
+
+            self.kernel.parent.close = close
 
     def poll_thread(self):
         """Recieve messages from comm socket"""
         if not PY2:
             # Create an event loop to handle some messages
             ioloop.IOLoop().initialize()
-        while True:
-            out_stream = self.kernel.shell_streams[0]
+        while not self.comm_thread_close.is_set():
+            out_stream = None
+            if self.kernel.shell_streams:
+                out_stream = self.kernel.shell_streams[0]
             try:
                 ident, msg = self.kernel.session.recv(self.comm_socket, 0)
             except Exception:
@@ -90,7 +107,8 @@ class FrontendComm(CommBase):
             sys.stdout.flush()
             sys.stderr.flush()
             # flush to ensure reply is sent
-            out_stream.flush(zmq.POLLOUT)
+            if out_stream:
+                out_stream.flush(zmq.POLLOUT)
 
     def remote_call(self, comm_id=None, blocking=False, callback=None):
         """Get a handler for remote calls."""
