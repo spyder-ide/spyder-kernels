@@ -16,6 +16,7 @@ import sys
 from zmq.eventloop.zmqstream import ZMQStream
 import socket
 from jupyter_client.localinterfaces import localhost
+from tornado import ioloop
 
 from spyder_kernels.comms.commbase import CommBase
 from spyder_kernels.py3compat import TimeoutError, PY2
@@ -58,13 +59,15 @@ class FrontendComm(CommBase):
             # in certain rare circumstances
             # see ipython/ipykernel#270 and zeromq/libzmq#2892
             self.comm_socket.router_handover = 1
-        self.comm_stream = ZMQStream(self.comm_socket)
 
         self.comm_socket_thread = threading.Thread(target=self.poll_thread)
         self.comm_socket_thread.start()
 
     def poll_thread(self):
         """Recieve messages from comm socket"""
+        if not PY2:
+            # Create an event loop to handle some messages
+            ioloop.IOLoop().initialize()
         while True:
             try:
                 ident, msg = self.kernel.session.recv(self.comm_socket, 0)
@@ -77,7 +80,8 @@ class FrontendComm(CommBase):
                 self.kernel.log.warning("Unknown message type: %r", msg_type)
             else:
                 try:
-                    handler(self.comm_stream, ident, msg)
+                    # shell_streams[0] handles replies
+                    handler(self.kernel.shell_streams[0], ident, msg)
                 except Exception:
                     self.kernel.log.error("Exception in message handler:",
                                           exc_info=True)
