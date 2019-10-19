@@ -985,6 +985,11 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         filename = get_current_file_name()
         if filename is None:
             return
+    else:
+        # get_debugger replaces \\ by / so we must undo that here
+        # Otherwise code caching doesn't work
+        if os.name == 'nt':
+            filename = filename.replace('/', '\\')
 
     try:
         filename = filename.decode('utf-8')
@@ -1085,6 +1090,11 @@ def runcell(cellname, filename=None):
         filename = get_current_file_name()
         if filename is None:
             return
+    else:
+        # get_debugger replaces \\ by / so we must undo that here
+        # Otherwise code caching doesn't work
+        if os.name == 'nt':
+            filename = filename.replace('/', '\\')
     try:
         filename = filename.decode('utf-8')
     except (UnicodeError, TypeError, AttributeError):
