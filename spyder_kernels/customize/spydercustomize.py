@@ -437,7 +437,10 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         statments, the code will be compiled with 'exec'. It will not print the
         result but will run without failing.
         """
-        if line[:1] == '!':
+        if line.startswith('%plot '):
+            line = line.split()[-1]
+            line = "__spy_code__ = get_ipython().run_cell('%s')" % line
+        elif line[:1] == '!':
             line = line[1:]
         line = TransformerManager().transform_cell(line)
         locals = self.curframe_locals
