@@ -438,7 +438,8 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         result but will run without failing.
         """
         if line.startswith('%plot '):
-            line = line.split()[-1]
+            # Spyder addition: show plots while debugging
+            line = line[6:]
             line = "__spy_code__ = get_ipython().run_cell('%s')" % line
         elif line[:1] == '!':
             line = line[1:]
