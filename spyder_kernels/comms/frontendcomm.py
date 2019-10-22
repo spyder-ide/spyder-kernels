@@ -96,6 +96,9 @@ class FrontendComm(CommBase):
                 self.kernel.log.warning("Invalid Message:", exc_info=True)
             msg_type = msg['header']['msg_type']
 
+            if msg_type == 'shutdown_request':
+                return
+
             handler = self.kernel.shell_handlers.get(msg_type, None)
             if handler is None:
                 self.kernel.log.warning("Unknown message type: %r", msg_type)
