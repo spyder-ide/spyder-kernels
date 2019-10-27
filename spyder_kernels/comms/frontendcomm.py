@@ -87,34 +87,39 @@ class FrontendComm(CommBase):
             # Create an event loop to handle some messages
             ioloop.IOLoop().initialize()
         while not self.comm_thread_close.is_set():
-            out_stream = None
-            if self.kernel.shell_streams:
-                out_stream = self.kernel.shell_streams[0]
+            self.poll_one()
+
+    def poll_one(self):
+        """Recieve one message from comm socket."""
+        out_stream = None
+        if self.kernel.shell_streams:
+            out_stream = self.kernel.shell_streams[0]
+        try:
+            ident, msg = self.kernel.session.recv(self.comm_socket, 0)
+        except Exception:
+            self.kernel.log.warning("Invalid Message:", exc_info=True)
+        msg_type = msg['header']['msg_type']
+
+        if msg_type == 'shutdown_request':
+            self.comm_thread_close.set()
+            return
+
+        handler = self.kernel.shell_handlers.get(msg_type, None)
+        if handler is None:
+            self.kernel.log.warning("Unknown message type: %r", msg_type)
+        else:
             try:
-                ident, msg = self.kernel.session.recv(self.comm_socket, 0)
+                # shell_streams[0] handles replies
+                handler(out_stream, ident, msg)
             except Exception:
-                self.kernel.log.warning("Invalid Message:", exc_info=True)
-            msg_type = msg['header']['msg_type']
+                self.kernel.log.error("Exception in message handler:",
+                                      exc_info=True)
 
-            if msg_type == 'shutdown_request':
-                return
-
-            handler = self.kernel.shell_handlers.get(msg_type, None)
-            if handler is None:
-                self.kernel.log.warning("Unknown message type: %r", msg_type)
-            else:
-                try:
-                    # shell_streams[0] handles replies
-                    handler(out_stream, ident, msg)
-                except Exception:
-                    self.kernel.log.error("Exception in message handler:",
-                                          exc_info=True)
-
-            sys.stdout.flush()
-            sys.stderr.flush()
-            # flush to ensure reply is sent
-            if out_stream:
-                out_stream.flush(zmq.POLLOUT)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        # flush to ensure reply is sent
+        if out_stream:
+            out_stream.flush(zmq.POLLOUT)
 
     def remote_call(self, comm_id=None, blocking=False, callback=None):
         """Get a handler for remote calls."""
@@ -126,16 +131,19 @@ class FrontendComm(CommBase):
         """Wait until the frontend replies to a request."""
         if call_id in self._reply_inbox:
             return
-        if threading.get_ident() == self.comm_socket_thread.ident:
-            raise RuntimeError("Can't make blocking calls from comm thread.")
+
         t_start = time.time()
         while call_id not in self._reply_inbox:
             if time.time() > t_start + timeout:
                 raise TimeoutError(
                     "Timeout while waiting for '{}' reply".format(
                         call_name))
-            # Wait 10ms for a reply
-            time.sleep(0.01)
+            if threading.get_ident() == self.comm_socket_thread.ident:
+                # Wait for a reply on the comm channel.
+                self.poll_one()
+            else:
+                # Wait 10ms for a reply
+                time.sleep(0.01)
 
     def _comm_open(self, comm, msg):
         """
