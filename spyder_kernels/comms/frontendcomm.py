@@ -126,7 +126,8 @@ class FrontendComm(CommBase):
         """Wait until the frontend replies to a request."""
         if call_id in self._reply_inbox:
             return
-
+        if threading.get_ident() == self.comm_socket_thread.ident:
+            raise RuntimeError("Can't make blocking calls from comm thread.")
         t_start = time.time()
         while call_id not in self._reply_inbox:
             if time.time() > t_start + timeout:
