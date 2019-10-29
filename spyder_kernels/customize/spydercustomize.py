@@ -440,7 +440,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         if line.startswith('%plot '):
             # Spyder addition: show plots while debugging
             line = line[6:]
-            line = "__spy_code__ = get_ipython().run_cell('%s')" % line
+            line = "__spy_code__ = get_ipython().run_cell(%s)" % repr(line)
         elif line[:1] == '!':
             line = line[1:]
         line = TransformerManager().transform_cell(line)
