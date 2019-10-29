@@ -308,6 +308,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         """Init Pdb."""
         # Only set to true when calling debugfile
         self.continue_if_has_breakpoints = False
+        self.pdb_execute_events = False
         super(SpyderPdb, self).__init__()
         self._pdb_breaking = False
 
@@ -331,9 +332,10 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
             _frontend_request(blocking=True).set_debug_state(True)
+            pdb_settings = _frontend_request().get_pdb_settings()
+            self.pdb_execute_events = pdb_settings['pdb_execute_events']
             if self.starting:
-                breakpoints = _frontend_request().get_breakpoints()
-                self.set_spyder_breakpoints(breakpoints)
+                self.set_spyder_breakpoints(pdb_settings['breakpoints'])
         except (CommError, TimeoutError):
             logger.debug("Could not get breakpoints from the frontend.")
 
@@ -437,6 +439,7 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         statments, the code will be compiled with 'exec'. It will not print the
         result but will run without failing.
         """
+        execute_events = self.pdb_execute_events
         if line[:1] == '!':
             line = line[1:]
         line = TransformerManager().transform_cell(line)
@@ -455,7 +458,11 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
                 sys.stdin = self.stdin
                 sys.stdout = self.stdout
                 sys.displayhook = self.displayhook
+                if execute_events:
+                    get_ipython().events.trigger('pre_execute')
                 exec(code, globals, locals)
+                if execute_events:
+                    get_ipython().events.trigger('post_execute')
             finally:
                 sys.stdout = save_stdout
                 sys.stdin = save_stdin
