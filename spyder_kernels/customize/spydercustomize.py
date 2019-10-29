@@ -439,10 +439,10 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
         """
         if line[:1] == '!':
             line = line[1:]
-        line = TransformerManager().transform_cell(line)
         locals = self.curframe_locals
         globals = self.curframe.f_globals
         try:
+            line = TransformerManager().transform_cell(line)
             try:
                 code = compile(line + '\n', '<stdin>', 'single')
             except SyntaxError:
