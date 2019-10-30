@@ -533,13 +533,13 @@ def is_known_type(item):
 def get_human_readable_type(item):
     """Return human-readable type string of an item"""
     if isinstance(item, (ndarray, MaskedArray)):
-        return item.dtype.name
+        return u'Array of ' + item.dtype.name
     elif isinstance(item, Image):
         return "Image"
     else:
         text = get_type_string(item)
         if text is None:
-            text = to_text_string('unknown')
+            text = to_text_string('Unknown')
         else:
             return text[text.find('.')+1:]
 
