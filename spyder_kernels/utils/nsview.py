@@ -637,7 +637,7 @@ def get_supported_types():
     except:
         pass
     try:
-        from pandas import DataFrame, Series, DatetimeIndex
+        from pandas import DataFrame, Series, Index
         editable_types += [DataFrame, Series, Index]
     except:
         pass
