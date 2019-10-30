@@ -268,11 +268,19 @@ def default_display(value, with_module=True):
     try:
         name = object_type.__name__
         module = object_type.__module__
+
+        # Classes correspond to new types
+        if name == 'type':
+            name = 'class'
+
         if with_module:
+            if name == 'module':
+                return value.__name__ + ' module'
+            if module == 'builtins':
+                return name + ' object'
             return name + ' object of ' + module + ' module'
-        else:
-            return name
-    except:
+        return name
+    except Exception:
         type_str = to_text_string(object_type)
         return type_str[1:-1]
 
