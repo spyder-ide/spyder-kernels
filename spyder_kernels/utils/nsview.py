@@ -518,11 +518,16 @@ def get_type_string(item):
         return type(item).__name__
     if isinstance(item, Series):
         return "Series"
+
     found = re.findall(r"<(?:type|class) '(\S*)'>",
                        to_text_string(type(item)))
     if found:
+        if found[0] == 'type':
+            return 'class'
         return found[0]
-    
+    else:
+        return None
+
 
 def is_known_type(item):
     """Return True if object has a known type"""
