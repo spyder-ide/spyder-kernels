@@ -43,9 +43,6 @@ class FrontendComm(CommBase):
         self.kernel.comm_manager.register_target(
             self._comm_name, self._comm_open)
 
-        if not PY2:
-            self._main_thread_id = threading.get_ident()
-
         self.comm_port = None
 
         if self.kernel.parent:
@@ -139,7 +136,7 @@ class FrontendComm(CommBase):
                 raise TimeoutError(
                     "Timeout while waiting for '{}' reply".format(
                         call_name))
-            if threading.get_ident() == self.comm_socket_thread.ident:
+            if threading.current_thread() is self.comm_socket_thread:
                 # Wait for a reply on the comm channel.
                 self.poll_one()
             else:
