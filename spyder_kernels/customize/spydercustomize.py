@@ -581,8 +581,8 @@ pdb.Pdb = SpyderPdb
 
 def create_pathlist():
     """
-    Add to pathlist Python library paths to be skipped from module
-    reloading.
+    Create list of Python library paths to be skipped from module
+    reloading and Pdb steps.
     """
     # Get standard installation paths
     try:
@@ -595,7 +595,7 @@ def create_pathlist():
         standard_paths = []
 
     # Get user installation path
-    # See Spyder issue 8776
+    # See spyder-ide/spyder#8776
     try:
         import site
         if getattr(site, 'getusersitepackages', False):
@@ -614,7 +614,7 @@ def create_pathlist():
     return standard_paths + user_path
 
 
-def path_is_library(modpath, initial_pathlist=None):
+def path_is_library(path, initial_pathlist=None):
     """Decide if a path is in user code or a library according to its path."""
     if not hasattr(path_is_library, 'default_pathlist'):
         path_is_library.default_pathlist = create_pathlist()
@@ -623,31 +623,31 @@ def path_is_library(modpath, initial_pathlist=None):
         initial_pathlist = []
 
     pathlist = initial_pathlist + path_is_library.default_pathlist
-    # Skip module according to different criteria
-    if modpath is None:
-        # *module* is a C module that is statically linked into the
-        # interpreter. There is no way to know its path, so we
+
+    if path is None:
+        # Path probably comes from a C module that is statically linked
+        # into the interpreter. There is no way to know its path, so we
         # choose to ignore it.
         return True
-    elif any([p in modpath for p in pathlist]):
-        # We don't want to reload modules that belong to the
-        # standard library or installed to site-packages,
-        # just modules created by the user.
+    elif any([p in path for p in pathlist]):
+        # We don't want to consider paths that belong to the standard
+        # library or installed to site-packages.
         return True
     elif not os.name == 'nt':
-        # Module paths containing the strings below can be ihherited
-        # from the default Linux installation, Homebrew or the user
-        # site-packages in a virtualenv.
-        patterns = [r'^/usr/lib.*',
-                    r'^/usr/local/lib.*',
-                    r'^/usr/.*/dist-packages/.*',
-                    r'^/home/.*/.local/lib.*',
-                    r'^/Library/.*',
-                    r'^/Users/.*/Library/.*',
-                    r'^/Users/.*/.local/.*',
-                    ]
+        # Paths containing the strings below can be part of the default
+        # Linux installation, Homebrew or the user site-packages in a
+        # virtualenv.
+        patterns = [
+            r'^/usr/lib.*',
+            r'^/usr/local/lib.*',
+            r'^/usr/.*/dist-packages/.*',
+            r'^/home/.*/.local/lib.*',
+            r'^/Library/.*',
+            r'^/Users/.*/Library/.*',
+            r'^/Users/.*/.local/.*',
+        ]
 
-        if [p for p in patterns if re.search(p, modpath)]:
+        if [p for p in patterns if re.search(p, path)]:
             return True
         else:
             return False
