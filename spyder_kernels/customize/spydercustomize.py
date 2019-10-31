@@ -616,13 +616,16 @@ def create_pathlist():
 
 def path_is_library(path, initial_pathlist=None):
     """Decide if a path is in user code or a library according to its path."""
-    if not hasattr(path_is_library, 'default_pathlist'):
-        path_is_library.default_pathlist = create_pathlist()
+    # Compute DEFAULT_PATHLIST only once and make it global to reuse it
+    # in any future call of this function.
+    if 'DEFAULT_PATHLIST' not in globals():
+        global DEFAULT_PATHLIST
+        DEFAULT_PATHLIST = create_pathlist()
 
     if initial_pathlist is None:
         initial_pathlist = []
 
-    pathlist = initial_pathlist + path_is_library.default_pathlist
+    pathlist = initial_pathlist + DEFAULT_PATHLIST
 
     if path is None:
         # Path probably comes from a C module that is statically linked
