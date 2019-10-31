@@ -110,7 +110,7 @@ class CommsErrorWrapper():
         return str(self.error)
 
     def __repr__(self):
-        """Get string representation."""
+        """Get repr."""
         return repr(self.error)
 
 

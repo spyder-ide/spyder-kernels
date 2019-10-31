@@ -8,23 +8,23 @@
 In addition to the remote_call mechanism implemented in CommBase:
  - Implements _wait_reply, so blocking calls can be made.
 """
-import time
-import threading
 import pickle
-import zmq
-import sys
 import socket
+import sys
+import threading
+import time
+
 from jupyter_client.localinterfaces import localhost
 from tornado import ioloop
+import zmq
 
 from spyder_kernels.comms.commbase import CommBase
 from spyder_kernels.py3compat import TimeoutError, PY2
 
 
-def get_port():
+def get_free_port():
     """Find a free port on the local machine."""
     sock = socket.socket()
-    # struct.pack('ii', (0,0)) is 8 null bytes
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, b'\0' * 8)
     sock.bind((localhost(), 0))
     port = sock.getsockname()[1]
@@ -45,14 +45,14 @@ class FrontendComm(CommBase):
 
         self.comm_port = None
 
+        # self.kernel.parent is IPKernelApp unless we are in tests
         if self.kernel.parent:
-            # self.kernel.parent is IPKernelApp unless we are in tests
             # Create a new socket
             context = zmq.Context()
             self.comm_socket = context.socket(zmq.ROUTER)
             self.comm_socket.linger = 1000
 
-            self.comm_port = get_port()
+            self.comm_port = get_free_port()
 
             self.comm_port = self.kernel.parent._bind_socket(
                 self.comm_socket, self.comm_port)
@@ -80,17 +80,19 @@ class FrontendComm(CommBase):
                 self.kernel.parent.close = close
 
     def poll_thread(self):
-        """Recieve messages from comm socket."""
+        """Receive messages from comm socket."""
         if not PY2:
-            # Create an event loop to handle some messages
+            # Create an event loop for the handlers.
             ioloop.IOLoop().initialize()
         while not self.comm_thread_close.is_set():
             self.poll_one()
 
     def poll_one(self):
-        """Recieve one message from comm socket."""
+        """Receive one message from comm socket."""
         out_stream = None
         if self.kernel.shell_streams:
+            # If the message handler needs to send a reply,
+            # use the regular shell stream.
             out_stream = self.kernel.shell_streams[0]
         try:
             ident, msg = self.kernel.session.recv(self.comm_socket, 0)
@@ -107,7 +109,6 @@ class FrontendComm(CommBase):
             self.kernel.log.warning("Unknown message type: %r", msg_type)
         else:
             try:
-                # shell_streams[0] handles replies
                 handler(out_stream, ident, msg)
             except Exception:
                 self.kernel.log.error("Exception in message handler:",

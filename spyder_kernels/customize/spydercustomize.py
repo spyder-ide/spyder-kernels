@@ -314,7 +314,8 @@ class SpyderPdb(pdb.Pdb, object):  # Inherits `object` to call super() in PY2
 
     # --- Methods overriden by us
     def set_continue(self):
-        """Stop only at breakpoints or when finished.
+        """
+        Stop only at breakpoints or when finished.
 
         Reimplemented to avoid stepping out of debugging if there are no
         breakpoints. We could add more later.
