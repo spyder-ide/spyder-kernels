@@ -33,7 +33,7 @@ def get_port():
 
 
 class FrontendComm(CommBase):
-    """Mixin to implement the spyder_shell_api"""
+    """Mixin to implement the spyder_shell_api."""
 
     def __init__(self, kernel):
         super(FrontendComm, self).__init__()
@@ -83,7 +83,7 @@ class FrontendComm(CommBase):
                 self.kernel.parent.close = close
 
     def poll_thread(self):
-        """Recieve messages from comm socket"""
+        """Recieve messages from comm socket."""
         if not PY2:
             # Create an event loop to handle some messages
             ioloop.IOLoop().initialize()
