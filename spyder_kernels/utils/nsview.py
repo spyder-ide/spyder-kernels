@@ -268,11 +268,19 @@ def default_display(value, with_module=True):
     try:
         name = object_type.__name__
         module = object_type.__module__
+
+        # Classes correspond to new types
+        if name == 'type':
+            name = 'class'
+
         if with_module:
+            if name == 'module':
+                return value.__name__ + ' module'
+            if module == 'builtins':
+                return name + ' object'
             return name + ' object of ' + module + ' module'
-        else:
-            return name
-    except:
+        return name
+    except Exception:
         type_str = to_text_string(object_type)
         return type_str[1:-1]
 
@@ -518,11 +526,16 @@ def get_type_string(item):
         return type(item).__name__
     if isinstance(item, Series):
         return "Series"
+
     found = re.findall(r"<(?:type|class) '(\S*)'>",
                        to_text_string(type(item)))
     if found:
+        if found[0] == 'type':
+            return 'class'
         return found[0]
-    
+    else:
+        return None
+
 
 def is_known_type(item):
     """Return True if object has a known type"""
@@ -533,13 +546,13 @@ def is_known_type(item):
 def get_human_readable_type(item):
     """Return human-readable type string of an item"""
     if isinstance(item, (ndarray, MaskedArray)):
-        return item.dtype.name
+        return u'Array of ' + item.dtype.name
     elif isinstance(item, Image):
         return "Image"
     else:
         text = get_type_string(item)
         if text is None:
-            text = to_text_string('unknown')
+            text = to_text_string('Unknown')
         else:
             return text[text.find('.')+1:]
 
@@ -624,7 +637,7 @@ def get_supported_types():
     except:
         pass
     try:
-        from pandas import DataFrame, Series, DatetimeIndex
+        from pandas import DataFrame, Series, Index
         editable_types += [DataFrame, Series, Index]
     except:
         pass
