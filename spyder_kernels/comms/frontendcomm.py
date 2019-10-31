@@ -98,6 +98,7 @@ class FrontendComm(CommBase):
             ident, msg = self.kernel.session.recv(self.comm_socket, 0)
         except Exception:
             self.kernel.log.warning("Invalid Message:", exc_info=True)
+            return
         msg_type = msg['header']['msg_type']
 
         if msg_type == 'shutdown_request':
@@ -113,6 +114,7 @@ class FrontendComm(CommBase):
             except Exception:
                 self.kernel.log.error("Exception in message handler:",
                                       exc_info=True)
+                return
 
         sys.stdout.flush()
         sys.stderr.flush()
