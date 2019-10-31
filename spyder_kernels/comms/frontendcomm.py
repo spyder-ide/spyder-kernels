@@ -57,25 +57,25 @@ class FrontendComm(CommBase):
             self.comm_port = self.kernel.parent._bind_socket(
                 self.comm_socket, self.comm_port)
             if hasattr(zmq, 'ROUTER_HANDOVER'):
-                # set router-handover to workaround zeromq reconnect problems
-                # in certain rare circumstances
-                # see ipython/ipykernel#270 and zeromq/libzmq#2892
+                # Set router-handover to workaround zeromq reconnect problems
+                # in certain rare circumstances.
+                # See ipython/ipykernel#270 and zeromq/libzmq#2892
                 self.comm_socket.router_handover = 1
 
             self.comm_thread_close = threading.Event()
             self.comm_socket_thread = threading.Thread(target=self.poll_thread)
             self.comm_socket_thread.start()
 
-            # patch parent.close
+            # Patch parent.close . This function only exists in Python 3.
             if not PY2:
-                super_close = self.kernel.parent.close
+                parent_close = self.kernel.parent.close
 
                 def close():
                     """Close comm_socket_thread."""
                     self.comm_thread_close.set()
                     context.term()
                     self.comm_socket_thread.join()
-                    super_close()
+                    parent_close()
 
                 self.kernel.parent.close = close
 
@@ -118,7 +118,7 @@ class FrontendComm(CommBase):
 
         sys.stdout.flush()
         sys.stderr.flush()
-        # flush to ensure reply is sent
+        # Flush to ensure reply is sent
         if out_stream:
             out_stream.flush(zmq.POLLOUT)
 
