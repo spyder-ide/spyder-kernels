@@ -118,7 +118,7 @@ class SpyderKernel(IPythonKernel):
 
     def set_pdb_ignore_lib(self, state):
         """
-        Handle a message from the frontend
+        Change the "Ignore libraries while stepping" debugger setting.
         """
         if self._pdb_obj:
             self._pdb_obj.pdb_ignore_lib = state
