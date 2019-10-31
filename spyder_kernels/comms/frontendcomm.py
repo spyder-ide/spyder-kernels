@@ -22,6 +22,7 @@ from spyder_kernels.py3compat import TimeoutError, PY2
 
 
 def get_port():
+    """Find a free port on the local machine."""
     sock = socket.socket()
     # struct.pack('ii', (0,0)) is 8 null bytes
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, b'\0' * 8)
