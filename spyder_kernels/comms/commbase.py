@@ -67,6 +67,9 @@ logger = logging.getLogger(__name__)
 # To be able to get and set variables between Python 2 and 3
 DEFAULT_PICKLE_PROTOCOL = 2
 
+# Max timeout (in secs) for blocking calls
+TIMEOUT = 3
+
 
 class CommError(RuntimeError):
     pass
@@ -407,7 +410,7 @@ class CommBase(object):
         if 'timeout' in settings and settings['timeout'] is not None:
             timeout = settings['timeout']
         else:
-            timeout = 3  # Seconds
+            timeout = TIMEOUT
 
         self._wait_reply(call_id, call_name, timeout)
 
