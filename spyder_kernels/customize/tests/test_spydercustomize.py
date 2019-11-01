@@ -16,7 +16,8 @@ import sys
 import pytest
 
 # Local imports
-from spyder_kernels.customize.spydercustomize import UserModuleReloader
+from spyder_kernels.customize.spydercustomize import (UserModuleReloader,
+                                                      create_pathlist)
 from spyder_kernels.py3compat import to_text_string
 
 
@@ -100,8 +101,8 @@ def test_umr_namelist():
     assert not umr.is_module_in_namelist('foo')
 
 
-def test_umr_pathlist(user_module):
-    """Test that the UMR skips modules according to its path."""
+def test_umr_reload_modules(user_module):
+    """Test that the UMR only tries to reload user modules."""
     # Create user module
     user_module('foo3')
 
@@ -110,22 +111,19 @@ def test_umr_pathlist(user_module):
 
     # Don't reload stdlib modules
     import xml
-    assert umr.is_module_in_pathlist(xml)
+    assert not umr.is_module_reloadable(xml, 'xml')
 
     # Don't reload third-party modules
     import numpy
-    assert umr.is_module_in_pathlist(numpy)
+    assert not umr.is_module_reloadable(numpy, 'numpy')
 
     # Reload user modules
     import foo3
-    assert umr.is_module_in_pathlist(foo3) == False
+    assert umr.is_module_reloadable(foo3, 'foo3')
 
 
 def test_user_sitepackages_in_pathlist():
-    """Test that we include users site-packages in UMR's pathlist."""
-    # Create UMR
-    umr = UserModuleReloader()
-
+    """Test that we include user site-packages in pathlist."""
     if sys.platform.startswith('linux'):
         user_path = 'local'
     elif sys.platform == 'darwin':
@@ -133,4 +131,4 @@ def test_user_sitepackages_in_pathlist():
     else:
         user_path = 'Roaming'
 
-    assert any([user_path in path for path in umr.pathlist])
+    assert any([user_path in path for path in create_pathlist()])

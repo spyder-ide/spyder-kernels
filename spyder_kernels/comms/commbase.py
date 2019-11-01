@@ -106,11 +106,11 @@ class CommsErrorWrapper():
             print(line, file=file)
 
     def __str__(self):
-        """Get string representation"""
+        """Get string representation."""
         return str(self.error)
 
     def __repr__(self):
-        """Get string representation"""
+        """Get repr."""
         return repr(self.error)
 
 
@@ -155,7 +155,7 @@ class CommBase(object):
                                    self._set_pickle_protocol)
 
     def get_comm_id_list(self, comm_id=None):
-        """Get a list of comms id"""
+        """Get a list of comms id."""
         if comm_id is None:
             id_list = list(self._comms.keys())
         else:
