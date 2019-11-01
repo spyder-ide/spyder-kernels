@@ -404,7 +404,7 @@ class CommBase(object):
         call_name = call_dict['call_name']
 
         # Wait for the blocking call
-        if 'timeout' in settings:
+        if 'timeout' in settings and settings['timeout'] is not None:
             timeout = settings['timeout']
         else:
             timeout = 3  # Seconds
