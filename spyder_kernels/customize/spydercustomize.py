@@ -28,7 +28,7 @@ import traceback
 
 from IPython.core.getipython import get_ipython
 
-from spyder_kernels.py3compat import TimeoutError, PY2, _print
+from spyder_kernels.py3compat import TimeoutError, PY2, _print, encode
 from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 
@@ -68,13 +68,6 @@ HIDE_CMD_WINDOWS = os.environ.get('SPY_HIDE_CMD') == "True"
 try:
     # Python 2
     import __builtin__ as builtins
-    if os.name == 'nt':
-        def encode(u):
-            return u.encode('utf8', 'replace')
-
-    else:
-        def encode(u):
-            return u.encode(sys.getfilesystemencoding())
 
 except ImportError:
     # Python 3
@@ -869,10 +862,8 @@ def get_debugger(filename):
 
 def exec_code(code, filename, namespace):
     """Execute code and display any exception."""
-    if PY2 and isinstance(filename, unicode):
+    if PY2:
         filename = encode(filename)
-
-    if PY2 and isinstance(code, unicode):
         code = encode(code)
 
     ipython_shell = get_ipython()
@@ -940,7 +931,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         # UnicodeError, TypeError --> eventually raised in Python 2
         # AttributeError --> systematically raised in Python 3
         pass
-    if PY2 and isinstance(filename, unicode):
+    if PY2:
         filename = encode(filename)
     if __umr__.enabled:
         __umr__.run()

@@ -317,10 +317,27 @@ if PY2:
     def isidentifier(string):
         """Check if string can be a variable name."""
         return re.match(tokenize.Name + r'\Z', string) is not None
+
+    if os.name == 'nt':
+        def encode(u):
+            """Try encoding with utf8."""
+            if isinstance(u, unicode):
+                return u.encode('utf8', 'replace')
+            return u
+    else:
+        def encode(u):
+            """Try encoding with file system encoding."""
+            if isinstance(u, unicode):
+                return u.encode(sys.getfilesystemencoding())
+            return u
 else:
     def isidentifier(string):
         """Check if string can be a variable name."""
         return string.isidentifier()
+
+    def encode(u):
+        """Encoding is not a problem in python 3."""
+        return u
 
 if __name__ == '__main__':
     pass
