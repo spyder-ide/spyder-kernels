@@ -28,7 +28,7 @@ import traceback
 
 from IPython.core.getipython import get_ipython
 
-from spyder_kernels.py3compat import TimeoutError, PY2
+from spyder_kernels.py3compat import TimeoutError, PY2, _print
 from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 
@@ -56,29 +56,6 @@ if not hasattr(sys, 'argv'):
 #==============================================================================
 IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
 HIDE_CMD_WINDOWS = os.environ.get('SPY_HIDE_CMD') == "True"
-
-#==============================================================================
-# Important Note:
-#
-# We avoid importing spyder here, so we are handling Python 3 compatiblity
-# by hand.
-#==============================================================================
-def _print(*objects, **options):
-    end = options.get('end', '\n')
-    file = options.get('file', sys.stdout)
-    sep = options.get('sep', ' ')
-    string = sep.join([str(obj) for obj in objects])
-    if not PY2:
-        # Python 3
-        local_dict = {}
-        exec('printf = print', local_dict) # to avoid syntax error in Python 2
-        local_dict['printf'](string, file=file, end=end, sep=sep)
-    else:
-        # Python 2
-        if end:
-            print >>file, string
-        else:
-            print >>file, string,
 
 
 #==============================================================================
