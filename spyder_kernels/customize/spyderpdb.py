@@ -22,7 +22,7 @@ import traceback
 from IPython.core.getipython import get_ipython
 from IPython.core.debugger import Pdb as ipyPdb
 
-from spyder_kernels.py3compat import TimeoutError, PY2, _print
+from spyder_kernels.py3compat import TimeoutError, PY2, _print, isidentifier
 from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
 
 if not PY2:
@@ -319,6 +319,55 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         Default completion.
         """
         return self._complete_expression(text, line, begidx, endidx)
+
+    def do_complete(self, code, cursor_pos):
+        """
+        Respond to a complete request
+        """
+        if cursor_pos is None:
+            cursor_pos = len(code)
+
+        # Get text to complete
+        text = code[:cursor_pos].split(' ')[-1]
+        # Choose pdb function to complete, based on cmd.py
+        origline = code
+        line = origline.lstrip()
+        if not line:
+            return
+        stripped = len(origline) - len(line)
+        begidx = cursor_pos - len(text) - stripped
+        endidx = cursor_pos - stripped
+        if begidx > 0:
+            cmd, args, _ = self.parseline(line)
+            if cmd == '':
+                compfunc = self.completedefault
+            else:
+                try:
+                    compfunc = getattr(self, 'complete_' + cmd)
+                except AttributeError:
+                    compfunc = self.completedefault
+        elif line[0] != '!':
+            compfunc = self.completenames
+        else:
+            compfunc = self.completedefault
+
+        def is_name_or_composed(text):
+            if not text or text[0] == '.':
+                return False
+            # We want to keep value.subvalue
+            return isidentifier(text.replace('.', ''))
+
+        while text and not is_name_or_composed(text):
+            text = text[1:]
+            begidx += 1
+
+        matches = compfunc(text, line, begidx, endidx)
+
+        return {'matches': matches,
+                'cursor_end': cursor_pos,
+                'cursor_start': cursor_pos - len(text),
+                'metadata': {},
+                'status': 'ok'}
 
     def interaction(self, frame, traceback):
         if self._pdb_breaking:
