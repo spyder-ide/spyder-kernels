@@ -119,6 +119,17 @@ def path_is_library(path, initial_pathlist=None):
 # Pdb adjustments
 # =============================================================================
 class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
+    """
+    Extends Pdb to add features:
+
+     - Process ipython magic.
+     - Accepts multiline input.
+     - Option to process 'pre_execute' and 'post_execute' events.
+     - Better interrupt signal handling.
+     - Option to skip libraries while stepping.
+     - Break into threads.
+     - Add completion to non-command code.
+    """
 
     send_initial_notification = True
     starting = True
@@ -132,17 +143,51 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         super(SpyderPdb, self).__init__()
         self._pdb_breaking = False
 
-    # --- Methods overriden by us
-    def set_continue(self):
+    # --- Methods overriden for code execution
+    def default(self, line):
         """
-        Stop only at breakpoints or when finished.
+        Default way of running pdb statment.
 
-        Reimplemented to avoid stepping out of debugging if there are no
-        breakpoints. We could add more later.
+        The only difference with Pdb.default is that if line contains multiple
+        statments, the code will be compiled with 'exec'. It will not print the
+        result but will run without failing.
         """
-        # Don't stop except at breakpoints or when finished
-        self._set_stopinfo(self.botframe, None, -1)
+        if line[:1] == '!':
+            line = line[1:]
+        line = TransformerManager().transform_cell(line)
+        locals = self.curframe_locals
+        globals = self.curframe.f_globals
+        try:
+            try:
+                code = compile(line + '\n', '<stdin>', 'single')
+            except SyntaxError:
+                # support multiline statments
+                code = compile(line + '\n', '<stdin>', 'exec')
+            save_stdout = sys.stdout
+            save_stdin = sys.stdin
+            save_displayhook = sys.displayhook
+            try:
+                sys.stdin = self.stdin
+                sys.stdout = self.stdout
+                sys.displayhook = self.displayhook
+                exec(code, globals, locals)
+            finally:
+                sys.stdout = save_stdout
+                sys.stdin = save_stdin
+                sys.displayhook = save_displayhook
+        except BaseException:
+            if PY2:
+                t, v = sys.exc_info()[:2]
+                if type(t) == type(''):
+                    exc_type_name = t
+                else: exc_type_name = t.__name__
+                print >>self.stdout, '***', exc_type_name + ':', v
+            else:
+                exc_info = sys.exc_info()[:2]
+                self.error(
+                    traceback.format_exception_only(*exc_info)[-1].strip())
 
+    # --- Methods overriden for signal handling
     def sigint_handler(self, signum, frame):
         """
         Handle a sigint signal. Break on the frame above this one.
@@ -158,6 +203,111 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         self.set_step()
         self.set_trace(sys._getframe())
 
+    def interaction(self, frame, traceback):
+        """
+        Called when a user interaction is required.
+
+        If this is from sigint, break on the upper frame.
+        If the frame is in spydercustomize.py, quit.
+        Notifies spyder and print current code.
+
+        """
+        if self._pdb_breaking:
+            self._pdb_breaking = False
+            if frame and frame.f_back:
+                return self.interaction(frame.f_back, traceback)
+        if (frame is not None
+                and "spydercustomize.py" in frame.f_code.co_filename):
+            self.onecmd('exit')
+        else:
+            self.setup(frame, traceback)
+            if self.send_initial_notification:
+                self.notify_spyder(frame)
+            if get_ipython().kernel._pdb_print_code:
+                self.print_stack_entry(self.stack[self.curindex])
+            self._cmdloop()
+            self.forget()
+
+    # --- Methods overriden for skipping libraries
+    def stop_here(self, frame):
+        """Check if pdb should stop here."""
+        if not super(SpyderPdb, self).stop_here(frame):
+            return False
+        filename = frame.f_code.co_filename
+        if filename.startswith('<'):
+            # This is not a file
+            return True
+        if self.pdb_ignore_lib and path_is_library(filename):
+            return False
+        return True
+
+    # --- Methods reimplemented for text complete
+    def completenames(self, text, line, begidx, endidx):
+        """
+        Try to complete with command names, otherwise goes to default.
+        """
+        matched_names = super(SpyderPdb, self).completenames(
+            text, line, begidx, endidx)
+        matched_default = self.completedefault(text, line, begidx, endidx)
+        return matched_names + matched_default
+
+    def completedefault(self, text, line, begidx, endidx):
+        """
+        Default completion.
+        """
+        return self._complete_expression(text, line, begidx, endidx)
+
+    # --- Method defined by us to respond to ipython complete protocol
+    def do_complete(self, code, cursor_pos):
+        """
+        Respond to a complete request.
+        """
+        if cursor_pos is None:
+            cursor_pos = len(code)
+
+        # Get text to complete
+        text = code[:cursor_pos].split(' ')[-1]
+        # Choose pdb function to complete, based on cmd.py
+        origline = code
+        line = origline.lstrip()
+        if not line:
+            return
+        stripped = len(origline) - len(line)
+        begidx = cursor_pos - len(text) - stripped
+        endidx = cursor_pos - stripped
+        if begidx > 0:
+            cmd, args, _ = self.parseline(line)
+            if cmd == '':
+                compfunc = self.completedefault
+            else:
+                try:
+                    compfunc = getattr(self, 'complete_' + cmd)
+                except AttributeError:
+                    compfunc = self.completedefault
+        elif line[0] != '!':
+            compfunc = self.completenames
+        else:
+            compfunc = self.completedefault
+
+        def is_name_or_composed(text):
+            if not text or text[0] == '.':
+                return False
+            # We want to keep value.subvalue
+            return isidentifier(text.replace('.', ''))
+
+        while text and not is_name_or_composed(text):
+            text = text[1:]
+            begidx += 1
+
+        matches = compfunc(text, line, begidx, endidx)
+
+        return {'matches': matches,
+                'cursor_end': cursor_pos,
+                'cursor_start': cursor_pos - len(text),
+                'metadata': {},
+                'status': 'ok'}
+
+    # --- Methods overriden by us for Spyder integration
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
@@ -178,8 +328,96 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             logger.debug("Could not send debugging state to the frontend.")
         super(SpyderPdb, self).postloop()
 
-    # --- Methods defined by us
+    def set_continue(self):
+        """
+        Stop only at breakpoints or when finished.
+
+        Reimplemented to avoid stepping out of debugging if there are no
+        breakpoints. We could add more later.
+        """
+        # Don't stop except at breakpoints or when finished
+        self._set_stopinfo(self.botframe, None, -1)
+
+    def reset(self):
+        """
+        Register Pdb session after reset.
+        """
+        super(SpyderPdb, self).reset()
+        kernel = get_ipython().kernel
+        kernel._register_pdb_session(self)
+
+    def user_return(self, frame, return_value):
+        """This function is called when a return trap is set here."""
+        # This is useful when debugging in an active interpreter (otherwise,
+        # the debugger will stop before reaching the target file)
+        if self._wait_for_mainpyfile:
+            if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
+                    or frame.f_lineno <= 0):
+                return
+            self._wait_for_mainpyfile = 0
+        super(SpyderPdb, self).user_return(frame, return_value)
+
+    def _cmdloop(self):
+        """Modifies the error text."""
+        while True:
+            try:
+                # keyboard interrupts allow for an easy way to cancel
+                # the current command, so allow them during interactive input
+                self.allow_kbdint = True
+                self.cmdloop()
+                self.allow_kbdint = False
+                break
+            except KeyboardInterrupt:
+                _print("--KeyboardInterrupt--\n"
+                       "For copying text while debugging, use Ctrl+Shift+C",
+                       file=self.stdout)
+
+    def postcmd(self, stop, line):
+        """
+        Notify spyder on any pdb command.
+
+        Is that good or too lazy? i.e. is more specific behaviour desired?
+        """
+        if '!get_ipython().kernel' not in line:
+            self.notify_spyder(self.curframe)
+        return super(SpyderPdb, self).postcmd(stop, line)
+
+    if PY2:
+        def break_here(self, frame):
+            """
+            Breakpoints don't work for files with non-ascii chars in Python 2
+            
+            Fixes Issue 1484
+            """
+            from bdb import effective
+            filename = self.canonic(frame.f_code.co_filename)
+            try:
+                filename = unicode(filename, "utf-8")
+            except TypeError:
+                pass
+            if filename not in self.breaks:
+                return False
+            lineno = frame.f_lineno
+            if lineno not in self.breaks[filename]:
+                # The line itself has no breakpoint, but maybe the line is the
+                # first line of a function with breakpoint set by function name
+                lineno = frame.f_code.co_firstlineno
+                if lineno not in self.breaks[filename]:
+                    return False
+
+            # flag says ok to delete temp. bp
+            (bp, flag) = effective(filename, lineno, frame)
+            if bp:
+                self.currentbp = bp.number
+                if (flag and bp.temporary):
+                    self.do_clear(str(bp.number))
+                return True
+            else:
+                return False
+
+    # --- Methods defined by us for Spyder integration
     def set_spyder_breakpoints(self, breakpoints):
+        """Set Spyder breakpoints."""
         self.clear_all_breaks()
         # -----Really deleting all breakpoints:
         for bp in bdb.Breakpoint.bpbynumber:
@@ -250,209 +488,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             kernel.publish_pdb_state()
         except (CommError, TimeoutError):
             logger.debug("Could not send Pdb state to the frontend.")
-
-    def user_return(self, frame, return_value):
-        """This function is called when a return trap is set here."""
-        # This is useful when debugging in an active interpreter (otherwise,
-        # the debugger will stop before reaching the target file)
-        if self._wait_for_mainpyfile:
-            if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
-                    or frame.f_lineno <= 0):
-                return
-            self._wait_for_mainpyfile = 0
-        super(SpyderPdb, self).user_return(frame, return_value)
-
-    def default(self, line):
-        """
-        Default way of running pdb statment.
-
-        The only difference with Pdb.default is that if line contains multiple
-        statments, the code will be compiled with 'exec'. It will not print the
-        result but will run without failing.
-        """
-        if line[:1] == '!':
-            line = line[1:]
-        line = TransformerManager().transform_cell(line)
-        locals = self.curframe_locals
-        globals = self.curframe.f_globals
-        try:
-            try:
-                code = compile(line + '\n', '<stdin>', 'single')
-            except SyntaxError:
-                # support multiline statments
-                code = compile(line + '\n', '<stdin>', 'exec')
-            save_stdout = sys.stdout
-            save_stdin = sys.stdin
-            save_displayhook = sys.displayhook
-            try:
-                sys.stdin = self.stdin
-                sys.stdout = self.stdout
-                sys.displayhook = self.displayhook
-                exec(code, globals, locals)
-            finally:
-                sys.stdout = save_stdout
-                sys.stdin = save_stdin
-                sys.displayhook = save_displayhook
-        except BaseException:
-            if PY2:
-                t, v = sys.exc_info()[:2]
-                if type(t) == type(''):
-                    exc_type_name = t
-                else: exc_type_name = t.__name__
-                print >>self.stdout, '***', exc_type_name + ':', v
-            else:
-                exc_info = sys.exc_info()[:2]
-                self.error(
-                    traceback.format_exception_only(*exc_info)[-1].strip())
-
-    def completenames(self, text, line, begidx, endidx):
-        """
-        Try to complete with command names, otherwise goes to default.
-        """
-        matched_names = super(SpyderPdb, self).completenames(
-            text, line, begidx, endidx)
-        matched_default = self.completedefault(text, line, begidx, endidx)
-        return matched_names + matched_default
-
-    def completedefault(self, text, line, begidx, endidx):
-        """
-        Default completion.
-        """
-        return self._complete_expression(text, line, begidx, endidx)
-
-    def do_complete(self, code, cursor_pos):
-        """
-        Respond to a complete request
-        """
-        if cursor_pos is None:
-            cursor_pos = len(code)
-
-        # Get text to complete
-        text = code[:cursor_pos].split(' ')[-1]
-        # Choose pdb function to complete, based on cmd.py
-        origline = code
-        line = origline.lstrip()
-        if not line:
-            return
-        stripped = len(origline) - len(line)
-        begidx = cursor_pos - len(text) - stripped
-        endidx = cursor_pos - stripped
-        if begidx > 0:
-            cmd, args, _ = self.parseline(line)
-            if cmd == '':
-                compfunc = self.completedefault
-            else:
-                try:
-                    compfunc = getattr(self, 'complete_' + cmd)
-                except AttributeError:
-                    compfunc = self.completedefault
-        elif line[0] != '!':
-            compfunc = self.completenames
-        else:
-            compfunc = self.completedefault
-
-        def is_name_or_composed(text):
-            if not text or text[0] == '.':
-                return False
-            # We want to keep value.subvalue
-            return isidentifier(text.replace('.', ''))
-
-        while text and not is_name_or_composed(text):
-            text = text[1:]
-            begidx += 1
-
-        matches = compfunc(text, line, begidx, endidx)
-
-        return {'matches': matches,
-                'cursor_end': cursor_pos,
-                'cursor_start': cursor_pos - len(text),
-                'metadata': {},
-                'status': 'ok'}
-
-    def interaction(self, frame, traceback):
-        if self._pdb_breaking:
-            self._pdb_breaking = False
-            if frame and frame.f_back:
-                return self.interaction(frame.f_back, traceback)
-        if (frame is not None
-                and "spydercustomize.py" in frame.f_code.co_filename):
-            self.onecmd('exit')
-        else:
-            self.setup(frame, traceback)
-            if self.send_initial_notification:
-                self.notify_spyder(frame)
-            if get_ipython().kernel._pdb_print_code:
-                self.print_stack_entry(self.stack[self.curindex])
-            self._cmdloop()
-            self.forget()
-
-    def stop_here(self, frame):
-        """Check if pdb should stop here."""
-        if not super(SpyderPdb, self).stop_here(frame):
-            return False
-        filename = frame.f_code.co_filename
-        if filename.startswith('<'):
-            # This is not a file
-            return True
-        if self.pdb_ignore_lib and path_is_library(filename):
-            return False
-        return True
-
-    def _cmdloop(self):
-        while True:
-            try:
-                # keyboard interrupts allow for an easy way to cancel
-                # the current command, so allow them during interactive input
-                self.allow_kbdint = True
-                self.cmdloop()
-                self.allow_kbdint = False
-                break
-            except KeyboardInterrupt:
-                _print("--KeyboardInterrupt--\n"
-                       "For copying text while debugging, use Ctrl+Shift+C",
-                       file=self.stdout)
-
-    def reset(self):
-        super(SpyderPdb, self).reset()
-        kernel = get_ipython().kernel
-        kernel._register_pdb_session(self)
-
-    # XXX: notify spyder on any pdb command (is that good or too lazy?
-    #     i.e. is more specific behaviour desired?)
-    def postcmd(self, stop, line):
-        if '!get_ipython().kernel' not in line:
-            self.notify_spyder(self.curframe)
-        return super(SpyderPdb, self).postcmd(stop, line)
-
-    # Breakpoints don't work for files with non-ascii chars in Python 2
-    # Fixes Issue 1484
-    if PY2:
-        def break_here(self, frame):
-            from bdb import effective
-            filename = self.canonic(frame.f_code.co_filename)
-            try:
-                filename = unicode(filename, "utf-8")
-            except TypeError:
-                pass
-            if filename not in self.breaks:
-                return False
-            lineno = frame.f_lineno
-            if lineno not in self.breaks[filename]:
-                # The line itself has no breakpoint, but maybe the line is the
-                # first line of a function with breakpoint set by function name
-                lineno = frame.f_code.co_firstlineno
-                if lineno not in self.breaks[filename]:
-                    return False
-
-            # flag says ok to delete temp. bp
-            (bp, flag) = effective(filename, lineno, frame)
-            if bp:
-                self.currentbp = bp.number
-                if (flag and bp.temporary):
-                    self.do_clear(str(bp.number))
-                return True
-            else:
-                return False
 
 
 pdb.Pdb = SpyderPdb
