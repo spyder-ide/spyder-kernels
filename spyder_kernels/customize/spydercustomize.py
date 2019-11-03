@@ -38,30 +38,29 @@ else:
 logger = logging.getLogger(__name__)
 
 
-
-#==============================================================================
+# =============================================================================
 # sys.argv can be missing when Python is embedded, taking care of it.
 # Fixes Issue 1473 and other crazy crashes with IPython 0.13 trying to
 # access it.
-#==============================================================================
+# =============================================================================
 if not hasattr(sys, 'argv'):
     sys.argv = ['']
 
 
-#==============================================================================
+# =============================================================================
 # Main constants
-#==============================================================================
+# =============================================================================
 IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
 HIDE_CMD_WINDOWS = os.environ.get('SPY_HIDE_CMD') == "True"
 
 
-#==============================================================================
+# =============================================================================
 # Execfile functions
 #
 # The definitions for Python 2 on Windows were taken from the IPython project
 # Copyright (C) The IPython Development Team
 # Distributed under the terms of the modified BSD license
-#==============================================================================
+# =============================================================================
 try:
     # Python 2
     import __builtin__ as builtins
@@ -72,10 +71,10 @@ except ImportError:
     basestring = (str,)
 
 
-#==============================================================================
+# =============================================================================
 # Setting console encoding (otherwise Python does not recognize encoding)
 # for Windows platforms
-#==============================================================================
+# =============================================================================
 if os.name == 'nt' and PY2:
     try:
         import locale, ctypes
@@ -87,14 +86,14 @@ if os.name == 'nt' and PY2:
         except (ValueError, TypeError):
             # Code page number in locale is not valid
             pass
-    except:
+    except Exception:
         pass
 
 
-#==============================================================================
+# =============================================================================
 # Prevent subprocess.Popen calls to create visible console windows on Windows.
 # See issue #4932
-#==============================================================================
+# =============================================================================
 if os.name == 'nt' and HIDE_CMD_WINDOWS:
     import subprocess
     creation_flag = 0x08000000  # CREATE_NO_WINDOW
@@ -106,19 +105,19 @@ if os.name == 'nt' and HIDE_CMD_WINDOWS:
 
     subprocess.Popen = SubprocessPopen
 
-#==============================================================================
+# =============================================================================
 # Importing user's sitecustomize
-#==============================================================================
+# =============================================================================
 try:
     import sitecustomize  #analysis:ignore
-except:
+except Exception:
     pass
 
 
-#==============================================================================
+# =============================================================================
 # Add default filesystem encoding on Linux to avoid an error with
 # Matplotlib 1.5 in Python 2 (Fixes Issue 2793)
-#==============================================================================
+# =============================================================================
 if PY2 and sys.platform.startswith('linux'):
     def _getfilesystemencoding_wrapper():
         return 'utf-8'
@@ -126,16 +125,16 @@ if PY2 and sys.platform.startswith('linux'):
     sys.getfilesystemencoding = _getfilesystemencoding_wrapper
 
 
-#==============================================================================
+# =============================================================================
 # Set PyQt API to #2
-#==============================================================================
+# =============================================================================
 if os.environ.get("QT_API") == 'pyqt':
     try:
         import sip
         for qtype in ('QString', 'QVariant', 'QDate', 'QDateTime',
                       'QTextStream', 'QTime', 'QUrl'):
             sip.setapi(qtype, 2)
-    except:
+    except Exception:
         pass
 else:
     try:
@@ -144,33 +143,37 @@ else:
         pass
 
 
-#==============================================================================
+# =============================================================================
 # IPython kernel adjustments
-#==============================================================================
+# =============================================================================
 
 # Patch unittest.main so that errors are printed directly in the console.
 # See http://comments.gmane.org/gmane.comp.python.ipython.devel/10557
 # Fixes Issue 1370
 import unittest
 from unittest import TestProgram
+
+
 class IPyTesProgram(TestProgram):
     def __init__(self, *args, **kwargs):
         test_runner = unittest.TextTestRunner(stream=sys.stderr)
         kwargs['testRunner'] = kwargs.pop('testRunner', test_runner)
         kwargs['exit'] = False
         TestProgram.__init__(self, *args, **kwargs)
+
+
 unittest.main = IPyTesProgram
 
 # Ignore some IPython/ipykernel warnings
 try:
     warnings.filterwarnings(action='ignore', category=DeprecationWarning,
                             module='ipykernel.ipkernel')
-except:
+except Exception:
     pass
 
-#==============================================================================
+# =============================================================================
 # Turtle adjustments
-#==============================================================================
+# =============================================================================
 # This is needed to prevent turtle scripts crashes after multiple runs in the
 # same IPython Console instance.
 # See Spyder issue #6278
@@ -185,13 +188,13 @@ try:
         except Terminator:
             pass
     turtle.bye = spyder_bye
-except:
+except Exception:
     pass
 
 
-#==============================================================================
+# =============================================================================
 # Pandas adjustments
-#==============================================================================
+# =============================================================================
 try:
     import pandas as pd
 
@@ -211,7 +214,7 @@ try:
     warnings.filterwarnings(action='ignore', category=RuntimeWarning,
                             module='pandas.formats.format',
                             message=".*invalid value encountered in.*")
-except:
+except Exception:
     pass
 
 
@@ -226,7 +229,7 @@ try:
     warnings.filterwarnings(action='ignore', category=RuntimeWarning,
                             module='numpy.core._methods',
                             message=".*invalid value encountered in.*")
-except:
+except Exception:
     pass
 
 
@@ -389,7 +392,7 @@ class UserModuleReloader(object):
         # Report reloaded modules
         if self.verbose and self.modnames_to_reload:
             modnames = self.modnames_to_reload
-            _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"\
+            _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"
                    % ("Reloaded modules", ": "+", ".join(modnames)))
 
 
@@ -397,9 +400,9 @@ __umr__ = UserModuleReloader(namelist=os.environ.get("SPY_UMR_NAMELIST",
                                                      None))
 
 
-#==============================================================================
+# =============================================================================
 # Handle Post Mortem Debugging and Traceback Linkage to Spyder
-#==============================================================================
+# =============================================================================
 def clear_post_mortem():
     """
     Remove the post mortem excepthook and replace with a standard one.
@@ -443,10 +446,12 @@ def set_post_mortem():
     Enable the post mortem debugging excepthook.
     """
     def ipython_post_mortem_debug(shell, etype, evalue, tb,
-               tb_offset=None):
+                                  tb_offset=None):
         post_mortem_excepthook(etype, evalue, tb)
+
     ipython_shell = get_ipython()
     ipython_shell.set_custom_exc((Exception,), ipython_post_mortem_debug)
+
 
 # Add post mortem debugging if requested and in a dedicated interpreter
 # existing interpreters use "runfile" below
@@ -728,9 +733,9 @@ def cell_count(filename=None):
 builtins.cell_count = cell_count
 
 
-#==============================================================================
+# =============================================================================
 # Restoring original PYTHONPATH
-#==============================================================================
+# =============================================================================
 try:
     os.environ['PYTHONPATH'] = os.environ['OLD_PYTHONPATH']
     del os.environ['OLD_PYTHONPATH']
