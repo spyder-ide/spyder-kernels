@@ -16,8 +16,8 @@ import sys
 import pytest
 
 # Local imports
-from spyder_kernels.customize.spydercustomize import (UserModuleReloader,
-                                                      create_pathlist)
+from spyder_kernels.customize.spydercustomize import UserModuleReloader
+from spyder_kernels.customize.spyderpdb import create_pathlist
 from spyder_kernels.py3compat import to_text_string
 
 

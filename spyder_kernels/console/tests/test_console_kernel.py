@@ -32,7 +32,7 @@ from ipython_genutils import py3compat
 from spyder_kernels.py3compat import PY3, to_text_string
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
-from spyder_kernels.customize.spydercustomize import SpyderPdb
+from spyder_kernels.customize.spyderpdb import SpyderPdb
 
 # =============================================================================
 # Constants
