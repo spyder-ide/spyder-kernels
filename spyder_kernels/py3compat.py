@@ -224,22 +224,15 @@ def get_meth_class(obj):
 #==============================================================================
 # Misc.
 #==============================================================================
-def _print(*objects, **options):
-    end = options.get('end', '\n')
-    file = options.get('file', sys.stdout)
-    sep = options.get('sep', ' ')
-    string = sep.join([str(obj) for obj in objects])
-    if not PY2:
-        # Python 3
-        local_dict = {}
-        exec('printf = print', local_dict) # to avoid syntax error in Python 2
-        local_dict['printf'](string, file=file, end=end, sep=sep)
-    else:
-        # Python 2
-        if end:
-            print >>file, string
-        else:
-            print >>file, string,
+if PY2:
+    def _print(*objects, **options):
+        end = options.get('end', '\n')
+        file = options.get('file', sys.stdout)
+        sep = options.get('sep', ' ')
+        string = sep.join([str(obj) for obj in objects])
+        print(string, file=file, end=end, sep=sep)
+else:
+    _print = print
 
 
 if PY2:
