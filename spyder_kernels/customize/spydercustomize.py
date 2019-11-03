@@ -29,7 +29,7 @@ import traceback
 from IPython.core.getipython import get_ipython
 
 from spyder_kernels.py3compat import TimeoutError, PY2
-from spyder_kernels.comms import CommError
+from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 
 if not PY2:
@@ -866,19 +866,6 @@ if "SPYDER_EXCEPTHOOK" in os.environ:
 # ==============================================================================
 # runfile and debugfile commands
 # ==============================================================================
-def _frontend_request(blocking=True):
-    """
-    Send a request to the frontend.
-
-    If blocking is true, The return value will be returned.
-    """
-    if not get_ipython().kernel.frontend_comm.is_open():
-        raise CommError("Can't make a request to a closed comm")
-    # Get a reply from the last frontend to have sent a message
-    return get_ipython().kernel.frontend_call(
-        blocking=blocking, broadcast=False)
-
-
 def get_current_file_name():
     """Get the current file name."""
     try:
