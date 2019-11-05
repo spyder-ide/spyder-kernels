@@ -16,9 +16,9 @@ import sys
 import pytest
 
 # Local imports
-from spyder_kernels.customize.spydercustomize import UserModuleReloader
-from spyder_kernels.customize.utils import create_pathlist
 from spyder_kernels.py3compat import to_text_string
+from spyder_kernels.customize.umr import UserModuleReloader
+from spyder_kernels.customize.utils import create_pathlist
 
 
 @pytest.fixture
