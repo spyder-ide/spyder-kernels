@@ -396,6 +396,3 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             kernel.publish_pdb_state()
         except (CommError, TimeoutError):
             logger.debug("Could not send Pdb state to the frontend.")
-
-
-pdb.Pdb = SpyderPdb

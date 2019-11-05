@@ -26,13 +26,12 @@ from IPython.core.getipython import get_ipython
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, encode
 from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
-from spyder_kernels.customize.spyderpdb import path_is_library
+from spyder_kernels.customize.spyderpdb import path_is_library, SpyderPdb
 
 if not PY2:
     from IPython.core.inputtransformer2 import TransformerManager
 else:
-    from IPython.core.inputsplitter import IPythonInputSplitter as\
-        TransformerManager
+    from IPython.core.inputsplitter import IPythonInputSplitter as TransformerManager
 
 
 logger = logging.getLogger(__name__)
@@ -260,6 +259,12 @@ if os.name == 'nt' and not PY2:
         multiprocessing.spawn.get_preparation_data = _patched_preparation_data
     except Exception:
         pass
+
+
+# =============================================================================
+# Pdb adjustments
+# =============================================================================
+pdb.Pdb = SpyderPdb
 
 
 # =============================================================================
