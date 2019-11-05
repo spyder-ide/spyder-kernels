@@ -72,7 +72,7 @@ class SpyderKernel(IPythonKernel):
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
 
-    def frontend_call(self, blocking=False, broadcast=True):
+    def frontend_call(self, blocking=False, broadcast=True, timeout=None):
         """Call the frontend."""
         # If not broadcast, send only to the calling comm
         if broadcast:
@@ -81,7 +81,9 @@ class SpyderKernel(IPythonKernel):
             comm_id = self.frontend_comm.calling_comm_id
 
         return self.frontend_comm.remote_call(
-            blocking=blocking, comm_id=comm_id)
+            blocking=blocking,
+            comm_id=comm_id,
+            timeout=timeout)
 
     @property
     def _pdb_frame(self):
