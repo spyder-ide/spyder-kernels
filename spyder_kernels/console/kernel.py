@@ -59,6 +59,7 @@ class SpyderKernel(IPythonKernel):
             'get_var_properties': self.get_var_properties,
             'set_sympy_forecolor': self.set_sympy_forecolor,
             'set_pdb_echo_code': self.set_pdb_echo_code,
+            'update_syspath': self.update_syspath,
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -123,6 +124,18 @@ class SpyderKernel(IPythonKernel):
         """
         if self._pdb_obj:
             self._pdb_obj.pdb_ignore_lib = state
+
+    def update_syspath(self, path_dict, new_path_dict):
+        """Update the path of the kernel."""
+        # Remove old paths
+        for path in path_dict:
+            while path in sys.path:
+                sys.path.remove(path)
+
+        # Add new paths
+        for path, active in reversed(new_path_dict.items()):
+            if active:
+                sys.path.insert(1, path)
 
     # -- Public API ---------------------------------------------------
     # --- For the Variable Explorer
