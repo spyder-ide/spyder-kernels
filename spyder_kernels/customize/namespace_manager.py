@@ -19,7 +19,7 @@ def _get_globals_locals():
         ns_locals = pdb.curframe_locals
         ns_globals = pdb.curframe.f_globals
     else:
-        ns_locals = {}
+        ns_locals = None
         ns_globals = get_ipython().user_ns
     return ns_globals, ns_locals
 
@@ -49,7 +49,7 @@ class NamespaceManager(object):
                  file_code=None):
         self.filename = filename
         self.ns_globals = namespace
-        self.ns_locals = {}
+        self.ns_locals = None
         self.current_namespace = current_namespace
         self._previous_filename = None
         self._previous_main = None
@@ -69,7 +69,7 @@ class NamespaceManager(object):
                 main_mod = ipython_shell.new_main_mod(
                     self.filename, '__main__')
                 self.ns_globals = main_mod.__dict__
-                self.ns_locals = {}
+                self.ns_locals = None
                 # Needed to allow pickle to reference main
                 if '__main__' in sys.modules:
                     self._previous_main = sys.modules['__main__']
