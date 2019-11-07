@@ -996,7 +996,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         return
 
     with NamespaceManager(filename, namespace, current_namespace,
-                          file_code=file_code) as namespace:
+                          file_code=file_code) as (ns_globals, ns_locals):
         sys.argv = [filename]
         if args is not None:
             for arg in shlex.split(args):
@@ -1020,7 +1020,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
             with io.open(filename, encoding='utf-8') as f:
                 ipython_shell.run_cell_magic('cython', '', f.read())
         else:
-            exec_code(file_code, filename, *namespace)
+            exec_code(file_code, filename, ns_globals, ns_locals)
 
         clear_post_mortem()
         sys.argv = ['']
@@ -1103,8 +1103,8 @@ def runcell(cellname, filename=None):
     except Exception:
         file_code = None
     with NamespaceManager(filename, current_namespace=True,
-                          file_code=file_code) as namespace:
-        exec_code(cell_code, filename, *namespace)
+                          file_code=file_code) as (ns_globals, ns_locals):
+        exec_code(cell_code, filename, ns_globals, ns_locals)
 
 
 builtins.runcell = runcell
