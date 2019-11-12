@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Spyder kernel for Jupyter
+Spyder kernel for Jupyter.
 """
 
 # Standard library imports
@@ -28,7 +28,7 @@ EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 
 
 class SpyderKernel(IPythonKernel):
-    """Spyder kernel for Jupyter"""
+    """Spyder kernel for Jupyter."""
 
     def __init__(self, *args, **kwargs):
         super(SpyderKernel, self).__init__(*args, **kwargs)
@@ -126,13 +126,23 @@ class SpyderKernel(IPythonKernel):
             self._pdb_obj.pdb_ignore_lib = state
 
     def update_syspath(self, path_dict, new_path_dict):
-        """Update the path of the kernel."""
+        """
+        Update the PAYTHONPATH of the kernel.
+
+        `path_dict` and `new_path_dict` have the paths as keys and the state
+        as values. The state is `True` for active and `False` for inactive.
+
+        `path_dict` corresponds to the previous state of the PAYTHONPATH.
+        `new_path_dict` corresponds to the new state of the PAYTHONPATH.
+        """
         # Remove old paths
         for path in path_dict:
             while path in sys.path:
                 sys.path.remove(path)
 
         # Add new paths
+        # We do this in reverse as we use `sys.path.insert(1, path)`. This
+        # ensures the end result has the correct path order.
         for path, active in reversed(new_path_dict.items()):
             if active:
                 sys.path.insert(1, path)
