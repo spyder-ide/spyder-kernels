@@ -18,6 +18,7 @@ from contextlib import contextmanager
 import time
 from subprocess import Popen, PIPE
 import sys
+import inspect
 
 # Test imports
 import IPython
@@ -626,7 +627,7 @@ def test_do_complete(kernel):
 
     # test pdb
     pdb_obj = SpyderPdb()
-    pdb_obj.curframe = True
+    pdb_obj.curframe = inspect.currentframe()
     pdb_obj.completenames = lambda *ignore: ['baba']
     kernel._pdb_obj = pdb_obj
     match = kernel.do_complete('ba', 2)
