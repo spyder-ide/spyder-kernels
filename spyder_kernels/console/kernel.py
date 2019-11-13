@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Spyder kernel for Jupyter
+Spyder kernel for Jupyter.
 """
 
 # Standard library imports
@@ -28,7 +28,7 @@ EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 
 
 class SpyderKernel(IPythonKernel):
-    """Spyder kernel for Jupyter"""
+    """Spyder kernel for Jupyter."""
 
     def __init__(self, *args, **kwargs):
         super(SpyderKernel, self).__init__(*args, **kwargs)
@@ -60,6 +60,7 @@ class SpyderKernel(IPythonKernel):
             'get_var_properties': self.get_var_properties,
             'set_sympy_forecolor': self.set_sympy_forecolor,
             'set_pdb_echo_code': self.set_pdb_echo_code,
+            'update_syspath': self.update_syspath,
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -73,7 +74,7 @@ class SpyderKernel(IPythonKernel):
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
 
-    def frontend_call(self, blocking=False, broadcast=True):
+    def frontend_call(self, blocking=False, broadcast=True, timeout=None):
         """Call the frontend."""
         # If not broadcast, send only to the calling comm
         if broadcast:
@@ -82,7 +83,9 @@ class SpyderKernel(IPythonKernel):
             comm_id = self.frontend_comm.calling_comm_id
 
         return self.frontend_comm.remote_call(
-            blocking=blocking, comm_id=comm_id)
+            blocking=blocking,
+            comm_id=comm_id,
+            timeout=timeout)
 
     @property
     def _pdb_frame(self):
@@ -129,6 +132,28 @@ class SpyderKernel(IPythonKernel):
         """
         if self._pdb_obj:
             self._pdb_obj.pdb_execute_events = state
+
+    def update_syspath(self, path_dict, new_path_dict):
+        """
+        Update the PYTHONPATH of the kernel.
+
+        `path_dict` and `new_path_dict` have the paths as keys and the state
+        as values. The state is `True` for active and `False` for inactive.
+
+        `path_dict` corresponds to the previous state of the PYTHONPATH.
+        `new_path_dict` corresponds to the new state of the PYTHONPATH.
+        """
+        # Remove old paths
+        for path in path_dict:
+            while path in sys.path:
+                sys.path.remove(path)
+
+        # Add new paths
+        # We do this in reverse order as we use `sys.path.insert(1, path)`.
+        # This ensures the end result has the correct path order.
+        for path, active in reversed(new_path_dict.items()):
+            if active:
+                sys.path.insert(1, path)
 
     # -- Public API ---------------------------------------------------
     # --- For the Variable Explorer
