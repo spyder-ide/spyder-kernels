@@ -39,6 +39,7 @@ class SpyderKernel(IPythonKernel):
         handlers = {
             'set_breakpoints': self.set_spyder_breakpoints,
             'set_pdb_ignore_lib': self.set_pdb_ignore_lib,
+            'set_pdb_execute_events': self.set_pdb_execute_events,
             'get_value': self.get_value,
             'load_data': self.load_data,
             'save_namespace': self.save_namespace,
@@ -124,6 +125,13 @@ class SpyderKernel(IPythonKernel):
         """
         if self._pdb_obj:
             self._pdb_obj.pdb_ignore_lib = state
+
+    def set_pdb_execute_events(self, state):
+        """
+        Handle a message from the frontend
+        """
+        if self._pdb_obj:
+            self._pdb_obj.pdb_execute_events = state
 
     def update_syspath(self, path_dict, new_path_dict):
         """
