@@ -12,10 +12,29 @@ from IPython.core.getipython import get_ipython
 from spyder_kernels.py3compat import PY2
 
 
-def _get_globals():
-    """Return current namespace"""
-    ipython_shell = get_ipython()
-    return ipython_shell.user_ns
+def _get_globals_locals():
+    """Return current namespace."""
+    if get_ipython().kernel.is_debugging():
+        pdb = get_ipython().kernel._pdb_obj
+        ns_locals = pdb.curframe_locals
+        ns_globals = pdb.curframe.f_globals
+    else:
+        ns_locals = None
+        ns_globals = get_ipython().user_ns
+    return ns_globals, ns_locals
+
+
+def _set_globals_locals(ns_globals, ns_locals):
+    """Update current namespace."""
+    if get_ipython().kernel.is_debugging():
+        pdb = get_ipython().kernel._pdb_obj
+        pdb.curframe.f_globals.update(ns_globals)
+        if ns_locals:
+            pdb.curframe_locals.update(ns_locals)
+    else:
+        get_ipython().user_ns.update(ns_globals)
+        if ns_locals:
+            get_ipython().user_ns.update(ns_locals)
 
 
 class NamespaceManager(object):
@@ -29,7 +48,8 @@ class NamespaceManager(object):
     def __init__(self, filename, namespace=None, current_namespace=False,
                  file_code=None):
         self.filename = filename
-        self.namespace = namespace
+        self.ns_globals = namespace
+        self.ns_locals = None
         self.current_namespace = current_namespace
         self._previous_filename = None
         self._previous_main = None
@@ -41,22 +61,23 @@ class NamespaceManager(object):
         Prepare the namespace.
         """
         # Save previous __file__
-        if self.namespace is None:
+        if self.ns_globals is None:
             if self.current_namespace:
-                self.namespace = _get_globals()
+                self.ns_globals, self.ns_locals = _get_globals_locals()
             else:
                 ipython_shell = get_ipython()
                 main_mod = ipython_shell.new_main_mod(
                     self.filename, '__main__')
-                self.namespace = main_mod.__dict__
+                self.ns_globals = main_mod.__dict__
+                self.ns_locals = None
                 # Needed to allow pickle to reference main
                 if '__main__' in sys.modules:
                     self._previous_main = sys.modules['__main__']
                 sys.modules['__main__'] = main_mod
                 self._reset_main = True
-        if '__file__' in self.namespace:
-            self._previous_filename = self.namespace['__file__']
-        self.namespace['__file__'] = self.filename
+        if '__file__' in self.ns_globals:
+            self._previous_filename = self.ns_globals['__file__']
+        self.ns_globals['__file__'] = self.filename
         if (self._file_code is not None
                 and not PY2
                 and isinstance(self._file_code, bytes)):
@@ -72,18 +93,18 @@ class NamespaceManager(object):
                 len(self._file_code), None,
                 [line + '\n' for line in self._file_code.splitlines()],
                 self.filename)
-        return self.namespace
+        return self.ns_globals, self.ns_locals
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Reset the namespace.
         """
         if not self.current_namespace:
-            get_ipython().user_ns.update(self.namespace)
+            _set_globals_locals(self.ns_globals, self.ns_locals)
         if self._previous_filename:
-            self.namespace['__file__'] = self._previous_filename
-        elif '__file__' in self.namespace:
-            self.namespace.pop('__file__')
+            self.ns_globals['__file__'] = self._previous_filename
+        elif '__file__' in self.ns_globals:
+            self.ns_globals.pop('__file__')
         if self._previous_main:
             sys.modules['__main__'] = self._previous_main
         elif '__main__' in sys.modules and self._reset_main:
