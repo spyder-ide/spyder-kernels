@@ -264,18 +264,19 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
         compfunc = None
         ipython_do_complete = True
-        # If something is typed, check if it is a command
         if begidx > 0:
-            # The text starts after the start of the line
+            # This could be after a pdb command
             cmd, args, _ = self.parseline(line)
             if cmd != '':
                 try:
+                    # Function to complete pdb command arguments
                     compfunc = getattr(self, 'complete_' + cmd)
                     # Don't call ipython do_complete for commands
                     ipython_do_complete = False
                 except AttributeError:
                     pass
         elif line[0] != '!':
+            # This could be a pdb command
             compfunc = self.completenames
 
         def is_name_or_composed(text):
@@ -292,20 +293,40 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         if compfunc:
             matches = compfunc(text, line, begidx, endidx)
 
+        cursor_start = cursor_pos - len(text)
+
         if ipython_do_complete:
             kernel = get_ipython().kernel
             # Make complete call with current frame
             if self.curframe:
                 kernel.shell.set_completer_frame(self.curframe)
             result = super(SpyderKernel, kernel).do_complete(code, cursor_pos)
+            # Reset frame
             kernel.shell.set_completer_frame()
+            # If there is no pdb results to merge, return the result
+            if not compfunc:
+                return result
+
+            ipy_matches = result['matches']
+            # Make sure both match lists start at the same place
+            if cursor_start < result['cursor_start']:
+                # Fill ipython matches
+                missing_txt = code[cursor_start:result['cursor_start']]
+                ipy_matches = [missing_txt + m for m in ipy_matches]
+            elif result['cursor_start'] < cursor_start:
+                # Fill pdb matches
+                missing_txt = code[result['cursor_start']:cursor_start]
+                matches = [missing_txt + m for m in matches]
+                cursor_start = result['cursor_start']
+
             # Add pdb-specific matches
             matches = matches + \
-                [match for match in result['matches'] if match not in matches]
+                [match for match in ipy_matches if match not in matches]
+
 
         return {'matches': matches,
                 'cursor_end': cursor_pos,
-                'cursor_start': cursor_pos - len(text),
+                'cursor_start': cursor_start,
                 'metadata': {},
                 'status': 'ok'}
 
