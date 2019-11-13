@@ -261,7 +261,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         stripped = len(origline) - len(line)
         begidx = cursor_pos - len(text) - stripped
         endidx = cursor_pos - stripped
-        
+
         compfunc = None
         ipython_do_complete = True
         # If something is typed, check if it is a command
@@ -287,7 +287,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         while text and not is_name_or_composed(text):
             text = text[1:]
             begidx += 1
-        
+
         matches = []
         if compfunc:
             matches = compfunc(text, line, begidx, endidx)
@@ -302,7 +302,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             # Add pdb-specific matches
             matches = matches + \
                 [match for match in result['matches'] if match not in matches]
-        
+
         return {'matches': matches,
                 'cursor_end': cursor_pos,
                 'cursor_start': cursor_pos - len(text),
@@ -388,7 +388,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         def break_here(self, frame):
             """
             Breakpoints don't work for files with non-ascii chars in Python 2
-            
+
             Fixes Issue 1484
             """
             from bdb import effective
