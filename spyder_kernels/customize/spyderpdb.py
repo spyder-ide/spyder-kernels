@@ -22,6 +22,7 @@ import traceback
 from IPython.core.getipython import get_ipython
 from IPython.core.debugger import Pdb as ipyPdb
 
+from spyder_kernels.console.kernel import SpyderKernel
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, isidentifier
 from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
 
@@ -241,22 +242,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             return False
         return True
 
-    # --- Methods reimplemented for text complete
-    def completenames(self, text, line, begidx, endidx):
-        """
-        Try to complete with command names, otherwise goes to default.
-        """
-        matched_names = super(SpyderPdb, self).completenames(
-            text, line, begidx, endidx)
-        matched_default = self.completedefault(text, line, begidx, endidx)
-        return matched_names + matched_default
-
-    def completedefault(self, text, line, begidx, endidx):
-        """
-        Default completion.
-        """
-        return self._complete_expression(text, line, begidx, endidx)
-
     # --- Method defined by us to respond to ipython complete protocol
     def do_complete(self, code, cursor_pos):
         """
@@ -271,23 +256,27 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         origline = code
         line = origline.lstrip()
         if not line:
+            # Nothing to complete
             return
         stripped = len(origline) - len(line)
         begidx = cursor_pos - len(text) - stripped
         endidx = cursor_pos - stripped
+        
+        compfunc = None
+        ipython_do_complete = True
+        # If something is typed, check if it is a command
         if begidx > 0:
+            # The text starts after the start of the line
             cmd, args, _ = self.parseline(line)
-            if cmd == '':
-                compfunc = self.completedefault
-            else:
+            if cmd != '':
                 try:
                     compfunc = getattr(self, 'complete_' + cmd)
+                    # Don't call ipython do_complete for commands
+                    ipython_do_complete = False
                 except AttributeError:
-                    compfunc = self.completedefault
+                    pass
         elif line[0] != '!':
             compfunc = self.completenames
-        else:
-            compfunc = self.completedefault
 
         def is_name_or_composed(text):
             if not text or text[0] == '.':
@@ -298,9 +287,23 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         while text and not is_name_or_composed(text):
             text = text[1:]
             begidx += 1
+        
+        matches = []
+        if compfunc:
+            matches = compfunc(text, line, begidx, endidx)
 
-        matches = compfunc(text, line, begidx, endidx)
-
+        if ipython_do_complete:
+            kernel = get_ipython().kernel
+            # Make complete call with current frame
+            if self.curframe:
+                kernel.shell.set_completer_frame(self.curframe)
+            result = super(SpyderKernel, kernel).do_complete(code, cursor_pos)
+            kernel.shell.set_completer_frame()
+            # Add pdb-specific matches
+            result['matches'] += matches
+            return result
+        
+        # Else return only pdb-specific frames
         return {'matches': matches,
                 'cursor_end': cursor_pos,
                 'cursor_start': cursor_pos - len(text),
