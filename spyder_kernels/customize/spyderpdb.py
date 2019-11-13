@@ -300,10 +300,9 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             result = super(SpyderKernel, kernel).do_complete(code, cursor_pos)
             kernel.shell.set_completer_frame()
             # Add pdb-specific matches
-            result['matches'] += matches
-            return result
+            matches = matches + \
+                [match for match in result['matches'] if match not in matches]
         
-        # Else return only pdb-specific frames
         return {'matches': matches,
                 'cursor_end': cursor_pos,
                 'cursor_start': cursor_pos - len(text),
