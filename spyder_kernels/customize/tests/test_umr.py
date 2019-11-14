@@ -6,7 +6,7 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
-"""Tests for spydercustomize.py."""
+"""Tests for the User Module Reloader."""
 
 # Stdlib imports
 import os
