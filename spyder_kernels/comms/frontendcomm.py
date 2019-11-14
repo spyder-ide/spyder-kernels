@@ -33,7 +33,7 @@ def get_free_port():
     return port
 
 
-def frontend_request(blocking=True):
+def frontend_request(blocking=True, timeout=None):
     """
     Send a request to the frontend.
 
@@ -43,7 +43,9 @@ def frontend_request(blocking=True):
         raise CommError("Can't make a request to a closed comm")
     # Get a reply from the last frontend to have sent a message
     return get_ipython().kernel.frontend_call(
-        blocking=blocking, broadcast=False)
+        blocking=blocking,
+        broadcast=False,
+        timeout=timeout)
 
 
 class FrontendComm(CommBase):
