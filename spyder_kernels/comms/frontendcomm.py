@@ -17,8 +17,9 @@ import time
 from jupyter_client.localinterfaces import localhost
 from tornado import ioloop
 import zmq
+from IPython.core.getipython import get_ipython
 
-from spyder_kernels.comms.commbase import CommBase
+from spyder_kernels.comms.commbase import CommBase, CommError
 from spyder_kernels.py3compat import TimeoutError, PY2
 
 
@@ -30,6 +31,21 @@ def get_free_port():
     port = sock.getsockname()[1]
     sock.close()
     return port
+
+
+def frontend_request(blocking=True, timeout=None):
+    """
+    Send a request to the frontend.
+
+    If blocking is True, The return value will be returned.
+    """
+    if not get_ipython().kernel.frontend_comm.is_open():
+        raise CommError("Can't make a request to a closed comm")
+    # Get a reply from the last frontend to have sent a message
+    return get_ipython().kernel.frontend_call(
+        blocking=blocking,
+        broadcast=False,
+        timeout=timeout)
 
 
 class FrontendComm(CommBase):
@@ -122,10 +138,14 @@ class FrontendComm(CommBase):
         if out_stream:
             out_stream.flush(zmq.POLLOUT)
 
-    def remote_call(self, comm_id=None, blocking=False, callback=None):
+    def remote_call(self, comm_id=None, blocking=False, callback=None,
+                    timeout=None):
         """Get a handler for remote calls."""
         return super(FrontendComm, self).remote_call(
-                blocking=blocking, comm_id=comm_id, callback=callback)
+            blocking=blocking,
+            comm_id=comm_id,
+            callback=callback,
+            timeout=timeout)
 
     # --- Private --------
     def _wait_reply(self, call_id, call_name, timeout):

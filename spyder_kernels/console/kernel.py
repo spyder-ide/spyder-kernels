@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Spyder kernel for Jupyter
+Spyder kernel for Jupyter.
 """
 
 # Standard library imports
@@ -19,7 +19,6 @@ from ipykernel.ipkernel import IPythonKernel
 
 # Local imports
 from spyder_kernels.comms.frontendcomm import FrontendComm
-from spyder_kernels.py3compat import isidentifier, PY2
 
 
 # Excluded variables from the Variable Explorer (i.e. they are not
@@ -28,7 +27,7 @@ EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 
 
 class SpyderKernel(IPythonKernel):
-    """Spyder kernel for Jupyter"""
+    """Spyder kernel for Jupyter."""
 
     def __init__(self, *args, **kwargs):
         super(SpyderKernel, self).__init__(*args, **kwargs)
@@ -39,6 +38,7 @@ class SpyderKernel(IPythonKernel):
         handlers = {
             'set_breakpoints': self.set_spyder_breakpoints,
             'set_pdb_ignore_lib': self.set_pdb_ignore_lib,
+            'set_pdb_execute_events': self.set_pdb_execute_events,
             'get_value': self.get_value,
             'load_data': self.load_data,
             'save_namespace': self.save_namespace,
@@ -59,6 +59,7 @@ class SpyderKernel(IPythonKernel):
             'get_var_properties': self.get_var_properties,
             'set_sympy_forecolor': self.set_sympy_forecolor,
             'set_pdb_echo_code': self.set_pdb_echo_code,
+            'update_syspath': self.update_syspath,
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -72,7 +73,7 @@ class SpyderKernel(IPythonKernel):
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
 
-    def frontend_call(self, blocking=False, broadcast=True):
+    def frontend_call(self, blocking=False, broadcast=True, timeout=None):
         """Call the frontend."""
         # If not broadcast, send only to the calling comm
         if broadcast:
@@ -81,7 +82,9 @@ class SpyderKernel(IPythonKernel):
             comm_id = self.frontend_comm.calling_comm_id
 
         return self.frontend_comm.remote_call(
-            blocking=blocking, comm_id=comm_id)
+            blocking=blocking,
+            comm_id=comm_id,
+            timeout=timeout)
 
     @property
     def _pdb_frame(self):
@@ -121,6 +124,35 @@ class SpyderKernel(IPythonKernel):
         """
         if self._pdb_obj:
             self._pdb_obj.pdb_ignore_lib = state
+
+    def set_pdb_execute_events(self, state):
+        """
+        Handle a message from the frontend
+        """
+        if self._pdb_obj:
+            self._pdb_obj.pdb_execute_events = state
+
+    def update_syspath(self, path_dict, new_path_dict):
+        """
+        Update the PYTHONPATH of the kernel.
+
+        `path_dict` and `new_path_dict` have the paths as keys and the state
+        as values. The state is `True` for active and `False` for inactive.
+
+        `path_dict` corresponds to the previous state of the PYTHONPATH.
+        `new_path_dict` corresponds to the new state of the PYTHONPATH.
+        """
+        # Remove old paths
+        for path in path_dict:
+            while path in sys.path:
+                sys.path.remove(path)
+
+        # Add new paths
+        # We do this in reverse order as we use `sys.path.insert(1, path)`.
+        # This ensures the end result has the correct path order.
+        for path, active in reversed(new_path_dict.items()):
+            if active:
+                sys.path.insert(1, path)
 
     # -- Public API ---------------------------------------------------
     # --- For the Variable Explorer
@@ -255,50 +287,8 @@ class SpyderKernel(IPythonKernel):
 
         Public method of ipykernel overwritten for debugging.
         """
-        if cursor_pos is None:
-            cursor_pos = len(code)
         if self.is_debugging():
-            # Get text to complete
-            text = code[:cursor_pos].split(' ')[-1]
-            # Choose pdb function to complete, based on cmd.py
-            origline = code
-            line = origline.lstrip()
-            if not line:
-                return
-            stripped = len(origline) - len(line)
-            begidx = cursor_pos - len(text) - stripped
-            endidx = cursor_pos - stripped
-            if begidx > 0:
-                cmd, args, _ = self._pdb_obj.parseline(line)
-                if cmd == '':
-                    compfunc = self._pdb_obj.completedefault
-                else:
-                    try:
-                        compfunc = getattr(self._pdb_obj, 'complete_' + cmd)
-                    except AttributeError:
-                        compfunc = self._pdb_obj.completedefault
-            elif line[0] != '!':
-                compfunc = self._pdb_obj.completenames
-            else:
-                compfunc = self._pdb_obj.completedefault
-
-            def is_name_or_composed(text):
-                if not text or text[0] == '.':
-                    return False
-                # We want to keep value.subvalue
-                return isidentifier(text.replace('.', ''))
-
-            while text and not is_name_or_composed(text):
-                text = text[1:]
-                begidx += 1
-
-            matches = compfunc(text, line, begidx, endidx)
-
-            return {'matches': matches,
-                    'cursor_end': cursor_pos,
-                    'cursor_start': cursor_pos - len(text),
-                    'metadata': {},
-                    'status': 'ok'}
+            return self._pdb_obj.do_complete(code, cursor_pos)
         return super(SpyderKernel, self).do_complete(code, cursor_pos)
 
     def publish_pdb_state(self):

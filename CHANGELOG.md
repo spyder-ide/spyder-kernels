@@ -1,5 +1,29 @@
 # History of changes
 
+## Version 1.7.0 (2019-11-02)
+
+### New features
+
+* Create a new ZMQ socket for comms.
+* Allow different frontends to have different pickle
+  protocols.
+* Add a way to ignore installed Python libraries while
+  debugging
+
+### Pull Requests Merged
+
+* [PR 177](https://github.com/spyder-ide/spyder-kernels/pull/177) - PR: Update ipykernel required version ([2902](https://github.com/spyder-ide/spyder/issues/2902))
+* [PR 176](https://github.com/spyder-ide/spyder-kernels/pull/176) - PR: Improve displayed type and value for generic objects
+* [PR 169](https://github.com/spyder-ide/spyder-kernels/pull/169) - PR: Create a Comm socket
+* [PR 168](https://github.com/spyder-ide/spyder-kernels/pull/168) - PR: Require more recent version of jupyter-client
+* [PR 167](https://github.com/spyder-ide/spyder-kernels/pull/167) - PR: Don't demand that a file exists in Pdb
+* [PR 166](https://github.com/spyder-ide/spyder-kernels/pull/166) - PR: Allow different frontends to have different pickle protocols
+* [PR 152](https://github.com/spyder-ide/spyder-kernels/pull/152) - PR: Add a way to ignore installed Python libraries while debugging
+
+In this release 7 pull requests were closed.
+
+----
+
 ## Version 1.6.0 (2019-10-16)
 
 ### New features
