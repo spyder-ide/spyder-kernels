@@ -123,10 +123,14 @@ class FrontendComm(CommBase):
         if out_stream:
             out_stream.flush(zmq.POLLOUT)
 
-    def remote_call(self, comm_id=None, blocking=False, callback=None):
+    def remote_call(self, comm_id=None, blocking=False, callback=None,
+                    timeout=None):
         """Get a handler for remote calls."""
         return super(FrontendComm, self).remote_call(
-                blocking=blocking, comm_id=comm_id, callback=callback)
+            blocking=blocking,
+            comm_id=comm_id,
+            callback=callback,
+            timeout=timeout)
 
     # --- Private --------
     def _wait_reply(self, call_id, call_name, timeout):
