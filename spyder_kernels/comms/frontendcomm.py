@@ -33,6 +33,19 @@ def get_free_port():
     return port
 
 
+def frontend_request(blocking=True):
+    """
+    Send a request to the frontend.
+
+    If blocking is True, The return value will be returned.
+    """
+    if not get_ipython().kernel.frontend_comm.is_open():
+        raise CommError("Can't make a request to a closed comm")
+    # Get a reply from the last frontend to have sent a message
+    return get_ipython().kernel.frontend_call(
+        blocking=blocking, broadcast=False)
+
+
 class FrontendComm(CommBase):
     """Mixin to implement the spyder_shell_api."""
 
@@ -185,16 +198,3 @@ class FrontendComm(CommBase):
                 comm._msg_callback(msg)
         comm.handle_msg = handle_msg
         super(FrontendComm, self)._register_comm(comm)
-
-
-def _frontend_request(blocking=True):
-    """
-    Send a request to the frontend.
-
-    If blocking is true, The return value will be returned.
-    """
-    if not get_ipython().kernel.frontend_comm.is_open():
-        raise CommError("Can't make a request to a closed comm")
-    # Get a reply from the last frontend to have sent a message
-    return get_ipython().kernel.frontend_call(
-        blocking=blocking, broadcast=False)

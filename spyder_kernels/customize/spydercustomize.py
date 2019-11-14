@@ -24,7 +24,7 @@ import logging
 from IPython.core.getipython import get_ipython
 
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, encode
-from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
+from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 from spyder_kernels.customize.spyderpdb import SpyderPdb
 from spyder_kernels.customize.umr import UserModuleReloader
@@ -337,7 +337,7 @@ if "SPYDER_EXCEPTHOOK" in os.environ:
 def get_current_file_name():
     """Get the current file name."""
     try:
-        return _frontend_request().current_filename()
+        return frontend_request().current_filename()
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the current file name from Spyder's"
@@ -393,7 +393,7 @@ def get_file_code(filename):
     """Retrive the content of a file."""
     # Get code from spyder
     try:
-        file_code = _frontend_request().get_file_code(filename)
+        file_code = frontend_request().get_file_code(filename)
     except (CommError, TimeoutError):
         file_code = None
     if file_code is None:
@@ -536,7 +536,7 @@ def runcell(cellname, filename=None):
     ipython_shell = get_ipython()
     try:
         # Get code from spyder
-        cell_code = _frontend_request().run_cell(cellname, filename)
+        cell_code = frontend_request().run_cell(cellname, filename)
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the cell code from Spyder's"
@@ -595,7 +595,7 @@ def cell_count(filename=None):
             raise RuntimeError('Could not get cell count from frontend.')
     try:
         # Get code from spyder
-        cell_count = _frontend_request().cell_count(filename)
+        cell_count = frontend_request().cell_count(filename)
         return cell_count
     except Exception:
         etype, error, tb = sys.exc_info()

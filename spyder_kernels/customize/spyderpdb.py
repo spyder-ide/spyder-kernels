@@ -15,7 +15,7 @@ import traceback
 from IPython.core.getipython import get_ipython
 from IPython.core.debugger import Pdb as ipyPdb
 
-from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
+from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.utils import path_is_library
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, isidentifier
 
@@ -226,8 +226,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
-            _frontend_request(blocking=True).set_debug_state(True)
-            pdb_settings = _frontend_request().get_pdb_settings()
+            frontend_request(blocking=True).set_debug_state(True)
+            pdb_settings = frontend_request().get_pdb_settings()
             self.pdb_ignore_lib = pdb_settings['pdb_ignore_lib']
             self.pdb_execute_events = pdb_settings['pdb_execute_events']
             if self.starting:
@@ -238,7 +238,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
     def postloop(self):
         """Notifies spyder that the loop has ended."""
         try:
-            _frontend_request(blocking=True).set_debug_state(False)
+            frontend_request(blocking=True).set_debug_state(False)
         except (CommError, TimeoutError):
             logger.debug("Could not send debugging state to the frontend.")
         super(SpyderPdb, self).postloop()
