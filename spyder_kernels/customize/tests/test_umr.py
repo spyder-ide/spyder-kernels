@@ -18,7 +18,6 @@ import pytest
 # Local imports
 from spyder_kernels.py3compat import to_text_string
 from spyder_kernels.customize.umr import UserModuleReloader
-from spyder_kernels.customize.utils import create_pathlist
 
 
 @pytest.fixture
@@ -120,15 +119,3 @@ def test_umr_reload_modules(user_module):
     # Reload user modules
     import foo3
     assert umr.is_module_reloadable(foo3, 'foo3')
-
-
-def test_user_sitepackages_in_pathlist():
-    """Test that we include user site-packages in pathlist."""
-    if sys.platform.startswith('linux'):
-        user_path = 'local'
-    elif sys.platform == 'darwin':
-        user_path = '/Users/travis/.local'
-    else:
-        user_path = 'Roaming'
-
-    assert any([user_path in path for path in create_pathlist()])
