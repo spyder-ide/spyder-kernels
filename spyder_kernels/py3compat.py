@@ -225,6 +225,17 @@ def get_meth_class(obj):
 # Misc.
 #==============================================================================
 if PY2:
+    def _print(*objects, **options):
+        end = options.get('end', '\n')
+        file = options.get('file', sys.stdout)
+        sep = options.get('sep', ' ')
+        string = sep.join([str(obj) for obj in objects])
+        print(string, file=file, end=end, sep=sep)
+else:
+    _print = print
+
+
+if PY2:
     # Python 2
     input = raw_input
     getcwd = os.getcwdu
@@ -299,10 +310,27 @@ if PY2:
     def isidentifier(string):
         """Check if string can be a variable name."""
         return re.match(tokenize.Name + r'\Z', string) is not None
+
+    if os.name == 'nt':
+        def encode(u):
+            """Try encoding with utf8."""
+            if isinstance(u, unicode):
+                return u.encode('utf8', 'replace')
+            return u
+    else:
+        def encode(u):
+            """Try encoding with file system encoding."""
+            if isinstance(u, unicode):
+                return u.encode(sys.getfilesystemencoding())
+            return u
 else:
     def isidentifier(string):
         """Check if string can be a variable name."""
         return string.isidentifier()
+
+    def encode(u):
+        """Encoding is not a problem in python 3."""
+        return u
 
 if __name__ == '__main__':
     pass
