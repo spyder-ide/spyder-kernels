@@ -24,15 +24,15 @@ import logging
 from IPython.core.getipython import get_ipython
 
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, encode
-from spyder_kernels.comms.frontendcomm import CommError, _frontend_request
+from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
-from spyder_kernels.customize.spyderpdb import path_is_library
+from spyder_kernels.customize.spyderpdb import SpyderPdb
+from spyder_kernels.customize.umr import UserModuleReloader
 
 if not PY2:
     from IPython.core.inputtransformer2 import TransformerManager
 else:
-    from IPython.core.inputsplitter import IPythonInputSplitter as\
-        TransformerManager
+    from IPython.core.inputsplitter import IPythonInputSplitter as TransformerManager
 
 
 logger = logging.getLogger(__name__)
@@ -144,15 +144,13 @@ else:
 
 
 # =============================================================================
-# IPython kernel adjustments
+# IPython adjustments
 # =============================================================================
-
 # Patch unittest.main so that errors are printed directly in the console.
 # See http://comments.gmane.org/gmane.comp.python.ipython.devel/10557
 # Fixes Issue 1370
 import unittest
 from unittest import TestProgram
-
 
 class IPyTesProgram(TestProgram):
     def __init__(self, *args, **kwargs):
@@ -160,7 +158,6 @@ class IPyTesProgram(TestProgram):
         kwargs['testRunner'] = kwargs.pop('testRunner', test_runner)
         kwargs['exit'] = False
         TestProgram.__init__(self, *args, **kwargs)
-
 
 unittest.main = IPyTesProgram
 
@@ -170,6 +167,7 @@ try:
                             module='ipykernel.ipkernel')
 except Exception:
     pass
+
 
 # =============================================================================
 # Turtle adjustments
@@ -263,141 +261,15 @@ if os.name == 'nt' and not PY2:
 
 
 # =============================================================================
+# Pdb adjustments
+# =============================================================================
+pdb.Pdb = SpyderPdb
+
+
+# =============================================================================
 # User module reloader
 # =============================================================================
-class UserModuleReloader(object):
-    """
-    User Module Reloader (UMR) aims at deleting user modules
-    to force Python to deeply reload them during import
-
-    pathlist [list]: blacklist in terms of module path
-    namelist [list]: blacklist in terms of module name
-    """
-
-    def __init__(self, namelist=None, pathlist=None):
-        if namelist is None:
-            namelist = []
-        else:
-            try:
-                namelist = namelist.split(',')
-            except Exception:
-                namelist = []
-
-        # Spyder modules
-        spy_modules = ['spyder_kernels']
-
-        # Matplotlib modules
-        mpl_modules = ['matplotlib', 'tkinter', 'Tkinter']
-
-        # Add other, necessary modules to the UMR blacklist
-        # astropy: see issue 6962
-        # pytorch: see issue 7041
-        # fastmat: see issue 7190
-        # pythoncom: see issue 7190
-        # tensorflow: see issue 8697
-        other_modules = ['pytorch', 'pythoncom', 'tensorflow']
-        if PY2:
-            py2_modules = ['astropy', 'fastmat']
-            other_modules = other_modules + py2_modules
-        self.namelist = namelist + spy_modules + mpl_modules + other_modules
-
-        self.pathlist = pathlist
-
-        # List of previously loaded modules
-        self.previous_modules = list(sys.modules.keys())
-
-        # List of module names to reload
-        self.modnames_to_reload = []
-
-        # Activate Cython support
-        self.has_cython = False
-        self.activate_cython()
-
-        # Check if the UMR is enabled or not
-        enabled = os.environ.get("SPY_UMR_ENABLED", "")
-        self.enabled = enabled.lower() == "true"
-
-        # Check if the UMR should print the list of reloaded modules or not
-        verbose = os.environ.get("SPY_UMR_VERBOSE", "")
-        self.verbose = verbose.lower() == "true"
-
-    def is_module_reloadable(self, module, modname):
-        """Decide if a module is reloadable or not."""
-        if self.has_cython:
-            # Don't return cached inline compiled .PYX files
-            return False
-        else:
-            if (path_is_library(getattr(module, '__file__', None),
-                                self.pathlist) or
-                    self.is_module_in_namelist(modname)):
-                return False
-            else:
-                return True
-
-    def is_module_in_namelist(self, modname):
-        """Decide if a module can be reloaded or not according to its name."""
-        return set(modname.split('.')) & set(self.namelist)
-
-    def activate_cython(self):
-        """
-        Activate Cython support.
-
-        We need to run this here because if the support is
-        active, we don't to run the UMR at all.
-        """
-        run_cython = os.environ.get("SPY_RUN_CYTHON") == "True"
-
-        if run_cython:
-            try:
-                __import__('Cython')
-                self.has_cython = True
-            except Exception:
-                pass
-
-            if self.has_cython:
-                # Import pyximport to enable Cython files support for
-                # import statement
-                import pyximport
-                pyx_setup_args = {}
-
-                # Add Numpy include dir to pyximport/distutils
-                try:
-                    import numpy
-                    pyx_setup_args['include_dirs'] = numpy.get_include()
-                except Exception:
-                    pass
-
-                # Setup pyximport and enable Cython files reload
-                pyximport.install(setup_args=pyx_setup_args,
-                                  reload_support=True)
-
-    def run(self):
-        """
-        Delete user modules to force Python to deeply reload them
-
-        Do not del modules which are considered as system modules, i.e.
-        modules installed in subdirectories of Python interpreter's binary
-        Do not del C modules
-        """
-        self.modnames_to_reload = []
-        for modname, module in list(sys.modules.items()):
-            if modname not in self.previous_modules:
-                # Decide if a module can be reloaded or not
-                if self.is_module_reloadable(module, modname):
-                    self.modnames_to_reload.append(modname)
-                    del sys.modules[modname]
-                else:
-                    continue
-
-        # Report reloaded modules
-        if self.verbose and self.modnames_to_reload:
-            modnames = self.modnames_to_reload
-            _print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"
-                   % ("Reloaded modules", ": "+", ".join(modnames)))
-
-
-__umr__ = UserModuleReloader(namelist=os.environ.get("SPY_UMR_NAMELIST",
-                                                     None))
+__umr__ = UserModuleReloader(namelist=os.environ.get("SPY_UMR_NAMELIST", None))
 
 
 # =============================================================================
@@ -465,7 +337,7 @@ if "SPYDER_EXCEPTHOOK" in os.environ:
 def get_current_file_name():
     """Get the current file name."""
     try:
-        return _frontend_request().current_filename()
+        return frontend_request().current_filename()
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the current file name from Spyder's"
@@ -521,7 +393,7 @@ def get_file_code(filename):
     """Retrive the content of a file."""
     # Get code from spyder
     try:
-        file_code = _frontend_request().get_file_code(filename)
+        file_code = frontend_request().get_file_code(filename)
     except (CommError, TimeoutError):
         file_code = None
     if file_code is None:
@@ -664,7 +536,7 @@ def runcell(cellname, filename=None):
     ipython_shell = get_ipython()
     try:
         # Get code from spyder
-        cell_code = _frontend_request().run_cell(cellname, filename)
+        cell_code = frontend_request().run_cell(cellname, filename)
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the cell code from Spyder's"
@@ -723,7 +595,7 @@ def cell_count(filename=None):
             raise RuntimeError('Could not get cell count from frontend.')
     try:
         # Get code from spyder
-        cell_count = _frontend_request().cell_count(filename)
+        cell_count = frontend_request().cell_count(filename)
         return cell_count
     except Exception:
         etype, error, tb = sys.exc_info()
