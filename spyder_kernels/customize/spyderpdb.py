@@ -17,7 +17,6 @@ from IPython.core.debugger import Pdb as ipyPdb
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.utils import path_is_library
-from spyder_kernels.console.kernel import SpyderKernel
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, isidentifier
 
 if not PY2:
@@ -167,7 +166,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
         # Get text to complete
         text = code[:cursor_pos].split(' ')[-1]
-        # Choose pdb function to complete, based on cmd.py
+        # Choose Pdb function to complete, based on cmd.py
         origline = code
         line = origline.lstrip()
         if not line:
@@ -180,18 +179,18 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         compfunc = None
         ipython_do_complete = True
         if begidx > 0:
-            # This could be after a pdb command
+            # This could be after a Pdb command
             cmd, args, _ = self.parseline(line)
             if cmd != '':
                 try:
-                    # Function to complete pdb command arguments
+                    # Function to complete Pdb command arguments
                     compfunc = getattr(self, 'complete_' + cmd)
                     # Don't call ipython do_complete for commands
                     ipython_do_complete = False
                 except AttributeError:
                     pass
         elif line[0] != '!':
-            # This could be a pdb command
+            # This could be a Pdb command
             compfunc = self.completenames
 
         def is_name_or_composed(text):
@@ -215,29 +214,27 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             # Make complete call with current frame
             if self.curframe:
                 kernel.shell.set_completer_frame(self.curframe)
-            result = super(SpyderKernel, kernel).do_complete(code, cursor_pos)
+            result = kernel._do_complete(code, cursor_pos)
             # Reset frame
             kernel.shell.set_completer_frame()
-            # If there is no pdb results to merge, return the result
+            # If there is no Pdb results to merge, return the result
             if not compfunc:
                 return result
 
             ipy_matches = result['matches']
             # Make sure both match lists start at the same place
             if cursor_start < result['cursor_start']:
-                # Fill ipython matches
+                # Fill IPython matches
                 missing_txt = code[cursor_start:result['cursor_start']]
                 ipy_matches = [missing_txt + m for m in ipy_matches]
             elif result['cursor_start'] < cursor_start:
-                # Fill pdb matches
+                # Fill Pdb matches
                 missing_txt = code[result['cursor_start']:cursor_start]
                 matches = [missing_txt + m for m in matches]
                 cursor_start = result['cursor_start']
 
-            # Add pdb-specific matches
-            matches = matches + \
-                [match for match in ipy_matches if match not in matches]
-
+            # Add Pdb-specific matches
+            matches += [match for match in ipy_matches if match not in matches]
 
         return {'matches': matches,
                 'cursor_end': cursor_pos,
