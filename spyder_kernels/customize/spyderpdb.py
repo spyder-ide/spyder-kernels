@@ -156,22 +156,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             return False
         return True
 
-    # --- Methods reimplemented for text complete
-    def completenames(self, text, line, begidx, endidx):
-        """
-        Try to complete with command names, otherwise goes to default.
-        """
-        matched_names = super(SpyderPdb, self).completenames(
-            text, line, begidx, endidx)
-        matched_default = self.completedefault(text, line, begidx, endidx)
-        return matched_names + matched_default
-
-    def completedefault(self, text, line, begidx, endidx):
-        """
-        Default completion.
-        """
-        return self._complete_expression(text, line, begidx, endidx)
-
     # --- Method defined by us to respond to ipython complete protocol
     def do_complete(self, code, cursor_pos):
         """
@@ -182,27 +166,32 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
         # Get text to complete
         text = code[:cursor_pos].split(' ')[-1]
-        # Choose pdb function to complete, based on cmd.py
+        # Choose Pdb function to complete, based on cmd.py
         origline = code
         line = origline.lstrip()
         if not line:
+            # Nothing to complete
             return
         stripped = len(origline) - len(line)
         begidx = cursor_pos - len(text) - stripped
         endidx = cursor_pos - stripped
+
+        compfunc = None
+        ipython_do_complete = True
         if begidx > 0:
+            # This could be after a Pdb command
             cmd, args, _ = self.parseline(line)
-            if cmd == '':
-                compfunc = self.completedefault
-            else:
+            if cmd != '':
                 try:
+                    # Function to complete Pdb command arguments
                     compfunc = getattr(self, 'complete_' + cmd)
+                    # Don't call ipython do_complete for commands
+                    ipython_do_complete = False
                 except AttributeError:
-                    compfunc = self.completedefault
+                    pass
         elif line[0] != '!':
+            # This could be a Pdb command
             compfunc = self.completenames
-        else:
-            compfunc = self.completedefault
 
         def is_name_or_composed(text):
             if not text or text[0] == '.':
@@ -214,11 +203,42 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             text = text[1:]
             begidx += 1
 
-        matches = compfunc(text, line, begidx, endidx)
+        matches = []
+        if compfunc:
+            matches = compfunc(text, line, begidx, endidx)
+
+        cursor_start = cursor_pos - len(text)
+
+        if ipython_do_complete:
+            kernel = get_ipython().kernel
+            # Make complete call with current frame
+            if self.curframe:
+                kernel.shell.set_completer_frame(self.curframe)
+            result = kernel._do_complete(code, cursor_pos)
+            # Reset frame
+            kernel.shell.set_completer_frame()
+            # If there is no Pdb results to merge, return the result
+            if not compfunc:
+                return result
+
+            ipy_matches = result['matches']
+            # Make sure both match lists start at the same place
+            if cursor_start < result['cursor_start']:
+                # Fill IPython matches
+                missing_txt = code[cursor_start:result['cursor_start']]
+                ipy_matches = [missing_txt + m for m in ipy_matches]
+            elif result['cursor_start'] < cursor_start:
+                # Fill Pdb matches
+                missing_txt = code[result['cursor_start']:cursor_start]
+                matches = [missing_txt + m for m in matches]
+                cursor_start = result['cursor_start']
+
+            # Add Pdb-specific matches
+            matches += [match for match in ipy_matches if match not in matches]
 
         return {'matches': matches,
                 'cursor_end': cursor_pos,
-                'cursor_start': cursor_pos - len(text),
+                'cursor_start': cursor_start,
                 'metadata': {},
                 'status': 'ok'}
 

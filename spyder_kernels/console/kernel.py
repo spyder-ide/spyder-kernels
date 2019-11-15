@@ -281,6 +281,10 @@ class SpyderKernel(IPythonKernel):
         """
         return bool(self._pdb_frame)
 
+    def _do_complete(self, code, cursor_pos):
+        """Call parent class do_complete"""
+        return super(SpyderKernel, self).do_complete(code, cursor_pos)
+
     def do_complete(self, code, cursor_pos):
         """
         Call PdB complete if we are debugging.
@@ -289,7 +293,7 @@ class SpyderKernel(IPythonKernel):
         """
         if self.is_debugging():
             return self._pdb_obj.do_complete(code, cursor_pos)
-        return super(SpyderKernel, self).do_complete(code, cursor_pos)
+        return self._do_complete(code, cursor_pos)
 
     def publish_pdb_state(self):
         """
