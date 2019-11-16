@@ -109,7 +109,7 @@ def kernel(request):
         'exclude_private': True,
         'exclude_uppercase': True,
         'exclude_capitalized': False,
-        'exclude_unsupported': True,
+        'exclude_unsupported': False,
         'exclude_callables_and_modules': True,
         'excluded_names': [
             'nan',
@@ -675,7 +675,7 @@ def test_callables_and_modules(kernel, exclude_callables_and_modules,
 
     # Restore settings for other tests
     settings['exclude_callables_and_modules'] = True
-    settings['exclude_unsupported'] = True
+    settings['exclude_unsupported'] = False
 
 
 if __name__ == "__main__":
