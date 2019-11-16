@@ -104,29 +104,38 @@ def kernel(request):
     """Console kernel fixture"""
     # Get kernel instance
     kernel = get_kernel()
-    kernel.namespace_view_settings = {'check_all': False,
-                                      'exclude_private': True,
-                                      'exclude_uppercase': True,
-                                      'exclude_capitalized': False,
-                                      'exclude_unsupported': True,
-                                      'excluded_names': ['nan', 'inf',
-                                                         'infty',
-                                                         'little_endian',
-                                                         'colorbar_doc',
-                                                         'typecodes',
-                                                         '__builtins__',
-                                                         '__main__',
-                                                         '__doc__',
-                                                         'NaN', 'Inf',
-                                                         'Infinity',
-                                                         'sctypes',
-                                                         'rcParams',
-                                                         'rcParamsDefault',
-                                                         'sctypeNA', 'typeNA',
-                                                         'False_', 'True_'],
-                                      'minmax': False}
-    # Teardown
+    kernel.namespace_view_settings = {
+        'check_all': False,
+        'exclude_private': True,
+        'exclude_uppercase': True,
+        'exclude_capitalized': False,
+        'exclude_unsupported': True,
+        'exclude_callables_or_modules': True,
+        'excluded_names': [
+            'nan',
+            'inf',
+            'infty',
+            'little_endian',
+            'colorbar_doc',
+            'typecodes',
+            '__builtins__',
+            '__main__',
+            '__doc__',
+            'NaN',
+            'Inf',
+            'Infinity',
+            'sctypes',
+            'rcParams',
+            'rcParamsDefault',
+            'sctypeNA',
+            'typeNA',
+            'False_',
+            'True_'
+        ],
+        'minmax': False
+    }
 
+    # Teardown
     def reset_kernel():
         kernel.do_execute('reset -f', True)
     request.addfinalizer(reset_kernel)
