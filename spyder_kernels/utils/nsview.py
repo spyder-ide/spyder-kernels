@@ -567,7 +567,9 @@ def is_supported(value, check_all=False, filters=None, iterate=False):
     assert filters is not None
     if value is None:
         return True
-    if not is_editable_type(value):
+    if is_callable_or_module(value):
+        return True
+    elif not is_editable_type(value):
         return False
     elif not isinstance(value, filters):
         return False

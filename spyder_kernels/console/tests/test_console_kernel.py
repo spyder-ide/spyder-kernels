@@ -625,6 +625,7 @@ def test_matplotlib_inline(kernel):
         # Assert backend is inline
         assert 'inline' in value
 
+
 def test_do_complete(kernel):
     """
     Check do complete works in normal and debugging mode.
@@ -641,6 +642,40 @@ def test_do_complete(kernel):
     kernel._pdb_obj = pdb_obj
     match = kernel.do_complete('ba', 2)
     assert 'baba' in match['matches']
+
+
+@pytest.mark.parametrize("exclude_callables_or_modules", [True, False])
+@pytest.mark.parametrize("exclude_unsupported", [True, False])
+def test_callables_and_modules(kernel, exclude_callables_or_modules,
+                               exclude_unsupported):
+    """
+    Tests that callables and modules are in the namespace view only
+    when the right options is passed to the kernel.
+    """
+    kernel.do_execute('import numpy', True)
+    kernel.do_execute('a = 10', True)
+    kernel.do_execute('def f(x): return x', True)
+    settings = kernel.namespace_view_settings
+
+    settings['exclude_callables_or_modules'] = exclude_callables_or_modules
+    settings['exclude_unsupported'] = exclude_unsupported
+    nsview = kernel.get_namespace_view()
+
+    # Callables and modules should always be in nsview when the option
+    # is active.
+    if not exclude_callables_or_modules:
+        assert 'numpy' in nsview.keys()
+        assert 'f' in nsview.keys()
+    else:
+        assert 'numpy' not in nsview.keys()
+        assert 'f' not in nsview.keys()
+
+    # Other values should always be part of nsview
+    assert 'a' in nsview.keys()
+
+    # Restore settings for other tests
+    settings['exclude_callables_or_modules'] = True
+    settings['exclude_unsupported'] = True
 
 
 if __name__ == "__main__":
