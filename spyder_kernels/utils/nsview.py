@@ -605,7 +605,7 @@ def is_callable_or_module(value):
 def globalsfilter(input_dict, check_all=False, filters=None,
                   exclude_private=None, exclude_capitalized=None,
                   exclude_uppercase=None, exclude_unsupported=None,
-                  excluded_names=None, exclude_callables_or_modules=None):
+                  excluded_names=None, exclude_callables_and_modules=None):
     """Keep objects in namespace view according to different criteria."""
     output_dict = {}
     for key, value in list(input_dict.items()):
@@ -615,7 +615,7 @@ def globalsfilter(input_dict, check_all=False, filters=None,
             (exclude_uppercase and key.isupper() and
              len(key) > 1 and not key[1:].isdigit()) or
             (key in excluded_names) or
-            (exclude_callables_or_modules and is_callable_or_module(value)) or
+            (exclude_callables_and_modules and is_callable_or_module(value)) or
             (exclude_unsupported and
              not is_supported(value, check_all=check_all, filters=filters))
         )
@@ -630,7 +630,7 @@ def globalsfilter(input_dict, check_all=False, filters=None,
 REMOTE_SETTINGS = ('check_all', 'exclude_private', 'exclude_uppercase',
                    'exclude_capitalized', 'exclude_unsupported',
                    'excluded_names', 'minmax', 'show_callable_attributes',
-                   'show_special_attributes', 'exclude_callables_or_modules')
+                   'show_special_attributes', 'exclude_callables_and_modules')
 
 
 def get_supported_types():
@@ -685,7 +685,7 @@ def get_remote_data(data, settings, mode, more_excluded_names=None):
         exclude_uppercase=settings['exclude_uppercase'],
         exclude_capitalized=settings['exclude_capitalized'],
         exclude_unsupported=settings['exclude_unsupported'],
-        exclude_callables_or_modules=settings['exclude_callables_or_modules'],
+        exclude_callables_and_modules=settings['exclude_callables_and_modules'],
         excluded_names=excluded_names)
 
 

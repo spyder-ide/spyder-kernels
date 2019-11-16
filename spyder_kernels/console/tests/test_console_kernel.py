@@ -110,7 +110,7 @@ def kernel(request):
         'exclude_uppercase': True,
         'exclude_capitalized': False,
         'exclude_unsupported': True,
-        'exclude_callables_or_modules': True,
+        'exclude_callables_and_modules': True,
         'excluded_names': [
             'nan',
             'inf',
@@ -644,9 +644,9 @@ def test_do_complete(kernel):
     assert 'baba' in match['matches']
 
 
-@pytest.mark.parametrize("exclude_callables_or_modules", [True, False])
+@pytest.mark.parametrize("exclude_callables_and_modules", [True, False])
 @pytest.mark.parametrize("exclude_unsupported", [True, False])
-def test_callables_and_modules(kernel, exclude_callables_or_modules,
+def test_callables_and_modules(kernel, exclude_callables_and_modules,
                                exclude_unsupported):
     """
     Tests that callables and modules are in the namespace view only
@@ -657,13 +657,13 @@ def test_callables_and_modules(kernel, exclude_callables_or_modules,
     kernel.do_execute('def f(x): return x', True)
     settings = kernel.namespace_view_settings
 
-    settings['exclude_callables_or_modules'] = exclude_callables_or_modules
+    settings['exclude_callables_and_modules'] = exclude_callables_and_modules
     settings['exclude_unsupported'] = exclude_unsupported
     nsview = kernel.get_namespace_view()
 
     # Callables and modules should always be in nsview when the option
     # is active.
-    if not exclude_callables_or_modules:
+    if not exclude_callables_and_modules:
         assert 'numpy' in nsview.keys()
         assert 'f' in nsview.keys()
     else:
@@ -674,7 +674,7 @@ def test_callables_and_modules(kernel, exclude_callables_or_modules,
     assert 'a' in nsview.keys()
 
     # Restore settings for other tests
-    settings['exclude_callables_or_modules'] = True
+    settings['exclude_callables_and_modules'] = True
     settings['exclude_unsupported'] = True
 
 
