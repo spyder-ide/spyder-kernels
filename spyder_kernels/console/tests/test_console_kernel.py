@@ -650,7 +650,7 @@ def test_callables_and_modules(kernel, exclude_callables_and_modules,
                                exclude_unsupported):
     """
     Tests that callables and modules are in the namespace view only
-    when the right options is passed to the kernel.
+    when the right options are passed to the kernel.
     """
     kernel.do_execute('import numpy', True)
     kernel.do_execute('a = 10', True)
