@@ -1,5 +1,28 @@
 # History of changes
 
+## Version 1.8.0 (2019-11-18)
+
+### New features
+
+* Add an option to exclude callables and modules in namespace view.
+* Add methods to update `sys.path` from Spyder.
+* Add an option to execute IPython events in Pdb.
+
+### Pull Requests Merged
+
+* [PR 183](https://github.com/spyder-ide/spyder-kernels/pull/183) - PR: Add an option to namespace view settings to exclude callables and modules
+* [PR 182](https://github.com/spyder-ide/spyder-kernels/pull/182) - PR: Use IPython completer for Pdb
+* [PR 181](https://github.com/spyder-ide/spyder-kernels/pull/181) - PR: Add path update methods
+* [PR 180](https://github.com/spyder-ide/spyder-kernels/pull/180) - PR: Cleanup spydercustomize
+* [PR 179](https://github.com/spyder-ide/spyder-kernels/pull/179) - PR: Use a timeout in CommBase if a call passes one different from None
+* [PR 178](https://github.com/spyder-ide/spyder-kernels/pull/178) - PR: Correctly set namespace while debugging
+* [PR 175](https://github.com/spyder-ide/spyder-kernels/pull/175) - PR: Add an option to execute IPython events in Pdb
+* [PR 174](https://github.com/spyder-ide/spyder-kernels/pull/174) - PR: Prevent pdb syntax error from blocking the console ([10588](https://github.com/spyder-ide/spyder/issues/10588))
+
+In this release 8 pull requests were closed.
+
+----
+
 ## Version 1.7.0 (2019-11-02)
 
 ### New features
