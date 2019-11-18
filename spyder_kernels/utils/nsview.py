@@ -13,6 +13,7 @@ Utilities
 from __future__ import print_function
 
 from itertools import islice
+import inspect
 import re
 
 # Local imports
@@ -562,11 +563,13 @@ def get_human_readable_type(item):
 # CollectionsEditor)
 #==============================================================================
 def is_supported(value, check_all=False, filters=None, iterate=False):
-    """Return True if the value is supported, False otherwise"""
+    """Return True if value is supported, False otherwise."""
     assert filters is not None
     if value is None:
         return True
-    if not is_editable_type(value):
+    if is_callable_or_module(value):
+        return True
+    elif not is_editable_type(value):
         return False
     elif not isinstance(value, filters):
         return False
@@ -590,21 +593,32 @@ def is_supported(value, check_all=False, filters=None, iterate=False):
     return True
 
 
+def is_callable_or_module(value):
+    """Return True if value is a callable or module, False otherwise."""
+    try:
+        callable_or_module = callable(value) or inspect.ismodule(value)
+    except Exception:
+        callable_or_module = False
+    return callable_or_module
+
+
 def globalsfilter(input_dict, check_all=False, filters=None,
                   exclude_private=None, exclude_capitalized=None,
                   exclude_uppercase=None, exclude_unsupported=None,
-                  excluded_names=None):
-    """Keep only objects that can be pickled"""
+                  excluded_names=None, exclude_callables_and_modules=None):
+    """Keep objects in namespace view according to different criteria."""
     output_dict = {}
     for key, value in list(input_dict.items()):
-        excluded = (exclude_private and key.startswith('_')) or \
-                   (exclude_capitalized and key[0].isupper()) or \
-                   (exclude_uppercase and key.isupper()
-                    and len(key) > 1 and not key[1:].isdigit()) or \
-                   (key in excluded_names) or \
-                   (exclude_unsupported and \
-                    not is_supported(value, check_all=check_all,
-                                     filters=filters))
+        excluded = (
+            (exclude_private and key.startswith('_')) or
+            (exclude_capitalized and key[0].isupper()) or
+            (exclude_uppercase and key.isupper() and
+             len(key) > 1 and not key[1:].isdigit()) or
+            (key in excluded_names) or
+            (exclude_callables_and_modules and is_callable_or_module(value)) or
+            (exclude_unsupported and
+             not is_supported(value, check_all=check_all, filters=filters))
+        )
         if not excluded:
             output_dict[key] = value
     return output_dict
@@ -616,7 +630,7 @@ def globalsfilter(input_dict, check_all=False, filters=None,
 REMOTE_SETTINGS = ('check_all', 'exclude_private', 'exclude_uppercase',
                    'exclude_capitalized', 'exclude_unsupported',
                    'excluded_names', 'minmax', 'show_callable_attributes',
-                   'show_special_attributes')
+                   'show_special_attributes', 'exclude_callables_and_modules')
 
 
 def get_supported_types():
@@ -663,13 +677,16 @@ def get_remote_data(data, settings, mode, more_excluded_names=None):
     excluded_names = settings['excluded_names']
     if more_excluded_names is not None:
         excluded_names += more_excluded_names
-    return globalsfilter(data, check_all=settings['check_all'],
-                         filters=tuple(supported_types[mode]),
-                         exclude_private=settings['exclude_private'],
-                         exclude_uppercase=settings['exclude_uppercase'],
-                         exclude_capitalized=settings['exclude_capitalized'],
-                         exclude_unsupported=settings['exclude_unsupported'],
-                         excluded_names=excluded_names)
+    return globalsfilter(
+        data,
+        check_all=settings['check_all'],
+        filters=tuple(supported_types[mode]),
+        exclude_private=settings['exclude_private'],
+        exclude_uppercase=settings['exclude_uppercase'],
+        exclude_capitalized=settings['exclude_capitalized'],
+        exclude_unsupported=settings['exclude_unsupported'],
+        exclude_callables_and_modules=settings['exclude_callables_and_modules'],
+        excluded_names=excluded_names)
 
 
 def make_remote_view(data, settings, more_excluded_names=None):
