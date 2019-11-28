@@ -81,7 +81,7 @@ class SpyderKernel(IPythonKernel):
             self, exc_tuple=None, filename=None, tb_offset=None,
             exception_only=False, running_compiled_code=False):
         """
-        Display the exception that just occurred, and any chined exception.
+        Display the exception that just occurred, and any chained exception.
 
         This is needed because we're using the plain style of showing
         tracebacks in qtconsole. And we're doing that to be able to parse
