@@ -486,6 +486,34 @@ def test_runfile(tmpdir):
 
 
 @flaky(max_runs=3)
+def test_chained_traceback(tmpdir):
+    """
+    Test that chained exceptions are printed.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+
+    with setup_kernel(cmd) as client:
+        # Remove all variables
+        client.execute(
+            "try:\n"
+            "    v = {}['a']\n"
+            "except KeyError as e:\n"
+            "    raise ValueError('failed') from e")
+        # We expect a ValueError, some text, then a KeyError
+        assert 'execution_state' in client.get_iopub_msg(
+            block=True, timeout=TIMEOUT)['content']
+        assert 'code' in client.get_iopub_msg(
+            block=True, timeout=TIMEOUT)['content']
+        assert 'ValueError' == client.get_iopub_msg(
+            block=True, timeout=TIMEOUT)['content']['ename']
+        assert 'stderr' == client.get_iopub_msg(
+            block=True, timeout=TIMEOUT)['content']['name']
+        assert 'KeyError' == client.get_iopub_msg(
+            block=True, timeout=TIMEOUT)['content']['ename']
+
+
+@flaky(max_runs=3)
 def test_np_threshold(kernel):
     """Test that setting Numpy threshold doesn't make the Variable Explorer slow."""
 

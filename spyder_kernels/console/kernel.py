@@ -73,6 +73,53 @@ class SpyderKernel(IPythonKernel):
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
 
+        # Hack to solve spyder-ide/spyder/2943
+        self.shell_showtraceback = self.shell.showtraceback
+        self.shell.showtraceback = self.chained_showtraceback
+
+    def chained_showtraceback(
+            self, exc_tuple=None, filename=None, tb_offset=None,
+            exception_only=False, running_compiled_code=False):
+        """
+        Display the exception that just occurred, and any chined exception.
+
+        This is needed because we're using the plain style of showing
+        tracebacks in qtconsole. And we're doing that to be able to parse
+        tracebacks and make them clickable to open the file to which the
+        traceback points to.
+        """
+
+        self.shell_showtraceback(exc_tuple, filename, tb_offset,
+                                 exception_only, running_compiled_code)
+        etype, evalue, tb = self.shell._get_exc_info(exc_tuple)
+        chained_exc_ids = set()
+        while evalue:
+            exception = self.get_parts_of_chained_exception(evalue)
+            if exception and not id(exception[1]) in chained_exc_ids:
+                # trace exception to avoid infinite 'cause' loop
+                chained_exc_ids.add(id(exception[1]))
+                etype, evalue, etb = exception
+                print("The above exception was caused by "
+                      "the following exception:\n", file=sys.stderr)
+                self.shell_showtraceback(exception)
+            else:
+                evalue = None
+
+    def get_parts_of_chained_exception(self, evalue):
+        """Copied from IPython/core/ultratb.py"""
+        def get_chained_exception(exception_value):
+            cause = getattr(exception_value, '__cause__', None)
+            if cause:
+                return cause
+            if getattr(exception_value, '__suppress_context__', False):
+                return None
+            return getattr(exception_value, '__context__', None)
+
+        chained_evalue = get_chained_exception(evalue)
+
+        if chained_evalue:
+            return chained_evalue.__class__, chained_evalue, chained_evalue.__traceback__
+
     def frontend_call(self, blocking=False, broadcast=True, timeout=None):
         """Call the frontend."""
         # If not broadcast, send only to the calling comm
