@@ -558,7 +558,7 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
 builtins.debugfile = debugfile
 
 
-def runcell(cellname, filename=None, post_mortem=False):
+def runcell(cellname, filename=None, post_mortem=False, _cache_key=None):
     """
     Run a code cell from an editor as a file.
 
@@ -572,6 +572,8 @@ def runcell(cellname, filename=None, post_mortem=False):
         Cell name or index.
     filename : str
         Needed to allow for proper traceback links.
+    _cache_key: str
+        Internal key for Spyder to fetch saved state of code.
     """
     if filename is None:
         filename = get_current_file_name()
@@ -582,16 +584,17 @@ def runcell(cellname, filename=None, post_mortem=False):
         # Otherwise code caching doesn't work
         if os.name == 'nt':
             filename = filename.replace('/', '\\')
-    try:
-        filename = filename.decode('utf-8')
-    except (UnicodeError, TypeError, AttributeError):
-        # UnicodeError, TypeError --> eventually raised in Python 2
-        # AttributeError --> systematically raised in Python 3
-        pass
+    if PY2:
+        try:
+            filename = filename.decode('utf-8')
+        except (UnicodeError, TypeError, AttributeError):
+            # UnicodeError, TypeError --> eventually raised in Python 2
+            # AttributeError --> systematically raised in Python 3
+            pass
     ipython_shell = get_ipython()
     try:
         # Get code from spyder
-        cell_code = frontend_request().run_cell(cellname, filename)
+        cell_code = frontend_request().run_cell(cellname, filename, _cache_key)
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the cell code from Spyder's"
@@ -619,7 +622,7 @@ def runcell(cellname, filename=None, post_mortem=False):
 builtins.runcell = runcell
 
 
-def debugcell(cellname, filename=None, post_mortem=False):
+def debugcell(cellname, filename=None, post_mortem=False, _cache_key=None):
     """Debug a cell."""
     if filename is None:
         filename = get_current_file_name()
@@ -629,8 +632,10 @@ def debugcell(cellname, filename=None, post_mortem=False):
     debugger, filename = get_debugger(filename)
     # The breakpoint might not be in the cell
     debugger.continue_if_has_breakpoints = False
-    debugger.run("runcell({}, {})".format(
-        repr(cellname), repr(filename)))
+    debugger.run(
+        "runcell(cellname={cellname}, ".format(cellname=repr(cellname)) +
+        "filename={filename}, ".format(filename=repr(filename)) +
+        "_cache_key={_cache_key})".format(_cache_key=repr(_cache_key)))
 
 
 builtins.debugcell = debugcell
