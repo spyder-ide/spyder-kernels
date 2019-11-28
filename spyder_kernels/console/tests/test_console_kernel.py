@@ -484,6 +484,12 @@ def test_runfile(tmpdir):
         content = msg['content']
         assert content['found']
 
+        # Verify that the variable `__file__` is undefined
+        client.inspect('__file__')
+        msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
+        content = msg['content']
+        assert not content['found']
+
 
 @flaky(max_runs=3)
 def test_np_threshold(kernel):
