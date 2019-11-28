@@ -395,9 +395,12 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     logger.debug(
                         "Could not send a Pdb continue call to the frontend.")
 
-    def notify_spyder(self, frame):
+    def notify_spyder(self, frame=None):
         """Send kernel state to the frontend."""
-        if not frame:
+        if frame is None:
+            frame = self.curframe
+
+        if frame is None:
             return
 
         kernel = get_ipython().kernel
