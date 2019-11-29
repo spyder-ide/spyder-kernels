@@ -144,6 +144,47 @@ else:
 
 
 # =============================================================================
+# Patch PyQt4 and PyQt5
+# =============================================================================
+# This saves the QApplication instances so that python doesn't destroy them.
+# Python sees all the QApplication as differnet python objects, while
+# Qt sees them as a singleton (There is only one Application!). Deleting one
+# QApplication causes all the other python instances to become broken.
+try:
+    from PyQt5 import QtWidgets
+
+    original_5_QApplication = QtWidgets.QApplication
+
+    def new_QApplication(*args, **kwargs):
+        instance = original_5_QApplication(*args, **kwargs)
+        if not hasattr(new_QApplication, 'wrapper_list'):
+            new_QApplication.wrapper_list = []
+        new_QApplication.wrapper_list.append(instance)
+        return instance
+
+    QtWidgets.QApplication = new_QApplication
+
+except Exception:
+    pass
+
+try:
+    from PyQt4 import QtGui
+
+    original_4_QApplication = QtGui.QApplication
+
+    def new_QApplication(*args, **kwargs):
+        instance = original_4_QApplication(*args, **kwargs)
+        if not hasattr(new_QApplication, 'wrapper_list'):
+            new_QApplication.wrapper_list = []
+        new_QApplication.wrapper_list.append(instance)
+        return instance
+
+    QtGui.QApplication = new_QApplication
+
+except Exception:
+    pass
+
+# =============================================================================
 # IPython adjustments
 # =============================================================================
 # Patch unittest.main so that errors are printed directly in the console.
