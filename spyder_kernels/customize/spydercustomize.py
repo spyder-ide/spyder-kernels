@@ -150,19 +150,19 @@ else:
 # Python sees all the QApplication as differnet python objects, while
 # Qt sees them as a singleton (There is only one Application!). Deleting one
 # QApplication causes all the other python instances to become broken.
+# See spyder-ide/spyder/issues/2970
 try:
     from PyQt5 import QtWidgets
 
-    original_5_QApplication = QtWidgets.QApplication
+    class SpyderQApplication(QtWidgets.QApplication):
+        def __init__(self, *args, **kwargs):
+            super(SpyderQApplication, self).__init__(*args, **kwargs)
+            # Add reference to avoid destruction
+            # This creates a Memory leak but avoids a Segmentation fault
+            SpyderQApplication._instance_list.append(self)
 
-    def new_QApplication(*args, **kwargs):
-        instance = original_5_QApplication(*args, **kwargs)
-        if not hasattr(new_QApplication, 'wrapper_list'):
-            new_QApplication.wrapper_list = []
-        new_QApplication.wrapper_list.append(instance)
-        return instance
-
-    QtWidgets.QApplication = new_QApplication
+    SpyderQApplication._instance_list = []
+    QtWidgets.QApplication = SpyderQApplication
 
 except Exception:
     pass
@@ -170,16 +170,15 @@ except Exception:
 try:
     from PyQt4 import QtGui
 
-    original_4_QApplication = QtGui.QApplication
+    class SpyderQApplication(QtGui.QApplication):
+        def __init__(self, *args, **kwargs):
+            super(SpyderQApplication, self).__init__(*args, **kwargs)
+            # Add reference to avoid destruction
+            # This creates a Memory leak but avoids a Segmentation fault
+            SpyderQApplication._instance_list.append(self)
 
-    def new_QApplication(*args, **kwargs):
-        instance = original_4_QApplication(*args, **kwargs)
-        if not hasattr(new_QApplication, 'wrapper_list'):
-            new_QApplication.wrapper_list = []
-        new_QApplication.wrapper_list.append(instance)
-        return instance
-
-    QtGui.QApplication = new_QApplication
+    SpyderQApplication._instance_list = []
+    QtGui.QApplication = SpyderQApplication
 
 except Exception:
     pass
