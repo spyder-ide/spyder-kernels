@@ -1,5 +1,16 @@
 # History of changes
 
+## Version 1.8.1 (2019-12-05)
+
+
+### Pull Requests Merged
+
+* [PR 185](https://github.com/spyder-ide/spyder-kernels/pull/185) - PR: Process first frame in Pdb
+
+In this release 1 pull request was closed.
+
+----
+
 ## Version 1.8.0 (2019-11-18)
 
 ### New features
