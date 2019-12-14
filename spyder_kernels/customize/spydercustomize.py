@@ -358,6 +358,25 @@ def get_debugger(filename):
     return debugger, filename
 
 
+def count_leading_empty_lines(cell):
+    """Count the number of leading empty cells."""
+    lines = cell.splitlines(keepends=True)
+    if not lines:
+        return 0
+    for i, line in enumerate(lines):
+        if line and not line.isspace():
+            return i
+    return len(lines)
+
+
+def transform_cell(code):
+    """Transform ipython code to python code."""
+    tm = TransformerManager()
+    number_empty_lines = count_leading_empty_lines(code)
+    code = tm.transform_cell(code)
+    return '\n' * number_empty_lines + code
+
+
 def exec_code(code, filename, ns_globals, ns_locals=None):
     """Execute code and display any exception."""
     if PY2:
@@ -367,14 +386,19 @@ def exec_code(code, filename, ns_globals, ns_locals=None):
     ipython_shell = get_ipython()
     is_ipython = os.path.splitext(filename)[1] == '.ipy'
     try:
-        if is_ipython:
-            # transform code
-            tm = TransformerManager()
-            if not PY2:
-                # Avoid removing lines
-                tm.cleanup_transforms = []
-            code = tm.transform_cell(code)
-        exec(compile(code, filename, 'exec'), ns_globals, ns_locals)
+        if not is_ipython:
+            try:
+                compiled = compile(code, filename, 'exec')
+            except SyntaxError:
+                compiled = compile(transform_cell(code), filename, 'exec')
+                _print(
+                    "WARNING: This python file contains ipython magic."
+                    " Please save it with .ipy extension. "
+                    "This will be an error in a future version of spyder.")
+        else:
+            compiled = compile(transform_cell(code), filename, 'exec')
+
+        exec(compiled, ns_globals, ns_locals)
     except SystemExit as status:
         # ignore exit(0)
         if status.code:
