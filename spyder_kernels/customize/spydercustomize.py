@@ -390,6 +390,8 @@ def exec_code(code, filename, ns_globals, ns_locals=None):
             try:
                 compiled = compile(code, filename, 'exec')
             except SyntaxError:
+                # TODO: remove the try-except and let the SyntaxError raise
+                # Because there should not be ipython code in a python file
                 compiled = compile(transform_cell(code), filename, 'exec')
                 _print(
                     "WARNING: This python file contains ipython magic."
