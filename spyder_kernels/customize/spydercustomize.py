@@ -374,6 +374,8 @@ def transform_cell(code):
     tm = TransformerManager()
     number_empty_lines = count_leading_empty_lines(code)
     code = tm.transform_cell(code)
+    if PY2:
+        return code
     return '\n' * number_empty_lines + code
 
 
