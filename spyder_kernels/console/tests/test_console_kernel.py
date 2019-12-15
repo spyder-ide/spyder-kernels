@@ -358,8 +358,9 @@ libc.printf(('Hello from C\\n').encode('utf8'))
 
 
 @flaky(max_runs=3)
-@pytest.mark.skipif(IPython.__version__ >= '7.2.0',
-                    reason="This problem was fixed in IPython 7.2+")
+@pytest.mark.skipif(True or IPython.__version__ >= '7.2.0',
+                    reason="This problem was fixed in IPython 7.2+."
+                    " current version of ipython is > 7.10")
 def test_cwd_in_sys_path():
     """
     Test that cwd stays as the first element in sys.path after the
