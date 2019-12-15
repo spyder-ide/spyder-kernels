@@ -389,16 +389,20 @@ def exec_code(code, filename, ns_globals, ns_locals=None):
     is_ipython = os.path.splitext(filename)[1] == '.ipy'
     try:
         if not is_ipython:
+            # TODO: remove the try-except and let the SyntaxError raise
+            # Because there should not be ipython code in a python file
             try:
                 compiled = compile(code, filename, 'exec')
-            except SyntaxError:
-                # TODO: remove the try-except and let the SyntaxError raise
-                # Because there should not be ipython code in a python file
-                compiled = compile(transform_cell(code), filename, 'exec')
-                _print(
-                    "WARNING: This python file contains ipython magic."
-                    " Please save it with .ipy extension. "
-                    "This will be an error in a future version of spyder.")
+            except SyntaxError as e:
+                try:
+                    compiled = compile(transform_cell(code), filename, 'exec')
+                except SyntaxError:
+                    raise e from None
+                else:
+                    _print(
+                        "WARNING: This python file contains ipython magic."
+                        " Please save it with .ipy extension. "
+                        "This will be an error in a future version of spyder.")
         else:
             compiled = compile(transform_cell(code), filename, 'exec')
 
