@@ -400,7 +400,9 @@ def exec_code(code, filename, ns_globals, ns_locals=None):
                     if PY2:
                         raise e
                     else:
-                        raise e from None
+                        # Need to call exec to avoid Syntax Error in python 2.
+                        # TODO: remove exec when dropping python 2 support.
+                        exec("raise e from None")
                 else:
                     _print(
                         "WARNING: This is not valid python code. "
