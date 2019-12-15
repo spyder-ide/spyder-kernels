@@ -397,7 +397,7 @@ def exec_code(code, filename, ns_globals, ns_locals=None):
                 try:
                     compiled = compile(transform_cell(code), filename, 'exec')
                 except SyntaxError:
-                    if Py2:
+                    if PY2:
                         raise e
                     else:
                         raise e from None
