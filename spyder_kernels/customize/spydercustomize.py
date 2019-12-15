@@ -397,11 +397,16 @@ def exec_code(code, filename, ns_globals, ns_locals=None):
                 try:
                     compiled = compile(transform_cell(code), filename, 'exec')
                 except SyntaxError:
-                    raise e from None
+                    if Py2:
+                        raise e
+                    else:
+                        raise e from None
                 else:
                     _print(
-                        "WARNING: This python file contains ipython magic."
-                        " Please save it with .ipy extension. "
+                        "WARNING: This is not valid python code. "
+                        "If you want to use ipython magic, "
+                        "flexible indentation, and prompt removal, "
+                        "please save this file with .ipy extension. "
                         "This will be an error in a future version of spyder.")
         else:
             compiled = compile(transform_cell(code), filename, 'exec')
