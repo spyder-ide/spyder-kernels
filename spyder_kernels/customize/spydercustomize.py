@@ -360,7 +360,10 @@ def get_debugger(filename):
 
 def count_leading_empty_lines(cell):
     """Count the number of leading empty cells."""
-    lines = cell.splitlines(keepends=True)
+    if PY2:
+        lines = cell.splitlines(True)
+    else:
+        lines = cell.splitlines(keepends=True)
     if not lines:
         return 0
     for i, line in enumerate(lines):
