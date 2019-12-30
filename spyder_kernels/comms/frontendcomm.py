@@ -156,9 +156,12 @@ class FrontendComm(CommBase):
         t_start = time.time()
         while call_id not in self._reply_inbox:
             if time.time() > t_start + timeout:
+                # Send config again just in case
+                self._send_comm_config()
                 raise TimeoutError(
-                    "Timeout while waiting for '{}' reply".format(
-                        call_name))
+                    "Timeout while waiting for '{}' reply.".format(
+                        call_name) +
+                    " Try again if you just restarted the kernel.")
             if threading.current_thread() is self.comm_socket_thread:
                 # Wait for a reply on the comm channel.
                 self.poll_one()
@@ -173,8 +176,12 @@ class FrontendComm(CommBase):
         self.calling_comm_id = comm.comm_id
         self._register_comm(comm)
         self._set_pickle_protocol(msg['content']['data']['pickle_protocol'])
-        self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)
+        self._send_comm_config()
+
+    def _send_comm_config(self):
+        """Send the comm config to the frontend."""
         self.remote_call()._set_comm_port(self.comm_port)
+        self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)
 
     def _comm_close(self, msg):
         """Close comm."""
