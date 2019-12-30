@@ -60,6 +60,8 @@ class FrontendComm(CommBase):
             self._comm_name, self._comm_open)
 
         self.comm_port = None
+        self.register_call_handler('_send_comm_config',
+                                   self._send_comm_config)
 
         # self.kernel.parent is IPKernelApp unless we are in tests
         if self.kernel.parent:
