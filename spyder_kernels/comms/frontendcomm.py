@@ -148,7 +148,7 @@ class FrontendComm(CommBase):
             timeout=timeout)
 
     # --- Private --------
-    def _wait_reply(self, call_id, call_name, timeout):
+    def _wait_reply(self, call_id, call_name, timeout, retry=True):
         """Wait until the frontend replies to a request."""
         if call_id in self._reply_inbox:
             return
@@ -156,12 +156,14 @@ class FrontendComm(CommBase):
         t_start = time.time()
         while call_id not in self._reply_inbox:
             if time.time() > t_start + timeout:
-                # Send config again just in case
-                self._send_comm_config()
+                if retry:
+                    # Send config again just in case
+                    self._send_comm_config()
+                    self._wait_reply(call_id, call_name, timeout, False)
+                    return
                 raise TimeoutError(
                     "Timeout while waiting for '{}' reply.".format(
-                        call_name) +
-                    " Try again if you just restarted the kernel.")
+                        call_name))
             if threading.current_thread() is self.comm_socket_thread:
                 # Wait for a reply on the comm channel.
                 self.poll_one()
