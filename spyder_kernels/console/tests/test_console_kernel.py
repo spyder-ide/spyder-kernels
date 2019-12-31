@@ -357,7 +357,7 @@ libc.printf(('Hello from C\\n').encode('utf8'))
     assert captured.out == "Hello from C\n"
 
 
-@flaky(max_runs=3) 
+@flaky(max_runs=3)
 def test_cwd_in_sys_path():
     """
     Test that cwd stays as the first element in sys.path after the
@@ -507,7 +507,7 @@ x = np.random.rand(75000,5);
 a = np.array([123412341234.123412341234])
 """)
         client.get_shell_msg(block=True, timeout=TIMEOUT)
-        
+
         # Assert that NumPy threshold, suppress and formatter
         # are the same as the ones set by the user
         client.execute("""
@@ -516,7 +516,7 @@ s = np.get_printoptions()['suppress'];
 f = np.get_printoptions()['formatter']
 """)
         client.get_shell_msg(block=True, timeout=TIMEOUT)
-        
+
         # Check correct decimal format
         client.inspect('a')
         msg = client.get_shell_msg(block=True, timeout=TIMEOUT)
