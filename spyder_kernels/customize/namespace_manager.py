@@ -78,6 +78,10 @@ class NamespaceManager(object):
         if '__file__' in self.ns_globals:
             self._previous_filename = self.ns_globals['__file__']
         self.ns_globals['__file__'] = self.filename
+
+        # Add the current namedspace to the kernel so it can access
+        get_ipython().kernel._running_namespace = self.ns_globals
+
         if (self._file_code is not None
                 and not PY2
                 and isinstance(self._file_code, bytes)):
@@ -101,6 +105,7 @@ class NamespaceManager(object):
         """
         if not self.current_namespace:
             _set_globals_locals(self.ns_globals, self.ns_locals)
+        get_ipython().kernel._running_namespace = None
         if self._previous_filename:
             self.ns_globals['__file__'] = self._previous_filename
         elif '__file__' in self.ns_globals:
