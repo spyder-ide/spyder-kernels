@@ -19,6 +19,7 @@ from ipykernel.ipkernel import IPythonKernel
 
 # Local imports
 from spyder_kernels.comms.frontendcomm import FrontendComm
+from spyder_kernels.py3compat import to_text_string
 
 
 # Excluded variables from the Variable Explorer (i.e. they are not
@@ -60,6 +61,7 @@ class SpyderKernel(IPythonKernel):
             'set_sympy_forecolor': self.set_sympy_forecolor,
             'set_pdb_echo_code': self.set_pdb_echo_code,
             'update_syspath': self.update_syspath,
+            'is_special_kernel_valid': self.is_special_kernel_valid
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -371,6 +373,21 @@ class SpyderKernel(IPythonKernel):
             del plt
         except:
             pass
+
+    def is_special_kernel_valid(self):
+        """
+        Check if optional dependencies are available for special consoles.
+        """
+        try:
+            if os.environ.get('SPY_AUTOLOAD_PYLAB_O') == 'True':
+                import matplotlib
+            elif os.environ.get('SPY_SYMPY_O') == 'True':
+                import sympy
+            elif os.environ.get('SPY_RUN_CYTHON') == 'True':
+                import cython
+        except ImportError as e:
+            return to_text_string(e)
+        return None
 
     # -- Private API ---------------------------------------------------
     # --- For the Variable Explorer
