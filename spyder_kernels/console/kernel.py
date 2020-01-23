@@ -19,7 +19,6 @@ from ipykernel.ipkernel import IPythonKernel
 
 # Local imports
 from spyder_kernels.comms.frontendcomm import FrontendComm
-from spyder_kernels.py3compat import to_text_string
 
 
 # Excluded variables from the Variable Explorer (i.e. they are not
@@ -385,8 +384,13 @@ class SpyderKernel(IPythonKernel):
                 import sympy
             elif os.environ.get('SPY_RUN_CYTHON') == 'True':
                 import cython
-        except ImportError as e:
-            return to_text_string(e)
+        except ImportError:
+            if os.environ.get('SPY_AUTOLOAD_PYLAB_O') == 'True':
+                return u'matplotlib'
+            elif os.environ.get('SPY_SYMPY_O') == 'True':
+                return u'sympy'
+            elif os.environ.get('SPY_RUN_CYTHON') == 'True':
+                return u'cython'
         return None
 
     # -- Private API ---------------------------------------------------
