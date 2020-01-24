@@ -11,6 +11,7 @@ import pdb
 import sys
 import logging
 import traceback
+from collections import namedtuple
 
 from IPython.core.getipython import get_ipython
 from IPython.core.debugger import Pdb as ipyPdb
@@ -213,10 +214,9 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             kernel = get_ipython().kernel
             # Make complete call with current frame
             if self.curframe:
-                # Set locals correctly
-                completer = kernel.shell.Completer
-                completer.namespace = self.curframe_locals
-                completer.global_namespace = self.curframe.f_globals
+                Frame = namedtuple("Frame", ["f_locals", "f_globals"])
+                frame = Frame(self.curframe_locals, self.curframe.f_globals)
+                kernel.shell.set_completer_frame(frame)
             result = kernel._do_complete(code, cursor_pos)
             # Reset frame
             kernel.shell.set_completer_frame()
