@@ -213,7 +213,10 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             kernel = get_ipython().kernel
             # Make complete call with current frame
             if self.curframe:
-                kernel.shell.set_completer_frame(self.curframe)
+                # Set locals correctly
+                completer = kernel.shell.Completer
+                completer.namespace = self.curframe_locals
+                completer.global_namespace = self.curframe.f_globals
             result = kernel._do_complete(code, cursor_pos)
             # Reset frame
             kernel.shell.set_completer_frame()
