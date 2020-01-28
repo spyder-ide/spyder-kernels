@@ -269,6 +269,31 @@ def varexp(line):
     del __fig__, __items__
 
 
+def spyder(line):
+    """
+    Spyder magic
+
+    Access subcommands like:
+        - open
+    """
+    ip = get_ipython()       #analysis:ignore
+    line = line.strip()
+    if not line:
+        return
+    idx_space = line.find(' ')
+    if idx_space < 0:
+        subcommand = line
+        namespace = {"__spyder_args": None}
+    else:
+        subcommand = line[:idx_space]
+        args = line[idx_space:].strip()
+        namespace = ip.kernel._get_current_namespace()
+        exec("__spyder_args = {}".format(args), namespace)
+    ip.kernel.frontend_call(blocking=True).spyder_magic(
+        subcommand, namespace["__spyder_args"])
+    del namespace["__spyder_args"]
+
+
 def main():
     # Remove this module's path from sys.path:
     try:
@@ -307,6 +332,7 @@ def main():
 
     # Set our own magics
     kernel.shell.register_magic_function(varexp)
+    kernel.shell.register_magic_function(spyder)
 
     # Set Pdb class to be used by %debug and %pdb.
     # This makes IPython consoles to use the class defined in our
