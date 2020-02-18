@@ -1,2 +1,2 @@
-ipykernel
 cloudpickle
+ipykernel
