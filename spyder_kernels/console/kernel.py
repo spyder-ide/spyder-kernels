@@ -239,7 +239,7 @@ class SpyderKernel(IPythonKernel):
         ns = self._get_reference_namespace(orig_name)
         ns[new_name] = ns[orig_name]
 
-    def load_data(self, filename, ext):
+    def load_data(self, filename, ext, override=False):
         """Load data from filename"""
         from spyder_kernels.utils.iofuncs import iofunctions
         from spyder_kernels.utils.misc import fix_reference_name
@@ -252,10 +252,11 @@ class SpyderKernel(IPythonKernel):
         if error_message:
             return error_message
 
-        for key in list(data.keys()):
-            new_key = fix_reference_name(key, blacklist=list(glbs.keys()))
-            if new_key != key:
-                data[new_key] = data.pop(key)
+        if not override:
+            for key in list(data.keys()):
+                new_key = fix_reference_name(key, blacklist=list(glbs.keys()))
+                if new_key != key:
+                    data[new_key] = data.pop(key)
 
         try:
             glbs.update(data)
