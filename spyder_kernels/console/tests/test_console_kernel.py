@@ -290,7 +290,7 @@ def test_copy_value(kernel):
 
 @pytest.mark.parametrize(
     "load", [(True, "val1 = 0", {"val1": np.array(1)}),
-             (False, "val1 = 0", {"val1": 0, "val1000": np.array(1)})])
+             (False, "val1 = 0", {"val1": 0, "val1_000": np.array(1)})])
 def test_load_npz_data(kernel, load):
     """Test loading data from npz filename."""
     namespace_file = osp.join(FILES_PATH, 'load_data.npz')
