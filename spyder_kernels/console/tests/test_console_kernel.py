@@ -27,6 +27,7 @@ from flaky import flaky
 from jupyter_core import paths
 from jupyter_client import BlockingKernelClient
 from ipython_genutils import py3compat
+import numpy as np
 
 
 # Local imports
@@ -285,6 +286,20 @@ def test_copy_value(kernel):
     assert "'is_series': False" in var_properties
     assert "'array_shape': None" in var_properties
     assert "'array_ndim': None" in var_properties
+
+
+@pytest.mark.parametrize(
+    "load", [(True, "val1 = 0", {"val1": np.array(1)}),
+             (False, "val1 = 0", {"val1": 0, "val1_000": np.array(1)})])
+def test_load_npz_data(kernel, load):
+    """Test loading data from npz filename."""
+    namespace_file = osp.join(FILES_PATH, 'load_data.npz')
+    extention = '.npz'
+    overwrite, execute, variables = load
+    kernel.do_execute(execute, True)
+    kernel.load_data(namespace_file, extention, overwrite=overwrite)
+    for var, value in variables.items():
+        assert value == kernel.get_value(var)
 
 
 def test_load_data(kernel):
