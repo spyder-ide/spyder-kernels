@@ -146,10 +146,10 @@ else:
 # =============================================================================
 # Patch PyQt4 and PyQt5
 # =============================================================================
-# This saves the QApplication instances so that python doesn't destroy them.
-# Python sees all the QApplication as differnet python objects, while
+# This saves the QApplication instances so that Python doesn't destroy them.
+# Python sees all the QApplication as differnet Python objects, while
 # Qt sees them as a singleton (There is only one Application!). Deleting one
-# QApplication causes all the other python instances to become broken.
+# QApplication causes all the other Python instances to become broken.
 # See spyder-ide/spyder/issues/2970
 try:
     from PyQt5 import QtWidgets
@@ -163,7 +163,6 @@ try:
 
     SpyderQApplication._instance_list = []
     QtWidgets.QApplication = SpyderQApplication
-
 except Exception:
     pass
 
@@ -179,7 +178,6 @@ try:
 
     SpyderQApplication._instance_list = []
     QtGui.QApplication = SpyderQApplication
-
 except Exception:
     pass
 
