@@ -403,16 +403,16 @@ def exec_code(code, filename, ns_globals, ns_locals=None):
                     if PY2:
                         raise e
                     else:
-                        # Need to call exec to avoid Syntax Error in python 2.
-                        # TODO: remove exec when dropping python 2 support.
+                        # Need to call exec to avoid Syntax Error in Python 2.
+                        # TODO: remove exec when dropping Python 2 support.
                         exec("raise e from None")
                 else:
                     _print(
-                        "WARNING: This is not valid python code. "
-                        "If you want to use ipython magic, "
+                        "WARNING: This is not valid Python code. "
+                        "If you want to use IPython magics, "
                         "flexible indentation, and prompt removal, "
-                        "please save this file with .ipy extension. "
-                        "This will be an error in a future version of spyder.")
+                        "please save this file with the .ipy extension. "
+                        "This will be an error in a future version of Spyder.")
         else:
             compiled = compile(transform_cell(code), filename, 'exec')
 
