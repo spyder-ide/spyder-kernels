@@ -79,7 +79,7 @@ class NamespaceManager(object):
             self._previous_filename = self.ns_globals['__file__']
         self.ns_globals['__file__'] = self.filename
 
-        # Add the current namedspace to the kernel so it can access
+        # Save current namespace for access by variable explorer
         get_ipython().kernel._running_namespace = self.ns_globals
 
         if (self._file_code is not None
