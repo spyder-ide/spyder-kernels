@@ -64,6 +64,9 @@ class NamespaceManager(object):
         if self.ns_globals is None:
             if self.current_namespace:
                 self.ns_globals, self.ns_locals = _get_globals_locals()
+                if '__file__' in self.ns_globals:
+                    self._previous_filename = self.ns_globals['__file__']
+                self.ns_globals['__file__'] = self.filename
             else:
                 ipython_shell = get_ipython()
                 main_mod = ipython_shell.new_main_mod(
@@ -75,9 +78,6 @@ class NamespaceManager(object):
                     self._previous_main = sys.modules['__main__']
                 sys.modules['__main__'] = main_mod
                 self._reset_main = True
-        if '__file__' in self.ns_globals:
-            self._previous_filename = self.ns_globals['__file__']
-        self.ns_globals['__file__'] = self.filename
 
         # Save current namespace for access by variable explorer
         get_ipython().kernel._running_namespace = self.ns_globals
@@ -103,13 +103,15 @@ class NamespaceManager(object):
         """
         Reset the namespace.
         """
-        if not self.current_namespace:
-            _set_globals_locals(self.ns_globals, self.ns_locals)
         get_ipython().kernel._running_namespace = None
         if self._previous_filename:
             self.ns_globals['__file__'] = self._previous_filename
         elif '__file__' in self.ns_globals:
             self.ns_globals.pop('__file__')
+
+        if not self.current_namespace:
+            _set_globals_locals(self.ns_globals, self.ns_locals)
+
         if self._previous_main:
             sys.modules['__main__'] = self._previous_main
         elif '__main__' in sys.modules and self._reset_main:
