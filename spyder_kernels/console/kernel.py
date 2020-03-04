@@ -265,7 +265,8 @@ class SpyderKernel(IPythonKernel):
             return error_message
 
         if not overwrite:
-            for key in data.keys():
+            # We convert to list since we mutate this dictionary
+            for key in list(data.keys()):
                 new_key = fix_reference_name(key, blacklist=list(glbs.keys()))
                 if new_key != key:
                     data[new_key] = data.pop(key)
