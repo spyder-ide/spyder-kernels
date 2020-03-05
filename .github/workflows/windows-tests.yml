@@ -1,12 +1,12 @@
-name: Windows tests 1.x
+name: Windows tests
 
 on:
   push:
     branches:
-    - 1.x
+    - master
   pull_request:
     branches:
-    - 1.x
+    - master
 
 jobs:
   windows:
