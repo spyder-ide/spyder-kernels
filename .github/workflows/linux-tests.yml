@@ -1,12 +1,12 @@
-name: Linux tests 1.x
+name: Linux tests
 
 on:
   push:
     branches:
-    - 1.x
+    - master
   pull_request:
     branches:
-    - 1.x
+    - master
 
 jobs:
   linux:

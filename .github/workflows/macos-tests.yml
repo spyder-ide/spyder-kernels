@@ -1,12 +1,12 @@
-name: Macos tests 1.x
+name: Macos tests
 
 on:
   push:
     branches:
-    - 1.x
+    - master
   pull_request:
     branches:
-    - 1.x
+    - master
 
 jobs:
   macos:
