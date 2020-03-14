@@ -10,7 +10,7 @@ To release a new version of spyder-kernels on PyPI:
 
 * git clean -xfdi
 
-* Update CHANGELOG.md with loghub
+* Update CHANGELOG.md with `loghub spyder-ide/spyder-kernels -zr "spyder-kernels vX.X.X"`
 
 * Update `_version.py` (set release version, remove 'dev0')
 
