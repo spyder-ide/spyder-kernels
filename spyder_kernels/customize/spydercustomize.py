@@ -52,7 +52,8 @@ try:
             if not sent:
                 # Send all file types so we can choose the extension
                 # Should we replace retina by png? large png can be resized.
-                set_matplotlib_formats('svg', 'pdf', 'retina', 'jpeg')
+                # TODO: add options for 'pdf', 'retina', 'jpeg'
+                set_matplotlib_formats('svg', 'png')
                 self._was_sent = True
                 format = get_ipython().kernel.shell.display_formatter.format
                 format_dict, md_dict = format(self)
