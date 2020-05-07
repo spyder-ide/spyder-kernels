@@ -459,15 +459,14 @@ if __name__=='__main__':
     client = Client()
     client.close()
     x = 'hello'
-
-    client = Client()
-    client.close()
-    x = 'hello'
 """
         p = tmpdir.join("mp-test.py")
         p.write(code)
 
-        # Run code
+        # Run code two times
+        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.get_shell_msg(block=True, timeout=TIMEOUT)
+
         client.execute("runfile(r'{}')".format(to_text_string(p)))
         client.get_shell_msg(block=True, timeout=TIMEOUT)
 
