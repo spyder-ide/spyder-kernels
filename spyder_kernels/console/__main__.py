@@ -15,8 +15,9 @@ if __name__ == '__main__':
     # because since that version it's added by default to sys.path when
     # using 'python -m'.
     if sys.version_info[0] == 3 and sys.version_info[1] >= 7:
-        if os.getcwd() in sys.path:
-            sys.path.remove(os.getcwd())
+        cwd = os.getcwd()
+        if cwd in sys.path:
+            sys.path.remove(cwd)
 
     from spyder_kernels.console import start
     start.main()
