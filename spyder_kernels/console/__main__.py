@@ -6,6 +6,17 @@
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
 
+import sys
+import os
+
+
 if __name__ == '__main__':
+    # Remove the current working directory from sys.path for Python 3.7+
+    # because since that version it's added by default to sys.path when
+    # using 'python -m'.
+    if sys.version_info[0] == 3 and sys.version_info[1] >= 7:
+        if os.getcwd() in sys.path:
+            sys.path.remove(os.getcwd())
+
     from spyder_kernels.console import start
     start.main()
