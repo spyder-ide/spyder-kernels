@@ -11,15 +11,17 @@ Spyder kernel for Jupyter.
 """
 
 # Standard library imports
+from distutils.version import LooseVersion
 import os
 import sys
 
 # Third-party imports
+import ipykernel
 from ipykernel.ipkernel import IPythonKernel
 
 # Local imports
 from spyder_kernels.comms.frontendcomm import FrontendComm
-
+from spyder_kernels.utils.misc import is_module_installed
 
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
@@ -60,7 +62,11 @@ class SpyderKernel(IPythonKernel):
             'set_sympy_forecolor': self.set_sympy_forecolor,
             'set_pdb_echo_code': self.set_pdb_echo_code,
             'update_syspath': self.update_syspath,
-            'is_special_kernel_valid': self.is_special_kernel_valid
+            'is_special_kernel_valid': self.is_special_kernel_valid,
+            'set_matplotlib_backend': self.set_matplotlib_backend,
+            'set_mpl_inline_figure_format': self.set_mpl_inline_figure_format,
+            'set_mpl_inline_resolution': self.set_mpl_inline_resolution,
+            'set_mpl_inline_figure_size': self.set_mpl_inline_figure_size
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -361,6 +367,55 @@ class SpyderKernel(IPythonKernel):
         if valid:
             return getsource(obj)
 
+    # -- For Matplolib
+    def set_matplotlib_backend(self, backend, pylab=False):
+        """Set matplotlib backend given a Spyder backend option."""
+        if is_module_installed('PyQt5'):
+            auto_backend = 'qt5'
+        elif is_module_installed('PyQt4'):
+            auto_backend = 'qt4'
+        elif is_module_installed('_tkinter'):
+            auto_backend = 'tk'
+        else:
+            auto_backend = 'inline'
+        backends = {'0': 'inline',
+                    '1': auto_backend,
+                    '2': 'qt5',
+                    '3': 'qt4',
+                    '4': 'osx',
+                    '5': 'gtk3',
+                    '6': 'gtk',
+                    '7': 'wx',
+                    '8': 'tk'}
+        mpl_backend = backends[backend]
+        self._set_mpl_backend(mpl_backend, pylab=pylab)
+
+    def set_mpl_inline_figure_format(self, figure_format):
+        """Set the inline figure format to use with matplotlib."""
+        formats = {'0': 'png',
+                   '1': 'svg'}
+        mpl_figure_format = formats[figure_format]
+        self._set_mpl_inline_config_option('figure_format', figure_format)
+
+    def set_mpl_inline_resolution(self, resolution):
+        """Set inline figure resolution."""
+        from matplotlib import rcParams
+        if LooseVersion(ipykernel.__version__) < LooseVersion('4.5'):
+            option = 'savefig.dpi'
+        else:
+            option = 'figure.dpi'
+        self._set_mpl_inline_rc_config(option, resolution)
+
+    def set_mpl_inline_figure_size(self, width, height):
+        """Set inline figure size."""
+        option = 'figure.figsize'
+        value = (width, height)
+        self._set_mpl_inline_rc_config(option, value)
+
+    def set_mpl_inline_bbox_inches(self, bbox_inches):
+        """Set inline print figure bbox inches."""
+        option = 'bbox_inches'
+
     # --- Additional methods
     def set_cwd(self, dirname):
         """Set current working directory."""
@@ -550,6 +605,8 @@ class SpyderKernel(IPythonKernel):
 
         backend: A parameter that can be passed to %matplotlib
                  (e.g. 'inline' or 'tk').
+        pylab: Is the pylab magic should be used in order to populate the
+               namespace from numpy and matplotlib
         """
         import traceback
         from IPython.core.getipython import get_ipython
@@ -591,6 +648,30 @@ class SpyderKernel(IPythonKernel):
             error = generic_error.format(traceback.format_exc())
 
         self._mpl_backend_error = error
+
+    def _set_mpl_inline_config_option(self, option, value):
+        """
+        Set matplotlib inline backend config options using the %config magic.
+
+        As parameters:
+            option: inline option for example 'figure_format'.
+            value: value of the option for example 'SVG', 'Retina', etc.
+        """
+        from IPython.core.getipython import get_ipython
+        try:
+            get_ipython().run_line_magic(
+                'config',
+                "InlineBackend.{option} = '{value}'".format(
+                    option=option, value=value))
+        except Exception:
+            pass
+
+    def _set_mpl_inline_rc_config(self, option, value):
+        """
+        Update any of the rcParams given an option and value.
+        """
+        from matplotlib import rcParams
+        rcParams[option] = value
 
     def show_mpl_backend_errors(self):
         """Show Matplotlib backend errors after the prompt is ready."""

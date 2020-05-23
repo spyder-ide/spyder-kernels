@@ -27,3 +27,15 @@ def fix_reference_name(name, blacklist=None):
             index += 1
         name = get_new_name(index)
     return name
+
+
+def is_module_installed(module_name):
+    """
+    Simpler version of spyder.utils.programs.is_module_installed.
+    """
+    try:
+        __import__(module_name)
+        return True
+    except Exception:
+        # Module is not installed
+        return False
