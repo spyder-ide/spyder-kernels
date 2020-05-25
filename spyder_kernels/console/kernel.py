@@ -21,7 +21,7 @@ from ipykernel.ipkernel import IPythonKernel
 
 # Local imports
 from spyder_kernels.comms.frontendcomm import FrontendComm
-from spyder_kernels.utils.misc import is_module_installed
+from spyder_kernels.utils.misc import MPL_BACKENDS, INLINE_FIGURE_FORMATS
 
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
@@ -371,31 +371,12 @@ class SpyderKernel(IPythonKernel):
     # -- For Matplolib
     def set_matplotlib_backend(self, backend, pylab=False):
         """Set matplotlib backend given a Spyder backend option."""
-        if is_module_installed('PyQt5'):
-            auto_backend = 'qt5'
-        elif is_module_installed('PyQt4'):
-            auto_backend = 'qt4'
-        elif is_module_installed('_tkinter'):
-            auto_backend = 'tk'
-        else:
-            auto_backend = 'inline'
-        backends = {'0': 'inline',
-                    '1': auto_backend,
-                    '2': 'qt5',
-                    '3': 'qt4',
-                    '4': 'osx',
-                    '5': 'gtk3',
-                    '6': 'gtk',
-                    '7': 'wx',
-                    '8': 'tk'}
-        mpl_backend = backends[backend]
+        mpl_backend = MPL_BACKENDS[backend]
         self._set_mpl_backend(mpl_backend, pylab=pylab)
 
     def set_mpl_inline_figure_format(self, figure_format):
         """Set the inline figure format to use with matplotlib."""
-        formats = {'0': 'png',
-                   '1': 'svg'}
-        mpl_figure_format = formats[figure_format]
+        mpl_figure_format = INLINE_FIGURE_FORMATS[figure_format]
         self._set_mpl_inline_config_option('figure_format', figure_format)
 
     def set_mpl_inline_resolution(self, resolution):
@@ -670,14 +651,15 @@ class SpyderKernel(IPythonKernel):
         Set matplotlib inline backend config options using the %config magic.
 
         As parameters:
-            option: inline option for example 'figure_format'.
-            value: value of the option for example 'SVG', 'Retina', etc.
+            option: inline option, for example 'figure_format'.
+            value: value of the option, for example 'SVG', 'Retina', etc.
         """
         from IPython.core.getipython import get_ipython
         try:
-            base_config = "InlineBackend.{option} ="
-            value_line = "{{value}}" if isinstance(value, dict) else "'{value}'"
-            config_line = base_config +
+            base_config = "InlineBackend.{option} = "
+            value_line = (
+                "{value}" if isinstance(value, dict) else "'{value}'")
+            config_line = base_config + value_line
             get_ipython().run_line_magic(
                 'config',
                 config_line.format(option=option, value=value))
