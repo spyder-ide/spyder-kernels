@@ -11,6 +11,25 @@
 import re
 
 
+# Mapping of inline figure formats
+INLINE_FIGURE_FORMATS = {
+    '0': 'png',
+    '1': 'svg'
+    }
+
+
+def is_module_installed(module_name):
+    """
+    Simpler version of spyder.utils.programs.is_module_installed.
+    """
+    try:
+        __import__(module_name)
+        return True
+    except Exception:
+        # Module is not installed
+        return False
+
+
 def automatic_backend():
     """Get Matplolib automatic backend option."""
     if is_module_installed('PyQt5'):
@@ -35,25 +54,6 @@ MPL_BACKENDS = {
     '6': 'gtk',
     '7': 'wx',
     '8': 'tk'}
-
-
-# Mapping of inline figure formats
-INLINE_FIGURE_FORMATS = {
-    '0': 'png',
-    '1': 'svg'
-    }
-
-
-def is_module_installed(module_name):
-    """
-    Simpler version of spyder.utils.programs.is_module_installed.
-    """
-    try:
-        __import__(module_name)
-        return True
-    except Exception:
-        # Module is not installed
-        return False
 
 
 def fix_reference_name(name, blacklist=None):
