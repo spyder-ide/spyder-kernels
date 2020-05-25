@@ -20,6 +20,7 @@ import ipykernel
 from ipykernel.ipkernel import IPythonKernel
 
 # Local imports
+from spyder_kernels.py3compat import TEXT_TYPES
 from spyder_kernels.comms.frontendcomm import FrontendComm
 from spyder_kernels.utils.misc import MPL_BACKENDS, INLINE_FIGURE_FORMATS
 
@@ -377,11 +378,11 @@ class SpyderKernel(IPythonKernel):
     def set_mpl_inline_figure_format(self, figure_format):
         """Set the inline figure format to use with matplotlib."""
         mpl_figure_format = INLINE_FIGURE_FORMATS[figure_format]
-        self._set_mpl_inline_config_option('figure_format', figure_format)
+        self._set_config_option(
+            'InlineBackend.figure_format', mpl_figure_format)
 
     def set_mpl_inline_resolution(self, resolution):
         """Set inline figure resolution."""
-        from matplotlib import rcParams
         if LooseVersion(ipykernel.__version__) < LooseVersion('4.5'):
             option = 'savefig.dpi'
         else:
@@ -390,9 +391,8 @@ class SpyderKernel(IPythonKernel):
 
     def set_mpl_inline_figure_size(self, width, height):
         """Set inline figure size."""
-        option = 'figure.figsize'
         value = (width, height)
-        self._set_mpl_inline_rc_config(option, value)
+        self._set_mpl_inline_rc_config('figure.figsize', value)
 
     def set_mpl_inline_bbox_inches(self, bbox_inches):
         """
@@ -404,14 +404,19 @@ class SpyderKernel(IPythonKernel):
         config = get_ipython().kernel.config
         inline_config = (
             config['InlineBackend'] if 'InlineBackend' in config else {})
-        option = 'print_figure_kwargs'
         print_figure_kwargs = (
             inline_config['print_figure_kwargs']
             if 'print_figure_kwargs' in inline_config else {})
         bbox_inches_dict = {
             'bbox_inches': 'tight' if bbox_inches else None}
         print_figure_kwargs.update(bbox_inches_dict)
-        self._set_mpl_inline_config_option(option, print_figure_kwargs)
+        self._set_config_option(
+            'InlineBackend.print_figure_kwargs', print_figure_kwargs)
+
+    # -- For Jedi
+    def set_jedi_completer(self, use_jedi):
+        """Enable jedi as the completer for the kernel"""
+        self._set_config_option('IPCompleter.use_jedi', use_jedi)
 
     # --- Additional methods
     def set_cwd(self, dirname):
@@ -646,19 +651,19 @@ class SpyderKernel(IPythonKernel):
 
         self._mpl_backend_error = error
 
-    def _set_mpl_inline_config_option(self, option, value):
+    def _set_config_option(self, option, value):
         """
-        Set matplotlib inline backend config options using the %config magic.
+        Set config options using the %config magic.
 
         As parameters:
-            option: inline option, for example 'figure_format'.
+            option: config option, for example 'InlineBackend.figure_format'.
             value: value of the option, for example 'SVG', 'Retina', etc.
         """
         from IPython.core.getipython import get_ipython
         try:
-            base_config = "InlineBackend.{option} = "
+            base_config = "{option} = "
             value_line = (
-                "{value}" if isinstance(value, dict) else "'{value}'")
+                "'{value}'" if isinstance(value, TEXT_TYPES) else "{value}")
             config_line = base_config + value_line
             get_ipython().run_line_magic(
                 'config',
@@ -668,7 +673,7 @@ class SpyderKernel(IPythonKernel):
 
     def _set_mpl_inline_rc_config(self, option, value):
         """
-        Update any of the rcParams given an option and value.
+        Update any of the Matplolib rcParams given an option and value.
         """
         from matplotlib import rcParams
         rcParams[option] = value
