@@ -66,7 +66,8 @@ class SpyderKernel(IPythonKernel):
             'set_matplotlib_backend': self.set_matplotlib_backend,
             'set_mpl_inline_figure_format': self.set_mpl_inline_figure_format,
             'set_mpl_inline_resolution': self.set_mpl_inline_resolution,
-            'set_mpl_inline_figure_size': self.set_mpl_inline_figure_size
+            'set_mpl_inline_figure_size': self.set_mpl_inline_figure_size,
+            'set_mpl_inline_bbox_inches': self.set_mpl_inline_bbox_inches
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -413,8 +414,23 @@ class SpyderKernel(IPythonKernel):
         self._set_mpl_inline_rc_config(option, value)
 
     def set_mpl_inline_bbox_inches(self, bbox_inches):
-        """Set inline print figure bbox inches."""
-        option = 'bbox_inches'
+        """
+        Set inline print figure bbox inches.
+
+        The change is done by updating the ´rint_figure_kwargs' config dict.
+        """
+        from IPython.core.getipython import get_ipython
+        config = get_ipython().kernel.config
+        inline_config = (
+            config['InlineBackend'] if 'InlineBackend' in config else {})
+        option = 'print_figure_kwargs'
+        print_figure_kwargs = (
+            inline_config['print_figure_kwargs']
+            if 'print_figure_kwargs' in inline_config else {})
+        bbox_inches_dict = {
+            'bbox_inches': 'tight' if bbox_inches else None}
+        print_figure_kwargs.update(bbox_inches_dict)
+        self._set_mpl_inline_config_option(option, print_figure_kwargs)
 
     # --- Additional methods
     def set_cwd(self, dirname):
@@ -659,10 +675,12 @@ class SpyderKernel(IPythonKernel):
         """
         from IPython.core.getipython import get_ipython
         try:
+            base_config = "InlineBackend.{option} ="
+            value_line = "{{value}}" if isinstance(value, dict) else "'{value}'"
+            config_line = base_config +
             get_ipython().run_line_magic(
                 'config',
-                "InlineBackend.{option} = '{value}'".format(
-                    option=option, value=value))
+                config_line.format(option=option, value=value))
         except Exception:
             pass
 
