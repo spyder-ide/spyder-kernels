@@ -463,7 +463,9 @@ def value_to_display(value, minmax=False, level=0, numeric_value=False):
 
     # Truncate display at 70 chars to avoid freezing Spyder
     # because of large displays
-    if not isinstance(display, NUMERIC_TYPES) and len(display) > 70:
+    if (not isinstance(display, NUMERIC_TYPES) and
+            not isinstance(display, numeric_numpy_types) and
+            len(display) > 70):
         if is_binary_string(display):
             ellipses = b' ...'
         else:
