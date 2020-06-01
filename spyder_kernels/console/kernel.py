@@ -68,7 +68,9 @@ class SpyderKernel(IPythonKernel):
             'set_mpl_inline_figure_format': self.set_mpl_inline_figure_format,
             'set_mpl_inline_resolution': self.set_mpl_inline_resolution,
             'set_mpl_inline_figure_size': self.set_mpl_inline_figure_size,
-            'set_mpl_inline_bbox_inches': self.set_mpl_inline_bbox_inches
+            'set_mpl_inline_bbox_inches': self.set_mpl_inline_bbox_inches,
+            'set_jedi_completer': self.set_jedi_completer,
+            'set_greedy_completer': self.set_greedy_completer
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -413,10 +415,14 @@ class SpyderKernel(IPythonKernel):
         self._set_config_option(
             'InlineBackend.print_figure_kwargs', print_figure_kwargs)
 
-    # -- For Jedi
+    # -- For completions
     def set_jedi_completer(self, use_jedi):
-        """Enable jedi as the completer for the kernel"""
+        """Enable/Disable jedi as the completer for the kernel."""
         self._set_config_option('IPCompleter.use_jedi', use_jedi)
+
+    def set_greedy_completer(self, use_greedy):
+        """Enable/Disable greedy completer for the kernel."""
+        self._set_config_option('IPCompleter.greedy', use_greedy)
 
     # --- Additional methods
     def set_cwd(self, dirname):
