@@ -70,7 +70,8 @@ class SpyderKernel(IPythonKernel):
             'set_mpl_inline_figure_size': self.set_mpl_inline_figure_size,
             'set_mpl_inline_bbox_inches': self.set_mpl_inline_bbox_inches,
             'set_jedi_completer': self.set_jedi_completer,
-            'set_greedy_completer': self.set_greedy_completer
+            'set_greedy_completer': self.set_greedy_completer,
+            'set_autocall': self.set_autocall
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -423,6 +424,10 @@ class SpyderKernel(IPythonKernel):
     def set_greedy_completer(self, use_greedy):
         """Enable/Disable greedy completer for the kernel."""
         self._set_config_option('IPCompleter.greedy', use_greedy)
+
+    def set_autocall(self, autocall):
+        """Enable/Disable autocall funtionality."""
+        self._set_config_option('ZMQInteractiveShell.autocall', autocall)
 
     # --- Additional methods
     def set_cwd(self, dirname):
