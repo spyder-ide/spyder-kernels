@@ -64,6 +64,7 @@ class SpyderKernel(IPythonKernel):
             'set_pdb_echo_code': self.set_pdb_echo_code,
             'update_syspath': self.update_syspath,
             'is_special_kernel_valid': self.is_special_kernel_valid,
+            'get_matplotlib_backend': self.get_matplotlib_backend,
             'set_matplotlib_backend': self.set_matplotlib_backend,
             'set_mpl_inline_figure_format': self.set_mpl_inline_figure_format,
             'set_mpl_inline_resolution': self.set_mpl_inline_resolution,
@@ -373,6 +374,14 @@ class SpyderKernel(IPythonKernel):
             return getsource(obj)
 
     # -- For Matplolib
+    def get_matplolib_backend(self):
+        """Get current matplotlib backend."""
+        try:
+            import matplotlib
+            return matplotlib.get_backend()
+        except ImportError:
+            return None
+
     def set_matplotlib_backend(self, backend, pylab=False):
         """Set matplotlib backend given a Spyder backend option."""
         mpl_backend = MPL_BACKENDS[to_text_string(backend)]
