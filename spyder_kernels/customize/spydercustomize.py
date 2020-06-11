@@ -298,7 +298,7 @@ if not PY2:
             if (os.name == 'nt' and 'init_main_from_path' in d
                     and not os.path.exists(d['init_main_from_path'])):
                 _print(
-                    "Warning: multiprocessing may need main file to exist. "
+                    "Warning: multiprocessing may need the main file to exist. "
                     "Please save {}".format(d['init_main_from_path']))
                 # Remove path as the subprocess can't do anything with it
                 del d['init_main_from_path']
