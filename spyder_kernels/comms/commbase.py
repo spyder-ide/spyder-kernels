@@ -388,13 +388,13 @@ class CommBase(object):
 
     def on_outgoing_call(self, call_dict):
         """A message is about to be sent"""
-        call_dict["Pickle Highest Protocol"] = pickle.HIGHEST_PROTOCOL
+        call_dict["pickle_highest_protocol"] = pickle.HIGHEST_PROTOCOL
         return call_dict
 
     def on_incoming_call(self, call_dict):
-        """A call was recieved"""
-        if "Pickle Highest Protocol" in call_dict:
-            self._set_pickle_protocol(call_dict["Pickle Highest Protocol"])
+        """A call was received"""
+        if "pickle_highest_protocol" in call_dict:
+            self._set_pickle_protocol(call_dict["pickle_highest_protocol"])
 
     def _get_call_return_value(self, call_dict, call_data, comm_id):
         """

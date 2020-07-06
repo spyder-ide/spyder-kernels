@@ -181,7 +181,7 @@ class FrontendComm(CommBase):
 
     def on_outgoing_call(self, call_dict):
         """A message is about to be sent"""
-        call_dict["Comm port"] = self.comm_port
+        call_dict["comm_port"] = self.comm_port
         return super(FrontendComm, self).on_outgoing_call(call_dict)
 
     def _send_comm_config(self):
