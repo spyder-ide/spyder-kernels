@@ -305,6 +305,16 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         kernel = get_ipython().kernel
         kernel._register_pdb_session(self)
 
+    def do_debug(self, arg):
+        """debug code
+        Enter a recursive debugger that steps through the code
+        argument (which is an arbitrary expression or statement to be
+        executed in the current environment).
+        """
+        super(SpyderPdb, self).do_debug(arg)
+        kernel = get_ipython().kernel
+        kernel._register_pdb_session(self)
+
     def user_return(self, frame, return_value):
         """This function is called when a return trap is set here."""
         # This is useful when debugging in an active interpreter (otherwise,
