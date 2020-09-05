@@ -20,6 +20,7 @@ import sys
 import time
 import warnings
 import logging
+import re
 
 from IPython.core.getipython import get_ipython
 
@@ -30,7 +31,8 @@ from spyder_kernels.customize.spyderpdb import SpyderPdb
 from spyder_kernels.customize.umr import UserModuleReloader
 
 if not PY2:
-    from IPython.core.inputtransformer2 import TransformerManager
+    from IPython.core.inputtransformer2 import (
+        TransformerManager, leading_indent, leading_empty_lines)
 else:
     from IPython.core.inputsplitter import IPythonInputSplitter as TransformerManager
 
@@ -388,13 +390,23 @@ def count_leading_empty_lines(cell):
     return len(lines)
 
 
-def transform_cell(code):
+def transform_cell(code, indent_only=False):
     """Transform ipython code to python code."""
-    tm = TransformerManager()
     number_empty_lines = count_leading_empty_lines(code)
-    code = tm.transform_cell(code)
-    if PY2:
-        return code
+    if indent_only:
+        # Not implemented for PY2
+        if PY2:
+            return code
+        if not code.endswith('\n'):
+            code += '\n'  # Ensure the cell has a trailing newline
+        lines = code.splitlines(keepends=True)
+        lines = leading_indent(leading_empty_lines(lines))
+        code = ''.join(lines)
+    else:
+        tm = TransformerManager()
+        code = tm.transform_cell(code)
+        if PY2:
+            return code
     return '\n' * number_empty_lines + code
 
 
@@ -413,7 +425,8 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
             # TODO: remove the try-except and let the SyntaxError raise
             # Because there should not be ipython code in a python file
             try:
-                compiled = compile(code, filename, 'exec')
+                compiled = compile(
+                    transform_cell(code, indent_only=True), filename, 'exec')
             except SyntaxError as e:
                 try:
                     compiled = compile(transform_cell(code), filename, 'exec')
