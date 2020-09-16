@@ -252,14 +252,13 @@ def is_editable_type(value):
 #==============================================================================
 # Sorting
 #==============================================================================
-def sort_against(list1, list2, reverse=False, sort_key=None):
+def sort_against(list1, list2, reverse=False, sort_key=lambda x: x[0]):
     """
     Arrange items of list1 in the same order as sorted(list2).
 
     In other words, apply to list1 the permutation which takes list2 
     to sorted(list2, reverse).
     """
-    sort_key = lambda x: x[0] if sort_key == None else lambda x: sort_key(x[0])
     try:
         return [item for _, item in 
                 sorted(zip(list2, list1), key=sort_key, reverse=reverse)]
