@@ -532,10 +532,12 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
                 os.chdir(wdir)
                 # See https://github.com/spyder-ide/spyder/issues/13632
                 if "multiprocessing.process" in sys.modules:
-                    import multiprocessing.process
-                    multiprocessing.process.ORIGINAL_DIR = os.path.abspath(
-                        wdir)
-
+                    try:
+                        import multiprocessing.process
+                        multiprocessing.process.ORIGINAL_DIR = os.path.abspath(
+                            wdir)
+                    except Exception:
+                        pass
             else:
                 _print("Working directory {} doesn't exist.\n".format(wdir))
 
