@@ -321,7 +321,9 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         kernel._register_pdb_session(self)
 
     def do_debug(self, arg):
-        """debug code
+        """
+        Debug code
+
         Enter a recursive debugger that steps through the code
         argument (which is an arbitrary expression or statement to be
         executed in the current environment).
