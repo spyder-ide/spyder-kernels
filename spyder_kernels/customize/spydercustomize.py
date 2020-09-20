@@ -400,7 +400,7 @@ def transform_cell(code):
 
 def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
     """Execute code and display any exception."""
-    # Tell IPython to hide this frame
+    # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     global SHOW_INVALID_SYNTAX_MSG
 
@@ -480,7 +480,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     post_mortem: boolean, whether to enter post-mortem mode on error
     current_namespace: if true, run the file in the current namespace
     """
-    # Tell IPython to hide this frame
+    # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     ipython_shell = get_ipython()
     if filename is None:
@@ -566,7 +566,7 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
     wdir: working directory
     post_mortem: boolean, included for compatiblity with runfile
     """
-    # Tell IPython to hide this frame
+    # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     if filename is None:
         filename = get_current_file_name()
@@ -596,7 +596,7 @@ def runcell(cellname, filename=None, post_mortem=False):
     filename : str
         Needed to allow for proper traceback links.
     """
-    # Tell IPython to hide this frame
+    # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     if filename is None:
         filename = get_current_file_name()
@@ -646,7 +646,7 @@ builtins.runcell = runcell
 
 def debugcell(cellname, filename=None, post_mortem=False):
     """Debug a cell."""
-    # Tell IPython to hide this frame
+    # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     if filename is None:
         filename = get_current_file_name()
