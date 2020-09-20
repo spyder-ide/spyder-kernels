@@ -525,7 +525,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
             if PY2:
                 try:
                     wdir = wdir.decode('utf-8')
-                except (UnicodeError, TypeError, AttributeError):
+                except (UnicodeError, TypeError):
                     # UnicodeError, TypeError --> eventually raised in Python 2
                     pass
             if os.path.isdir(wdir):
