@@ -121,7 +121,7 @@ def try_to_eval(value):
     
 def get_size(item):
     """Return size of an item of arbitrary type"""
-    if isinstance(item, (list, set, tuple, dict)):
+    if isinstance(item, (list, set, tuple, dict, str)):
         return len(item)
     elif isinstance(item, (ndarray, MaskedArray)):
         return item.shape
