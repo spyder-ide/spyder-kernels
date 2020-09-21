@@ -121,13 +121,11 @@ def try_to_eval(value):
     
 def get_size(item):
     """Return size of an item of arbitrary type"""
-    if isinstance(item, (list, set, tuple, dict, int)):
-        return len(item)
-    elif isinstance(item, (ndarray, MaskedArray)):
+    if isinstance(item, (ndarray, MaskedArray)):
         return item.shape
     elif isinstance(item, Image):
         return item.size
-    if isinstance(item, (DataFrame, Index, Series)):
+    elif isinstance(item, (DataFrame, Index, Series)):
         try:
             return item.shape
         except RecursionError:
@@ -135,6 +133,8 @@ def get_size(item):
             # get the shape of these objects.
             # Fixes spyder-ide/spyder-kernels#217
             return (-1, -1)
+    elif hasattr(item, '__len__'):
+        return len(item)
     else:
         return 1
 
