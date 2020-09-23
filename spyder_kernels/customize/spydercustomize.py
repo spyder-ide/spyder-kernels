@@ -20,6 +20,7 @@ import sys
 import time
 import warnings
 import logging
+import cmd
 
 from IPython.core.getipython import get_ipython
 
@@ -311,7 +312,16 @@ if not PY2:
 # =============================================================================
 # Pdb adjustments
 # =============================================================================
+def cmd_input(prompt=''):
+    return get_ipython().kernel.cmd_input(prompt)
+
+
 pdb.Pdb = SpyderPdb
+
+if PY2:
+    cmd.raw_input = cmd_input
+else:
+    cmd.input = cmd_input
 
 
 # =============================================================================
@@ -454,6 +464,7 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
         else:
             # We ignore the call to exec
             ipython_shell.showtraceback(tb_offset=1)
+    __tracebackhide__ = "__pdb_exit__"
 
 
 def get_file_code(filename, save_all=True):
