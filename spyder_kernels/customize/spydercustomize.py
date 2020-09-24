@@ -21,8 +21,9 @@ import time
 import warnings
 import logging
 import cmd
-import re
 
+from distutils.version import LooseVersion
+from IPython import __version__ as ipy_version
 from IPython.core.getipython import get_ipython
 
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, encode
@@ -31,11 +32,11 @@ from spyder_kernels.customize.namespace_manager import NamespaceManager
 from spyder_kernels.customize.spyderpdb import SpyderPdb
 from spyder_kernels.customize.umr import UserModuleReloader
 
-if not PY2:
+if LooseVersion(ipy_version) > LooseVersion('7.0.0'):
     from IPython.core.inputtransformer2 import (
         TransformerManager, leading_indent, leading_empty_lines)
 else:
-    from IPython.core.inputsplitter import IPythonInputSplitter as TransformerManager
+    from IPython.core.inputsplitter import IPythonInputSplitter
 
 
 logger = logging.getLogger(__name__)
@@ -405,7 +406,7 @@ def transform_cell(code, indent_only=False):
     number_empty_lines = count_leading_empty_lines(code)
     if indent_only:
         # Not implemented for PY2
-        if PY2:
+        if LooseVersion(ipy_version) < LooseVersion('7.0.0'):
             return code
         if not code.endswith('\n'):
             code += '\n'  # Ensure the cell has a trailing newline
@@ -413,10 +414,12 @@ def transform_cell(code, indent_only=False):
         lines = leading_indent(leading_empty_lines(lines))
         code = ''.join(lines)
     else:
-        tm = TransformerManager()
-        code = tm.transform_cell(code)
-        if PY2:
-            return code
+        if LooseVersion(ipy_version) < LooseVersion('7.0.0'):
+            tm = IPythonInputSplitter()
+            return tm.transform_cell(code)
+        else:
+            tm = TransformerManager()
+            code = tm.transform_cell(code)
     return '\n' * number_empty_lines + code
 
 
