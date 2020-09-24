@@ -73,7 +73,7 @@ def test_get_size():
     assert get_size(img) == (256,256)
 
     obj = RecursionClassNoLen()
-    assert get_size(obj) == -1
+    assert get_size(obj) == 1
 
 
 
