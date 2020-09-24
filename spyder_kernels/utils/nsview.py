@@ -48,6 +48,11 @@ except:
      float64 = float32 = float16 = complex64 = complex128 = bool_ = FakeObject
 
 
+NUMERIC_NUMPY_TYPES = (int64, int32, int16, int8, uint64, uint32, uint16,
+                       uint8, float64, float32, float16, complex64, complex128,
+                       bool_)
+
+
 def get_numpy_dtype(obj):
     """Return NumPy data type associated to obj
     Return None if NumPy is not available
@@ -247,16 +252,20 @@ def is_editable_type(value):
 #==============================================================================
 # Sorting
 #==============================================================================
-def sort_against(list1, list2, reverse=False):
+def sort_against(list1, list2, reverse=False, sort_key=None):
     """
     Arrange items of list1 in the same order as sorted(list2).
 
     In other words, apply to list1 the permutation which takes list2 
     to sorted(list2, reverse).
     """
+    if sort_key is None:
+        key = lambda x: x[0]
+    else:
+        key = lambda x: sort_key(x[0])
     try:
         return [item for _, item in 
-                sorted(zip(list2, list1), key=lambda x: x[0], reverse=reverse)]
+                sorted(zip(list2, list1), key=key, reverse=reverse)]
     except:
         return list1
 
@@ -346,10 +355,6 @@ def value_to_display(value, minmax=False, level=0):
     np_printoptions = FakeObject
 
     try:
-        numeric_numpy_types = (int64, int32, int16, int8,
-                               uint64, uint32, uint16, uint8,
-                               float64, float32, float16,
-                               complex128, complex64, bool_)
         if ndarray is not FakeObject:
             # Save printoptions
             np_printoptions = get_printoptions()
@@ -370,11 +375,11 @@ def value_to_display(value, minmax=False, level=0):
                     try:
                         display = 'Min: %r\nMax: %r' % (value.min(), value.max())
                     except (TypeError, ValueError):
-                        if value.dtype.type in numeric_numpy_types:
+                        if value.dtype.type in NUMERIC_NUMPY_TYPES:
                             display = str(value)
                         else:
                             display = default_display(value)
-                elif value.dtype.type in numeric_numpy_types:
+                elif value.dtype.type in NUMERIC_NUMPY_TYPES:
                     display = str(value)
                 else:
                     display = default_display(value)
@@ -447,7 +452,7 @@ def value_to_display(value, minmax=False, level=0):
             display = str(value)
         elif (isinstance(value, NUMERIC_TYPES) or
               isinstance(value, bool) or
-              isinstance(value, numeric_numpy_types)):
+              isinstance(value, NUMERIC_NUMPY_TYPES)):
             display = repr(value)
         else:
             if level == 0:
