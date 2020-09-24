@@ -67,12 +67,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         execute_events = self.pdb_execute_events
         if line[:1] == '!':
             line = line[1:]
-        # Disallow the use of %debug magic in the debugger
-        if line.startswith("%debug"):
-            self.error("Please don't use '%debug' in the debugger.\n"
-                       "For a recursive debugger, use the pdb 'debug'"
-                       " command instead")
-            return
         locals = self.curframe_locals
         globals = self.curframe.f_globals
         try:
@@ -311,18 +305,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         kernel = get_ipython().kernel
         kernel._register_pdb_session(self)
 
-    def do_debug(self, arg):
-        """
-        Debug code
-
-        Enter a recursive debugger that steps through the code
-        argument (which is an arbitrary expression or statement to be
-        executed in the current environment).
-        """
-        super(SpyderPdb, self).do_debug(arg)
-        kernel = get_ipython().kernel
-        kernel._register_pdb_session(self)
-
     def user_return(self, frame, return_value):
         """This function is called when a return trap is set here."""
         # This is useful when debugging in an active interpreter (otherwise,
@@ -352,8 +334,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 try:
                     frontend_request(blocking=True).set_debug_state(False)
                 except (CommError, TimeoutError):
-                    logger.debug(
-                        "Could not send debugging state to the frontend.")
+                    logger.debug("Could not send debugging state to the frontend.")
                 raise
 
     def postcmd(self, stop, line):
