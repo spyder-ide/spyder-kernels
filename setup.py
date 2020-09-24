@@ -47,6 +47,7 @@ REQUIREMENTS = [
 TEST_REQUIREMENTS = [
     'codecov',
     'cython',
+    'pillow',
     'dask[distributed]',
     'flaky',
     'matplotlib',
