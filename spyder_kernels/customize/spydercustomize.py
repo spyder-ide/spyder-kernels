@@ -455,9 +455,8 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
                             "\nWARNING: This is not valid Python code. "
                             "If you want to use IPython magics, "
                             "flexible indentation, and prompt removal, "
-                            "please save this file with the .ipy extension. "
-                            "This will be an error in a future version of "
-                            "Spyder.\n")
+                            "we recommand that you save this file with the "
+                            ".ipy extension.\n")
                         SHOW_INVALID_SYNTAX_MSG = False
         else:
             compiled = compile(transform_cell(code), filename, 'exec')
