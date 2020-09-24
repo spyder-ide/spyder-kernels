@@ -137,7 +137,7 @@ def get_size(item):
     elif hasattr(item, '__len__'):
         return len(item)
     else:
-        return -1
+        return 1
 
 
 def get_object_attrs(obj):
