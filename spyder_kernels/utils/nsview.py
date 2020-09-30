@@ -135,7 +135,10 @@ def get_size(item):
         except RecursionError:
             return (-1, -1)
     elif hasattr(item, '__len__'):
-        return len(item)
+        try:
+            return len(item)
+        except Exception:
+            return 1
     else:
         return 1
 
