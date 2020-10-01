@@ -80,6 +80,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         self.pdb_ignore_lib = False
         self.pdb_execute_events = False
         self.pdb_use_exclamation_mark = False
+        self.pdb_stop_first_line = True
         self._disable_next_stack_entry = False
         super(SpyderPdb, self).__init__()
         self._pdb_breaking = False
@@ -420,6 +421,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             self.pdb_execute_events = pdb_settings['pdb_execute_events']
             self.pdb_use_exclamation_mark = pdb_settings[
                 'pdb_use_exclamation_mark']
+            self.pdb_stop_first_line = pdb_settings['pdb_stop_first_line']
             if self.starting:
                 self.set_spyder_breakpoints(pdb_settings['breakpoints'])
             if self.send_initial_notification:
@@ -577,9 +579,18 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             # Do 'continue' if the first breakpoint is *not* placed
             # where the debugger is going to land.
             # Fixes issue 4681
-            if (self.continue_if_has_breakpoints and
-                    breaks and
-                    lineno < breaks[0]):
+            if self.pdb_stop_first_line:
+                do_continue = (
+                    self.continue_if_has_breakpoints
+                    and breaks
+                    and lineno < breaks[0])
+            else:
+                # The breakpoint could be in another file.
+                do_continue = (
+                    self.continue_if_has_breakpoints
+                    and not (breaks and lineno >= breaks[0]))
+
+            if do_continue:
                 try:
                     if self.pdb_use_exclamation_mark:
                         cont_cmd = '!continue'
