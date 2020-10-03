@@ -74,7 +74,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                        " command instead")
             return
         locals = self.curframe_locals
-        globals = self.curframe.f_globals
+        ns = self.curframe.f_globals.copy()
+        ns.update(locals)
         try:
             line = TransformerManager().transform_cell(line)
             try:
@@ -91,7 +92,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 sys.displayhook = self.displayhook
                 if execute_events:
                      get_ipython().events.trigger('pre_execute')
-                exec(code, globals, locals)
+                exec(code, ns, locals)
                 if execute_events:
                      get_ipython().events.trigger('post_execute')
             finally:
