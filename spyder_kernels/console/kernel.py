@@ -749,8 +749,12 @@ class SpyderKernel(IPythonKernel):
         """
         Update any of the Matplolib rcParams given an option and value.
         """
-        from matplotlib import rcParams
-        rcParams[option] = value
+        try:
+            from matplotlib import rcParams
+            rcParams[option] = value
+        except ImportError:
+            # Needed in case matplolib isn't installed
+            pass
 
     def show_mpl_backend_errors(self):
         """Show Matplotlib backend errors after the prompt is ready."""
