@@ -394,7 +394,7 @@ class SpyderKernel(IPythonKernel):
         try:
             import matplotlib
             return MPL_BACKENDS_TO_SPYDER[matplotlib.get_backend()]
-        except ImportError:
+        except Exception:
             return None
 
     def set_matplotlib_backend(self, backend, pylab=False):
