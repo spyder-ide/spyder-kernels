@@ -363,7 +363,8 @@ class CommBase(object):
         """
         settings = call_dict['settings']
 
-        display_error = 'display_error' in settings and settings['display_error']
+        display_error = ('display_error' in settings and
+                         settings['display_error'])
         if is_error and display_error:
             data.print_error()
 
