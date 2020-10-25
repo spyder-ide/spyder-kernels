@@ -11,6 +11,7 @@ Spyder kernel for Jupyter.
 """
 
 # Standard library imports
+import re
 import os
 import sys
 import threading
@@ -22,6 +23,8 @@ from ipykernel.ipkernel import IPythonKernel
 from spyder_kernels.comms.frontendcomm import FrontendComm
 from spyder_kernels.py3compat import PY3, input
 
+if PY3:
+    import faulthandler
 
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
@@ -65,6 +68,7 @@ class SpyderKernel(IPythonKernel):
             'is_special_kernel_valid': self.is_special_kernel_valid,
             'pdb_input_reply': self.pdb_input_reply,
             '_interrupt_eventloop': self._interrupt_eventloop,
+            'enable_faulthandler': self.enable_faulthandler,
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -79,6 +83,7 @@ class SpyderKernel(IPythonKernel):
         self._running_namespace = None
         self._pdb_input_line = None
         self.shell.get_local_scope = self.get_local_scope
+        self.faulthandler_handle = None
 
     def get_local_scope(self, stack_depth):
         """Get local scope at given frame depth."""
@@ -93,6 +98,11 @@ class SpyderKernel(IPythonKernel):
             return frame.f_locals
 
     # -- Public API -----------------------------------------------------------
+    def do_shutdown(self, restart):
+        """Disable faulthandler if enabled before proceeding."""
+        self.disable_faulthandler()
+        super(SpyderKernel, self).do_shutdown(restart)
+
     def frontend_call(self, blocking=False, broadcast=True,
                       timeout=None, callback=None):
         """Call the frontend."""
@@ -107,6 +117,37 @@ class SpyderKernel(IPythonKernel):
             comm_id=comm_id,
             callback=callback,
             timeout=timeout)
+
+    def enable_faulthandler(self, fn):
+        """
+        Open a file to save the faulthandling and save the identifiers for
+        internal threads.
+        """
+        if not PY3:
+            # Not implemented
+            return
+        self.disable_faulthandler()
+        f = open(fn, 'w')
+        self.faulthandler_handle = f
+        f.write("Main thread id:\n")
+        f.write(hex(threading.main_thread().ident))
+        f.write('\nSystem threads ids:\n')
+        f.write(" ".join([hex(thread.ident) for thread in threading.enumerate()
+                          if thread is not threading.main_thread()]))
+        f.write('\n')
+        faulthandler.enable(f)
+
+    def disable_faulthandler(self):
+        """
+        Cancel the faulthandling, close the file handle, remove the file.
+        """
+        if not PY3:
+            # Not implemented
+            return
+        if self.faulthandler_handle:
+            faulthandler.disable()
+            self.faulthandler_handle.close()
+            self.faulthandler_handle = None
 
     # --- For the Variable Explorer
     def set_namespace_view_settings(self, settings):
