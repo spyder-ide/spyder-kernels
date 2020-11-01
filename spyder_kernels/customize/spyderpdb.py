@@ -141,9 +141,11 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 is_assignment = arg and arg[0] == "="
                 if is_pdb_cmd:
                     if not cmd_in_namespace and not is_assignment:
+                        # This is a pdb command without the '!' prefix.
                         self.lastcmd = line
                         return cmd_func(arg)
                     else:
+                        # The pdb command is masked by something
                         self.print_exclamation_warning()
         try:
             line = TransformerManager().transform_cell(line)
