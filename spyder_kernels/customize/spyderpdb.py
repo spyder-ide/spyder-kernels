@@ -140,7 +140,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     if func:
                         self.lastcmd = line
                         return func(arg)
-            elif cmd:
+            elif cmd and getattr(self, 'do_' + cmd, None) is not None:
                 self.print_exclamation_warning()
         try:
             line = TransformerManager().transform_cell(line)
