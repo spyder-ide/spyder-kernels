@@ -59,10 +59,7 @@ def get_numpy_dtype(obj):
 #==============================================================================
 # Pandas support
 #==============================================================================
-try:
-    from pandas import DataFrame, Index, Series
-except:
-    DataFrame = Index = Series = FakeObject
+from spyder_kernels.utils.delayedmods import pandas as pd
 
 
 #==============================================================================
@@ -215,9 +212,9 @@ def get_colors():
         (np.ndarray,
          np.ma.MaskedArray,
          np.matrix,
-         DataFrame,
-         Series,
-         Index):            ARRAY_COLOR,
+         pd.DataFrame,
+         pd.Series,
+         pd.Index):         ARRAY_COLOR,
         Image:              "#008000",
         datetime.date:      "#808000",
         datetime.timedelta: "#808000",
@@ -394,7 +391,7 @@ def value_to_display(value, minmax=False, level=0):
                 display = '%s  Mode: %s' % (address(value), value.mode)
             else:
                 display = 'Image'
-        elif isinstance(value, DataFrame):
+        elif isinstance(value, pd.DataFrame):
             if level == 0:
                 cols = value.columns
                 if PY2 and len(cols) > 0:
@@ -418,7 +415,7 @@ def value_to_display(value, minmax=False, level=0):
             display = to_text_string(value)
             if level > 0:
                 display = u"'" + display + u"'"
-        elif isinstance(value, Index):
+        elif isinstance(value, pd.Index):
             if level == 0:
                 try:
                     display = value._summary()
@@ -534,11 +531,11 @@ def display_to_value(value, default_value, ignore_errors=True):
 # =============================================================================
 def get_type_string(item):
     """Return type string of an object."""
-    if isinstance(item, DataFrame):
+    if isinstance(item, pd.DataFrame):
         return "DataFrame"
-    if isinstance(item, Index):
+    if isinstance(item, pd.Index):
         return type(item).__name__
-    if isinstance(item, Series):
+    if isinstance(item, pd.Series):
         return "Series"
 
     found = re.findall(r"<(?:type|class) '(\S*)'>",

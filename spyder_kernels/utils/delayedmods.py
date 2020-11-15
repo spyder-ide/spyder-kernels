@@ -30,3 +30,17 @@ class _DelayedNumpy(object):
         return getattr(numpy, name)
 
 numpy = _DelayedNumpy()
+
+
+class _DelayedPandas(object):
+    """Import Pandas only when one of its attributes is accessed."""
+
+    def __getattribute__(self, name):
+        try:
+            import pandas
+        except Exception:
+            return FakeObject
+
+        return getattr(pandas, name)
+
+pandas = _DelayedPandas()
