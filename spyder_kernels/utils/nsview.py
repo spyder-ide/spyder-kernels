@@ -65,11 +65,7 @@ from spyder_kernels.utils.delayedmods import pandas as pd
 #==============================================================================
 # PIL Images support
 #==============================================================================
-try:
-    from spyder import pil_patch
-    Image = pil_patch.Image.Image
-except:
-    Image = FakeObject  # analysis:ignore
+from spyder_kernels.utils.delayedmods import PIL
 
 
 #==============================================================================
@@ -215,7 +211,7 @@ def get_colors():
          pd.DataFrame,
          pd.Series,
          pd.Index):         ARRAY_COLOR,
-        Image:              "#008000",
+        PIL.Image.Image:    "#008000",
         datetime.date:      "#808000",
         datetime.timedelta: "#808000",
     }
@@ -386,7 +382,7 @@ def value_to_display(value, minmax=False, level=0):
                 display = 'Numpy array'
         elif any([type(value) == t for t in [list, set, tuple, dict]]):
             display = collections_display(value, level+1)
-        elif isinstance(value, Image):
+        elif isinstance(value, PIL.Image.Image):
             if level == 0:
                 display = '%s  Mode: %s' % (address(value), value.mode)
             else:
@@ -559,7 +555,7 @@ def get_human_readable_type(item):
     """Return human-readable type string of an item"""
     if isinstance(item, (np.ndarray, np.ma.MaskedArray)):
         return u'Array of ' + item.dtype.name
-    elif isinstance(item, Image):
+    elif isinstance(item, PIL.Image.Image):
         return "Image"
     else:
         text = get_type_string(item)
@@ -668,7 +664,7 @@ def get_supported_types():
         pass
     picklable_types = editable_types[:]
     try:
-        from spyder.pil_patch import Image
+        from PIL import Image
         editable_types.append(Image.Image)
     except:
         pass

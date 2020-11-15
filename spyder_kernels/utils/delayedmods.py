@@ -9,7 +9,7 @@
 """
 Delayed modules classes.
 
-They are useful to not import big scientifc modules until it's really
+They are useful to not import big modules until it's really
 necessary.
 """
 
@@ -44,3 +44,17 @@ class _DelayedPandas(object):
         return getattr(pandas, name)
 
 pandas = _DelayedPandas()
+
+
+class _DelayedPIL(object):
+    """Import Pillow only when one of its attributes is accessed."""
+
+    def __getattribute__(self, name):
+        try:
+            import PIL
+        except Exception:
+            return FakeObject
+
+        return getattr(PIL, name)
+
+PIL = _DelayedPIL()
