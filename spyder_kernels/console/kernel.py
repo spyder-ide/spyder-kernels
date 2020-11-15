@@ -26,6 +26,7 @@ from spyder_kernels.comms.frontendcomm import FrontendComm
 from spyder_kernels.py3compat import PY3, input
 from spyder_kernels.utils.misc import (
     MPL_BACKENDS_FROM_SPYDER, MPL_BACKENDS_TO_SPYDER, INLINE_FIGURE_FORMATS)
+from spyder_kernels.utils.nsview import get_remote_data, make_remote_view
 
 
 # Excluded variables from the Variable Explorer (i.e. they are not
@@ -141,7 +142,6 @@ class SpyderKernel(IPythonKernel):
         * 'size' and 'type' are self-evident
         * and'view' is its value or the text shown in the last column
         """
-        from spyder_kernels.utils.nsview import make_remote_view
 
         settings = self.namespace_view_settings
         if settings:
@@ -156,8 +156,6 @@ class SpyderKernel(IPythonKernel):
         Get some properties of the variables in the current
         namespace
         """
-        from spyder_kernels.utils.nsview import get_remote_data
-
         settings = self.namespace_view_settings
         if settings:
             ns = self._get_current_namespace()
@@ -245,7 +243,6 @@ class SpyderKernel(IPythonKernel):
 
     def save_namespace(self, filename):
         """Save namespace into filename"""
-        from spyder_kernels.utils.nsview import get_remote_data
         from spyder_kernels.utils.iofuncs import iofunctions
 
         ns = self._get_current_namespace()
