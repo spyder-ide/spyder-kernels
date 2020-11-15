@@ -71,11 +71,7 @@ from spyder_kernels.utils.delayedmods import PIL
 #==============================================================================
 # BeautifulSoup support (see Issue 2448)
 #==============================================================================
-try:
-    import bs4
-    NavigableString = bs4.element.NavigableString
-except:
-    NavigableString = FakeObject  # analysis:ignore
+from spyder_kernels.utils.delayedmods import bs4
 
 
 #==============================================================================
@@ -142,7 +138,6 @@ def get_object_attrs(obj):
 # Date and datetime objects support
 #==============================================================================
 import datetime
-
 
 try:
     from dateutil.parser import parse as dateparse
@@ -406,7 +401,7 @@ def value_to_display(value, minmax=False, level=0):
                 display = 'Column names: ' + ', '.join(list(cols))
             else:
                 display = 'Dataframe'
-        elif isinstance(value, NavigableString):
+        elif isinstance(value, bs4.element.NavigableString):
             # Fixes Issue 2448
             display = to_text_string(value)
             if level > 0:
@@ -447,7 +442,7 @@ def value_to_display(value, minmax=False, level=0):
             display = str(value)
         elif (isinstance(value, NUMERIC_TYPES) or
               isinstance(value, bool) or
-              isinstance(value, NUMERIC_NUMPY_TYPES)):
+              isinstance(value, numeric_numpy_types)):
             display = repr(value)
         else:
             if level == 0:

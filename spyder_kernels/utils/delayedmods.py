@@ -58,3 +58,17 @@ class _DelayedPIL(object):
         return getattr(PIL, name)
 
 PIL = _DelayedPIL()
+
+
+class _DelayedBs4(object):
+    """Import bs4 only when one of its attributes is accessed."""
+
+    def __getattribute__(self, name):
+        try:
+            import bs4
+        except Exception:
+            return FakeObject
+
+        return getattr(bs4, name)
+
+bs4 = _DelayedBs4()
