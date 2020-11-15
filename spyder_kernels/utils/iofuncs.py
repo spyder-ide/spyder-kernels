@@ -30,18 +30,10 @@ import dis
 import copy
 import glob
 
-# Third party imports
-# - If pandas fails to import here (for any reason), Spyder
-#   will crash at startup (e.g. see Issue 2300)
-# - This also prevents Spyder to start IPython kernels
-#   (see Issue 2456)
-try:
-    import pandas as pd
-except:
-    pd = None            #analysis:ignore
-
 # Local imports
 from spyder_kernels.py3compat import getcwd, pickle, PY2, to_text_string
+from spyder_kernels.utils.delayedmods import FakeObject
+from spyder_kernels.utils.delayedmods import pandas as pd
 
 
 class MatlabStruct(dict):
@@ -262,7 +254,7 @@ except:
 def load_pickle(filename):
     """Load a pickle file as a dictionary"""
     try:
-        if pd:
+        if pd.read_pickle is not FakeObject:
             return pd.read_pickle(filename), None
         else:
             with open(filename, 'rb') as fid:
