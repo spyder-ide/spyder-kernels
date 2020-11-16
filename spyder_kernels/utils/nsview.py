@@ -22,15 +22,14 @@ from spyder_kernels.py3compat import (NUMERIC_TYPES, INT_TYPES, TEXT_TYPES,
                                       is_type_text_string,
                                       is_binary_string, PY2,
                                       to_binary_string, iteritems)
-from spyder_kernels.utils.delayedmods import FakeObject
+from spyder_kernels.utils.delayedmods import bs4, FakeObject, PIL
+from spyder_kernels.utils.delayedmods import numpy as np
+from spyder_kernels.utils.delayedmods import pandas as pd
 
 
 #==============================================================================
 # Numpy support
 #==============================================================================
-from spyder_kernels.utils.delayedmods import numpy as np
-
-
 def get_numeric_numpy_types():
     return (np.int64, np.int32, np.int16, np.int8, np.uint64, np.uint32,
             np.uint16, np.uint8, np.float64, np.float32, np.float16,
@@ -54,24 +53,6 @@ def get_numpy_dtype(obj):
                 #  AttributeError: some NumPy objects have no dtype attribute
                 #  RuntimeError: happens with NetCDF objects (Issue 998)
                 return
-
-
-#==============================================================================
-# Pandas support
-#==============================================================================
-from spyder_kernels.utils.delayedmods import pandas as pd
-
-
-#==============================================================================
-# PIL Images support
-#==============================================================================
-from spyder_kernels.utils.delayedmods import PIL
-
-
-#==============================================================================
-# BeautifulSoup support (see Issue 2448)
-#==============================================================================
-from spyder_kernels.utils.delayedmods import bs4
 
 
 #==============================================================================
