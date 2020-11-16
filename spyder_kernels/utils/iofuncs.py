@@ -219,7 +219,7 @@ DTYPES = {
 
 
 def __image_to_array(filename):
-    img = Image.open(filename)
+    img = PIL.Image.open(filename)
     try:
         dtype, extra = DTYPES[img.mode]
     except KeyError:
@@ -231,7 +231,7 @@ def __image_to_array(filename):
 
 
 def load_image(filename):
-    if PIL.Image.Image is FakeObject or np.array is FakeObject:
+    if PIL.Image is FakeObject or np.array is FakeObject:
         return None, ''
 
     try:

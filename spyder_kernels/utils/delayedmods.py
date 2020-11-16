@@ -25,7 +25,9 @@ class _DelayedNumpy(object):
         try:
             import numpy
         except Exception:
-            return FakeObject
+            FakeNumpy = FakeObject
+            FakeNumpy.MaskedArray = FakeObject
+            return FakeNumpy
 
         return getattr(numpy, name)
 
@@ -51,9 +53,11 @@ class _DelayedPIL(object):
 
     def __getattribute__(self, name):
         try:
-            import PIL
+            import PIL.Image
         except Exception:
-            return FakeObject
+            FakePIL = FakeObject
+            FakePIL.Image = FakeObject
+            return FakePIL
 
         return getattr(PIL, name)
 
@@ -67,7 +71,9 @@ class _DelayedBs4(object):
         try:
             import bs4
         except Exception:
-            return FakeObject
+            FakeBs4 = FakeObject
+            FakeBs4.NavigableString = FakeObject
+            return FakeBs4
 
         return getattr(bs4, name)
 
@@ -79,7 +85,7 @@ class _DelayedScipy(object):
 
     def __getattribute__(self, name):
         try:
-            import scipy
+            import scipy.io
         except Exception:
             return FakeObject
 
