@@ -449,7 +449,7 @@ def value_to_display(value, minmax=False, level=0):
                 display = default_display(value)
             else:
                 display = default_display(value, with_module=False)
-    except:
+    except Exception:
         display = default_display(value)
 
     # Truncate display at 70 chars to avoid freezing Spyder

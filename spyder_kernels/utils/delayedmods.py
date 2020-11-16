@@ -72,3 +72,17 @@ class _DelayedBs4(object):
         return getattr(bs4, name)
 
 bs4 = _DelayedBs4()
+
+
+class _DelayedScipy(object):
+    """Import Scipy only when one of its attributes is accessed."""
+
+    def __getattribute__(self, name):
+        try:
+            import scipy
+        except Exception:
+            return FakeObject
+
+        return getattr(scipy, name)
+
+scipy = _DelayedScipy()

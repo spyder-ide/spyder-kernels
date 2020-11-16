@@ -36,6 +36,7 @@ from spyder_kernels.utils.delayedmods import FakeObject
 from spyder_kernels.utils.delayedmods import numpy as np
 from spyder_kernels.utils.delayedmods import pandas as pd
 from spyder_kernels.utils.delayedmods import PIL
+from spyder_kernels.utils.delayedmods import scipy as sp
 
 
 class MatlabStruct(dict):
@@ -148,39 +149,28 @@ def get_matlab_value(val):
     return val
 
 
-try:
+def load_matlab(filename):
+    if sp.io is FakeObject:
+        return None, ''
+
     try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            import scipy.io as spio
-    except AttributeError:
-        # Python 2.5: warnings.catch_warnings was introduced in Python 2.6
-        import scipy.io as spio  # analysis:ignore
-    except:
-        spio = None
+        out = sp.io.loadmat(filename, struct_as_record=True)
+        data = dict()
+        for (key, value) in out.items():
+            data[key] = get_matlab_value(value)
+        return data, None
+    except Exception as error:
+        return None, str(error)
 
-    if spio is None:
-        load_matlab = None
-        save_matlab = None
-    else:
-        def load_matlab(filename):
-            try:
-                out = spio.loadmat(filename, struct_as_record=True)
-                data = dict()
-                for (key, value) in out.items():
-                    data[key] = get_matlab_value(value)
-                return data, None
-            except Exception as error:
-                return None, str(error)
 
-        def save_matlab(data, filename):
-            try:
-                spio.savemat(filename, data, oned_as='row')
-            except Exception as error:
-                return str(error)
-except:
-    load_matlab = None
-    save_matlab = None
+def save_matlab(data, filename):
+    if sp.io is FakeObject:
+        return
+
+    try:
+        sp.io.savemat(filename, data, oned_as='row')
+    except Exception as error:
+        return str(error)
 
 
 def load_array(filename):
