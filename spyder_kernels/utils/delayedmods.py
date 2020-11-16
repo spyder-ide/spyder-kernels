@@ -9,15 +9,26 @@
 """
 Delayed modules classes.
 
-They are useful to not import big modules until it's really
-necessary.
+They are useful to not import big modules until it's really necessary.
+
+Notes:
+
+* When accessing second level objects (e.g. numpy.ma.MaskedArray), you
+  need to add them to the fake class that is returned in place of the
+  missing module.
 """
 
+# =============================================================================
+# Class to use for missing objects
+# =============================================================================
 class FakeObject(object):
     """Fake class used in replacement of missing objects"""
     pass
 
 
+# =============================================================================
+# Numpy
+# =============================================================================
 class _DelayedNumpy(object):
     """Import Numpy only when one of its attributes is accessed."""
 
@@ -34,6 +45,9 @@ class _DelayedNumpy(object):
 numpy = _DelayedNumpy()
 
 
+# =============================================================================
+# Pandas
+# =============================================================================
 class _DelayedPandas(object):
     """Import Pandas only when one of its attributes is accessed."""
 
@@ -48,6 +62,9 @@ class _DelayedPandas(object):
 pandas = _DelayedPandas()
 
 
+# =============================================================================
+# Pillow
+# =============================================================================
 class _DelayedPIL(object):
     """Import Pillow only when one of its attributes is accessed."""
 
@@ -64,6 +81,9 @@ class _DelayedPIL(object):
 PIL = _DelayedPIL()
 
 
+# =============================================================================
+# BeautifulSoup
+# =============================================================================
 class _DelayedBs4(object):
     """Import bs4 only when one of its attributes is accessed."""
 
@@ -80,6 +100,9 @@ class _DelayedBs4(object):
 bs4 = _DelayedBs4()
 
 
+# =============================================================================
+# Scipy
+# =============================================================================
 class _DelayedScipy(object):
     """Import Scipy only when one of its attributes is accessed."""
 
