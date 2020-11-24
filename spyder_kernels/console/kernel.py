@@ -37,6 +37,11 @@ EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 class SpyderShell(ZMQInteractiveShell):
     """Spyder shell."""
 
+    def ask_exit(self):
+        """Engage the exit actions."""
+        self.kernel.frontend_comm.close_thread()
+        return super(SpyderShell, self).ask_exit()
+
     def get_local_scope(self, stack_depth):
         """Get local scope at given frame depth."""
         frame = sys._getframe(stack_depth + 1)
