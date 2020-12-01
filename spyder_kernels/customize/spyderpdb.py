@@ -93,7 +93,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
     def print_exclamation_warning(self):
         """Print pdb warning for exclamation mark."""
         if not self._exclamation_warning_printed:
-            print("Warning: The exclamation mark option is enabled."
+            print("Warning: The exclamation mark option is enabled. "
                   "Please use '!' as a prefix for Pdb commands.")
             self._exclamation_warning_printed = True
 
