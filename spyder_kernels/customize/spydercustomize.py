@@ -378,7 +378,7 @@ def get_debugger(filename):
     """Get a debugger for a given filename."""
     debugger = pdb.Pdb()
     filename = debugger.canonic(filename)
-    debugger._wait_for_mainpyfile = 1
+    debugger._wait_for_mainpyfile = True
     debugger.mainpyfile = filename
     debugger._user_requested_quit = 0
     if os.name == 'nt':
@@ -583,6 +583,44 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
 builtins.runfile = runfile
 
 
+def enter_debugger(filename, continue_if_has_breakpoints, args):
+    """Enter debugger."""
+    if filename is None:
+        filename = get_current_file_name()
+        if filename is None:
+            return
+
+    kernel = get_ipython().kernel
+    if kernel.is_debugging():
+        parent_debugger = kernel._pdb_obj
+        sys.settrace(None)
+        globals = parent_debugger.curframe.f_globals
+        locals = parent_debugger.curframe_locals
+        # Create child debugger
+        debugger = parent_debugger.__class__(
+            completekey=parent_debugger.completekey,
+            stdin=parent_debugger.stdin, stdout=parent_debugger.stdout)
+        debugger.use_rawinput = parent_debugger.use_rawinput
+        debugger.prompt = "(%s) " % parent_debugger.prompt.strip()
+        filename = debugger.canonic(filename)
+        debugger._wait_for_mainpyfile = True
+        debugger.mainpyfile = filename
+        debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
+        # Enter recursive debugger
+        parent_debugger.message("ENTERING RECURSIVE DEBUGGER")
+        sys.call_tracing(debugger.run, (args, globals, locals))
+        parent_debugger.message("LEAVING RECURSIVE DEBUGGER")
+        # Reset parent debugger
+        sys.settrace(parent_debugger.trace_dispatch)
+        parent_debugger.lastcmd = debugger.lastcmd
+        kernel._register_pdb_session(parent_debugger)
+    else:
+        debugger, filename = get_debugger(filename)
+        # The breakpoint might not be in the cell
+        debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
+        debugger.run(args)
+
+
 def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
               current_namespace=False):
     """
@@ -593,14 +631,9 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
     """
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
-    if filename is None:
-        filename = get_current_file_name()
-        if filename is None:
-            return
-    debugger, filename = get_debugger(filename)
-    debugger.continue_if_has_breakpoints = True
-    debugger.run("runfile(%r, args=%r, wdir=%r, current_namespace=%r)" % (
-        filename, args, wdir, current_namespace))
+    enter_debugger(filename, True,
+                   "runfile(%r, args=%r, wdir=%r, current_namespace=%r)" % (
+                       filename, args, wdir, current_namespace))
 
 
 builtins.debugfile = debugfile
@@ -673,16 +706,8 @@ def debugcell(cellname, filename=None, post_mortem=False):
     """Debug a cell."""
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
-    if filename is None:
-        filename = get_current_file_name()
-        if filename is None:
-            return
-
-    debugger, filename = get_debugger(filename)
-    # The breakpoint might not be in the cell
-    debugger.continue_if_has_breakpoints = False
-    debugger.run("runcell({}, {})".format(
-        repr(cellname), repr(filename)))
+    enter_debugger(filename, False, "runcell({}, {}, {})".format(
+        repr(cellname), repr(filename), repr(post_mortem)))
 
 
 builtins.debugcell = debugcell

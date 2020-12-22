@@ -512,7 +512,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
                     or frame.f_lineno <= 0):
                 return
-            self._wait_for_mainpyfile = 0
+            self._wait_for_mainpyfile = False
         super(SpyderPdb, self).user_return(frame, return_value)
 
     def _cmdloop(self):
