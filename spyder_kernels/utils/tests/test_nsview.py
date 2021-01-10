@@ -24,7 +24,8 @@ import PIL
 from spyder_kernels.py3compat import PY2
 from spyder_kernels.utils.nsview import (sort_against, is_supported,
                                          value_to_display, get_size,
-                                         get_supported_types, Image)
+                                         get_supported_types)
+
 
 def generate_complex_object():
     """Taken from issue #4221."""
