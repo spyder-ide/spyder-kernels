@@ -13,7 +13,6 @@ import socket
 import sys
 import threading
 import time
-from io import TextIOBase
 
 from jupyter_client.localinterfaces import localhost
 from tornado import ioloop
