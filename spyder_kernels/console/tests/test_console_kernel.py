@@ -598,6 +598,9 @@ f = np.get_printoptions()['formatter']
         assert "{'float_kind': <built-in method format of str object" in content
 
 
+# We declare this constant immediately before the test, as determining
+# that TURTLE_ACTIVE is True will briefly pop up a window, similar to the
+# windows that will pop up during the test itself.
 TURTLE_ACTIVE = False
 try:
     import turtle
