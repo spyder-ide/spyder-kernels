@@ -541,6 +541,15 @@ def display_to_value(value, default_value, ignore_errors=True):
 # =============================================================================
 def get_type_string(item):
     """Return type string of an object."""
+    # Numpy objects (don't change the order!)
+    if isinstance(item, MaskedArray):
+        return "MaskedArray"
+    if isinstance(item, matrix):
+        return "Matrix"
+    if isinstance(item, ndarray):
+        return "NDArray"
+
+    # Pandas objects
     if isinstance(item, DataFrame):
         return "DataFrame"
     if isinstance(item, Index):
@@ -555,13 +564,13 @@ def get_type_string(item):
             return 'class'
         return found[0]
     else:
-        return None
+        return 'Unknown'
 
 
 def is_known_type(item):
     """Return True if object has a known type"""
     # Unfortunately, the masked array case is specific
-    return isinstance(item, MaskedArray) or get_type_string(item) is not None
+    return isinstance(item, MaskedArray) or get_type_string(item) != 'Unknown'
 
 
 def get_human_readable_type(item):
@@ -572,10 +581,7 @@ def get_human_readable_type(item):
         return "Image"
     else:
         text = get_type_string(item)
-        if text is None:
-            text = to_text_string('Unknown')
-        else:
-            return text[text.find('.')+1:]
+        return text[text.find('.')+1:]
 
 
 #==============================================================================
