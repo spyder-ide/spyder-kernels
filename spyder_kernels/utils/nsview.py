@@ -719,8 +719,12 @@ def make_remote_view(data, settings, more_excluded_names=None):
     remote = {}
     for key, value in list(data.items()):
         view = value_to_display(value, minmax=settings['minmax'])
-        remote[key] = {'type':  get_human_readable_type(value),
-                       'size':  get_size(value),
-                       'color': get_color_name(value),
-                       'view':  view}
+        remote[key] = {
+            'type':  get_human_readable_type(value),
+            'size':  get_size(value),
+            'color': get_color_name(value),
+            'view':  view,
+            'python_type': get_type_string(value)
+        }
+
     return remote
