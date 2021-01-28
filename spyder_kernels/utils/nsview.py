@@ -253,9 +253,26 @@ def get_color_name(value):
 
 
 def is_editable_type(value):
-    """Return True if data type is editable with a standard GUI-based editor,
-    like CollectionsEditor, ArrayEditor, QDateEdit or a simple QLineEdit"""
-    return get_color_name(value) not in (UNSUPPORTED_COLOR, CUSTOM_TYPE_COLOR)
+    """
+    Return True if data type is editable with a standard GUI-based editor,
+    like CollectionsEditor, ArrayEditor, QDateEdit or a simple QLineEdit.
+    """
+    if not is_known_type(value):
+        return False
+    else:
+        supported_types = [
+            'bool', 'int', 'long', 'float', 'complex', 'list', 'set', 'dict',
+            'tuple', 'str', 'unicode', 'NDArray', 'MaskedArray', 'Matrix',
+            'DataFrame', 'Series', 'PIL.Image.Image', 'datetime.date',
+            'datetime.timedelta'
+        ]
+
+        if (get_type_string(value) not in supported_types and
+                not isinstance(value, Index)):
+            np_dtype = get_numpy_dtype(value)
+            if np_dtype is None or not hasattr(value, 'size'):
+                return False
+        return True
 
 
 #==============================================================================
