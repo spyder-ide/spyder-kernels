@@ -421,7 +421,10 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
         code = encode(code)
 
     ipython_shell = get_ipython()
-    is_ipython = os.path.splitext(filename)[1] == '.ipy'
+    f_ext = os.path.splitext(filename)[1]
+    ext_magic = ['.ipy'] # Allowed ipy files
+    # ext_magic = ['.ipy', '.py'] # Uncomment to allow magic in .py
+    is_ipython = f_ext in ext_magic
     try:
         if not is_ipython:
             # TODO: remove the try-except and let the SyntaxError raise
