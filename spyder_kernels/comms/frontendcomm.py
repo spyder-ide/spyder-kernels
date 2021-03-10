@@ -13,7 +13,9 @@ import socket
 import sys
 import threading
 import time
+import json
 
+import jupyter_client
 from jupyter_client.localinterfaces import localhost
 from tornado import ioloop
 import zmq
@@ -71,9 +73,17 @@ class FrontendComm(CommBase):
             self.comm_socket.linger = 1000
 
             self.comm_port = get_free_port()
-
             self.comm_port = self.kernel.parent._bind_socket(
                 self.comm_socket, self.comm_port)
+
+            # Save comm port
+            cf = kernel.parent.abs_connection_file
+            with open(cf, "r") as f:
+                connection_file = json.load(f)
+            connection_file["comm_port"] = self.comm_port
+            with open(cf, "w") as f:
+                json.dump(connection_file, f)
+
             if hasattr(zmq, 'ROUTER_HANDOVER'):
                 # Set router-handover to workaround zeromq reconnect problems
                 # in certain rare circumstances.
