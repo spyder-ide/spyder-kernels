@@ -15,7 +15,6 @@ import threading
 import time
 import json
 
-import jupyter_client
 from jupyter_client.localinterfaces import localhost
 from tornado import ioloop
 import zmq
