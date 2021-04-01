@@ -73,6 +73,17 @@ def get_numpy_dtype(obj):
                 return
 
 
+def get_numpy_type_string(value):
+    """Get the type of a Numpy object as a string."""
+    np_dtype = get_numpy_dtype(value)
+    if np_dtype is None or not hasattr(value, 'size'):
+        return 'Unknown'
+    elif value.size == 1:
+        return 'Scalar'
+    else:
+        return 'Array'
+
+
 #==============================================================================
 # Pandas support
 #==============================================================================
@@ -747,7 +758,8 @@ def make_remote_view(data, settings, more_excluded_names=None):
             'size':  get_size(value),
             'color': get_color_name(value),
             'view':  view,
-            'python_type': get_type_string(value)
+            'python_type': get_type_string(value),
+            'numpy_type': get_numpy_type_string(value)
         }
 
     return remote
