@@ -1,5 +1,21 @@
 # History of changes
 
+## Version 2.0.0 (2021-04-01)
+
+### New features
+* Color handling in namespace view was moved to Spyder.
+
+### Pull Requests Merged
+
+* [PR 284](https://github.com/spyder-ide/spyder-kernels/pull/284) - PR: Remove handling of colors for object types, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 279](https://github.com/spyder-ide/spyder-kernels/pull/279) - PR: Add Python types to namespace view, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 2 pull requests were closed.
+
+
+----
+
+
 ## Version 1.10.2 (2021-02-21)
 
 ### Pull Requests Merged
