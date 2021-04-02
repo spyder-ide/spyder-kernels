@@ -28,11 +28,11 @@ To release a new version of spyder-kernels on PyPI:
 
 * git add . && git commit -m 'Back to work'
 
-* git checkout master
+* git checkout 2.x
 
 * git merge 1.x
 
-* git push upstream master
+* git push upstream 2.x
 
 * git push upstream 1.x
 
