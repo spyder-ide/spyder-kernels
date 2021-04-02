@@ -1,5 +1,18 @@
 # History of changes
 
+## Version 1.10.3 (2021-04-02)
+
+
+### Pull Requests Merged
+
+* [PR 285](https://github.com/spyder-ide/spyder-kernels/pull/285) - PR: Add a new dependency on decorator to fix the Cython magic, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 1 pull request was closed.
+
+
+----
+
+
 ## Version 1.10.2 (2021-02-21)
 
 ### Pull Requests Merged
