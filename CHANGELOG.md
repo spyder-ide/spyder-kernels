@@ -1,5 +1,13 @@
 # History of changes
 
+## Version 2.0.1 (2021-04-02)
+
+* This release also contains all fixes present in version 1.10.3
+
+
+----
+
+
 ## Version 2.0.0 (2021-04-01)
 
 ### New features
@@ -11,6 +19,18 @@
 * [PR 279](https://github.com/spyder-ide/spyder-kernels/pull/279) - PR: Add Python types to namespace view, by [@ccordoba12](https://github.com/ccordoba12)
 
 In this release 2 pull requests were closed.
+
+
+----
+
+
+## Version 1.10.3 (2021-04-02)
+
+### Pull Requests Merged
+
+* [PR 285](https://github.com/spyder-ide/spyder-kernels/pull/285) - PR: Add a new dependency on decorator to fix the Cython magic, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 1 pull request was closed.
 
 
 ----
