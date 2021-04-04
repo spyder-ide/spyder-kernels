@@ -21,6 +21,7 @@ from IPython.core.getipython import get_ipython
 
 from spyder_kernels.comms.commbase import CommBase, CommError
 from spyder_kernels.py3compat import TimeoutError, PY2
+from spyder_kernels import __version__ as spyder_kernels_version
 
 
 def get_free_port():
@@ -198,6 +199,7 @@ class FrontendComm(CommBase):
     def on_outgoing_call(self, call_dict):
         """A message is about to be sent"""
         call_dict["comm_port"] = self.comm_port
+        call_dict["spyder_kernels_version"] = spyder_kernels_version
         return super(FrontendComm, self).on_outgoing_call(call_dict)
 
     def _send_comm_config(self):
