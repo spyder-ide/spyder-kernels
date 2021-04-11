@@ -26,7 +26,8 @@ from spyder_kernels.py3compat import TEXT_TYPES, to_text_string
 from spyder_kernels.comms.frontendcomm import FrontendComm
 from spyder_kernels.py3compat import PY3, input
 from spyder_kernels.utils.misc import (
-    MPL_BACKENDS_FROM_SPYDER, MPL_BACKENDS_TO_SPYDER, INLINE_FIGURE_FORMATS)
+    MPL_BACKENDS_FROM_SPYDER, MPL_BACKENDS_TO_SPYDER, INLINE_FIGURE_FORMATS,
+    automatic_backend)
 
 
 # Excluded variables from the Variable Explorer (i.e. they are not
@@ -53,6 +54,17 @@ class SpyderShell(ZMQInteractiveShell):
             return namespace
         else:
             return frame.f_locals
+
+    def enable_matplotlib(self, gui=None):
+        """Enable matplotlib."""
+        if gui.lower() == "auto":
+            gui = automatic_backend()
+        gui, backend = super(SpyderShell, self).enable_matplotlib(gui)
+        try:
+            self.kernel.frontend_call(blocking=False).update_matplotlib_gui(gui)
+        except Exception:
+            pass
+        return gui, backend
 
 
 class SpyderKernel(IPythonKernel):
