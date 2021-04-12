@@ -1,12 +1,12 @@
-name: Macos tests 1.x
+name: Macos tests
 
 on:
   push:
     branches:
-    - 1.x
+    - master
   pull_request:
     branches:
-    - 1.x
+    - master
 
 jobs:
   macos:
@@ -38,6 +38,7 @@ jobs:
         run: |
           conda install nomkl -y -q
           conda install --file requirements/tests.txt -y -q
+          if [ "$PYTHON_VERSION" != "2.7" ]; then conda install -y -q jedi=0.17.2; fi
       - name: Install Package
         shell: bash -l {0}
         run: pip install -e .
@@ -49,6 +50,3 @@ jobs:
       - name: Run tests
         shell: bash -l {0}
         run: pytest spyder_kernels --cov=spyder_kernels -x -vv
-      - name: Upload coverage to Codecov
-        shell: bash -l {0}
-        run: codecov -t 02fa9892-fa7f-4cf8-ac3c-d54143ddc933

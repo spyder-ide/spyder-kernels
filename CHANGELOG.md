@@ -1,5 +1,57 @@
 # History of changes
 
+## Version 2.0.1 (2021-04-02)
+
+* This release also contains all fixes present in version 1.10.3
+
+
+----
+
+
+## Version 2.0.0 (2021-04-01)
+
+### New features
+* Color handling in namespace view was moved to Spyder.
+
+### Pull Requests Merged
+
+* [PR 284](https://github.com/spyder-ide/spyder-kernels/pull/284) - PR: Remove handling of colors for object types, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 279](https://github.com/spyder-ide/spyder-kernels/pull/279) - PR: Add Python types to namespace view, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 2 pull requests were closed.
+
+
+----
+
+
+## Version 1.10.3 (2021-04-02)
+
+### Pull Requests Merged
+
+* [PR 285](https://github.com/spyder-ide/spyder-kernels/pull/285) - PR: Add a new dependency on decorator to fix the Cython magic, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 1 pull request was closed.
+
+
+----
+
+
+## Version 1.10.2 (2021-02-21)
+
+### Pull Requests Merged
+
+* [PR 278](https://github.com/spyder-ide/spyder-kernels/pull/278) - PR: Warn when comm call creates text output, by [@impact27](https://github.com/impact27)
+* [PR 277](https://github.com/spyder-ide/spyder-kernels/pull/277) - PR: Increase minimal required version of ipykernel, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 275](https://github.com/spyder-ide/spyder-kernels/pull/275) - PR: Better test for non-interactive context, by [@juliangilbey](https://github.com/juliangilbey)
+* [PR 272](https://github.com/spyder-ide/spyder-kernels/pull/272) - PR: Fix assignment detection in exclamation mark mode (Pdb), by [@impact27](https://github.com/impact27)
+* [PR 271](https://github.com/spyder-ide/spyder-kernels/pull/271) - PR: Fix recursive debugger, by [@impact27](https://github.com/impact27)
+
+In this release 5 pull requests were closed.
+
+
+----
+
+
 ## Version 1.10.1 (2020-12-18)
 
 ### Issues Closed

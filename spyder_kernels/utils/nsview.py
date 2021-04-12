@@ -73,6 +73,17 @@ def get_numpy_dtype(obj):
                 return
 
 
+def get_numpy_type_string(value):
+    """Get the type of a Numpy object as a string."""
+    np_dtype = get_numpy_dtype(value)
+    if np_dtype is None or not hasattr(value, 'size'):
+        return 'Unknown'
+    elif value.size == 1:
+        return 'Scalar'
+    else:
+        return 'Array'
+
+
 #==============================================================================
 # Pandas support
 #==============================================================================
@@ -210,52 +221,29 @@ def str_to_timedelta(value):
 
 
 #==============================================================================
-# Background colors for supported types
+# Supported types
 #==============================================================================
-ARRAY_COLOR = "#00ff00"
-SCALAR_COLOR = "#0000ff"
-COLORS = {
-          bool:               "#ff00ff",
-          NUMERIC_TYPES:      SCALAR_COLOR,
-          list:               "#ffff00",
-          set:                "#008000",
-          dict:               "#00ffff",
-          tuple:              "#c0c0c0",
-          TEXT_TYPES:         "#800000",
-          (ndarray,
-           MaskedArray,
-           matrix,
-           DataFrame,
-           Series,
-           Index):            ARRAY_COLOR,
-          Image:              "#008000",
-          datetime.date:      "#808000",
-          datetime.timedelta: "#808000",
-          }
-CUSTOM_TYPE_COLOR = "#7755aa"
-UNSUPPORTED_COLOR = "#ffffff"
-
-def get_color_name(value):
-    """Return color name depending on value type"""
-    if not is_known_type(value):
-        return CUSTOM_TYPE_COLOR
-    for typ, name in list(COLORS.items()):
-        if isinstance(value, typ):
-            return name
-    else:
-        np_dtype = get_numpy_dtype(value)
-        if np_dtype is None or not hasattr(value, 'size'):
-            return UNSUPPORTED_COLOR
-        elif value.size == 1:
-            return SCALAR_COLOR
-        else:
-            return ARRAY_COLOR
-
-
 def is_editable_type(value):
-    """Return True if data type is editable with a standard GUI-based editor,
-    like CollectionsEditor, ArrayEditor, QDateEdit or a simple QLineEdit"""
-    return get_color_name(value) not in (UNSUPPORTED_COLOR, CUSTOM_TYPE_COLOR)
+    """
+    Return True if data type is editable with a standard GUI-based editor,
+    like CollectionsEditor, ArrayEditor, QDateEdit or a simple QLineEdit.
+    """
+    if not is_known_type(value):
+        return False
+    else:
+        supported_types = [
+            'bool', 'int', 'long', 'float', 'complex', 'list', 'set', 'dict',
+            'tuple', 'str', 'unicode', 'NDArray', 'MaskedArray', 'Matrix',
+            'DataFrame', 'Series', 'PIL.Image.Image', 'datetime.date',
+            'datetime.timedelta'
+        ]
+
+        if (get_type_string(value) not in supported_types and
+                not isinstance(value, Index)):
+            np_dtype = get_numpy_dtype(value)
+            if np_dtype is None or not hasattr(value, 'size'):
+                return False
+        return True
 
 
 #==============================================================================
@@ -541,6 +529,15 @@ def display_to_value(value, default_value, ignore_errors=True):
 # =============================================================================
 def get_type_string(item):
     """Return type string of an object."""
+    # Numpy objects (don't change the order!)
+    if isinstance(item, MaskedArray):
+        return "MaskedArray"
+    if isinstance(item, matrix):
+        return "Matrix"
+    if isinstance(item, ndarray):
+        return "NDArray"
+
+    # Pandas objects
     if isinstance(item, DataFrame):
         return "DataFrame"
     if isinstance(item, Index):
@@ -555,13 +552,13 @@ def get_type_string(item):
             return 'class'
         return found[0]
     else:
-        return None
+        return 'Unknown'
 
 
 def is_known_type(item):
     """Return True if object has a known type"""
     # Unfortunately, the masked array case is specific
-    return isinstance(item, MaskedArray) or get_type_string(item) is not None
+    return isinstance(item, MaskedArray) or get_type_string(item) != 'Unknown'
 
 
 def get_human_readable_type(item):
@@ -572,10 +569,7 @@ def get_human_readable_type(item):
         return "Image"
     else:
         text = get_type_string(item)
-        if text is None:
-            text = to_text_string('Unknown')
-        else:
-            return text[text.find('.')+1:]
+        return text[text.find('.')+1:]
 
 
 #==============================================================================
@@ -719,8 +713,12 @@ def make_remote_view(data, settings, more_excluded_names=None):
     remote = {}
     for key, value in list(data.items()):
         view = value_to_display(value, minmax=settings['minmax'])
-        remote[key] = {'type':  get_human_readable_type(value),
-                       'size':  get_size(value),
-                       'color': get_color_name(value),
-                       'view':  view}
+        remote[key] = {
+            'type':  get_human_readable_type(value),
+            'size':  get_size(value),
+            'view':  view,
+            'python_type': get_type_string(value),
+            'numpy_type': get_numpy_type_string(value)
+        }
+
     return remote
