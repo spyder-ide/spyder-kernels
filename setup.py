@@ -37,8 +37,9 @@ def get_version(module='spyder_kernels'):
 
 REQUIREMENTS = [
     'cloudpickle',
+    'decorator<5',  # Higher versions break the Cython magic
     'ipykernel<5; python_version<"3"',
-    'ipykernel>=5.1.3; python_version>="3"',
+    'ipykernel>=5.3.0; python_version>="3"',
     'ipython<6; python_version<"3"',
     'ipython>=7.6.0; python_version>="3"',
     'jupyter-client>=5.3.4',
