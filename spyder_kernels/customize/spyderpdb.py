@@ -727,7 +727,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         debugger.use_rawinput = self.use_rawinput
         debugger.prompt = "(%s) " % self.prompt.strip()
 
-
         filename = debugger.canonic(filename)
         debugger._wait_for_mainpyfile = True
         debugger.mainpyfile = filename
