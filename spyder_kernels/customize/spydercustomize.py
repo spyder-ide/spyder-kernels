@@ -13,6 +13,7 @@
 
 import bdb
 import cmd
+import contextlib
 import cProfile
 import io
 import logging
@@ -635,6 +636,22 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
 builtins.debugfile = debugfile
 
 
+
+@contextlib.contextmanager
+def profile_tmp_file():
+    """Get temporary file for profiling results."""
+    tempdir = tempfile.TemporaryDirectory()
+    profile_file = os.path.join(tempdir.name, "profile.results")
+    try:
+        yield profile_file
+    finally:
+        if os.path.isfile(profile_file):
+            with open(profile_file, "br") as f:
+                profile_result = f.read()
+                frontend_request().show_profile_file(profile_result)
+        tempdir.cleanup()
+
+
 def profile_file(filename=None, args=None, wdir=None, post_mortem=False,
                  current_namespace=False):
     """
@@ -643,17 +660,11 @@ def profile_file(filename=None, args=None, wdir=None, post_mortem=False,
     wdir: working directory
     post_mortem: boolean, included for compatiblity with runfile
     """
-    profile_file = tempfile.NamedTemporaryFile()
-    try:
+    with profile_tmp_file() as tmp_file:
         runfile(
             filename=filename, args=args, wdir=wdir,
             current_namespace=current_namespace,
-            profile_filename=profile_file.name)
-    finally:
-        profile_result = profile_file.read()
-        if profile_result:
-            frontend_request().show_profile_file(profile_result)
-        profile_file.close()
+            profile_filename=tmp_file)
 
 
 builtins.profile_file = profile_file
@@ -757,17 +768,11 @@ builtins.debugcell = debugcell
 
 def profile_cell(cellname, filename=None, post_mortem=False):
     """Profile a cell."""
-    profile_file = tempfile.NamedTemporaryFile()
-    try:
+    with profile_tmp_file() as tmp_file:
         runcell(
             cellname=cellname,
             filename=filename,
-            profile_filename=profile_file.name)
-    finally:
-        profile_result = profile_file.read()
-        if profile_result:
-            frontend_request().show_profile_file(profile_result)
-        profile_file.close()
+            profile_filename=tmp_file)
 
 
 builtins.profile_cell = profile_cell
