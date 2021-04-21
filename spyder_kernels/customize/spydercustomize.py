@@ -18,6 +18,7 @@ import io
 import logging
 import os
 import pdb
+import tempfile
 import shlex
 import sys
 import time
@@ -641,15 +642,17 @@ def profile_file(filename=None, args=None, wdir=None, post_mortem=False,
     wdir: working directory
     post_mortem: boolean, included for compatiblity with runfile
     """
+    profile_file = tempfile.NamedTemporaryFile()
     try:
         runfile(
             filename=filename, args=args, wdir=wdir,
             current_namespace=current_namespace,
-            profile_filename=PROFILE_FILE)
+            profile_filename=profile_file.name)
     finally:
-        if os.path.isfile(PROFILE_FILE):
-            with open(PROFILE_FILE, "br") as f:
-                frontend_request().show_profile_file(f.read())
+        profile_result = profile_file.read()
+        if profile_result:
+            frontend_request().show_profile_file(profile_result)
+        profile_file.close()
 
 builtins.profile_file = profile_file
 
@@ -750,19 +753,19 @@ def debugcell(cellname, filename=None, post_mortem=False):
 builtins.debugcell = debugcell
 
 
-PROFILE_FILE = "tmp.prof"
-
 def profile_cell(cellname, filename=None, post_mortem=False):
     """Profile a cell."""
+    profile_file = tempfile.NamedTemporaryFile()
     try:
         runcell(
             cellname=cellname,
             filename=filename,
-            profile_filename=PROFILE_FILE)
+            profile_filename=profile_file.name)
     finally:
-        if os.path.isfile(PROFILE_FILE):
-            with open(PROFILE_FILE, "br") as f:
-                frontend_request().show_profile_file(f.read())
+        profile_result = profile_file.read()
+        if profile_result:
+            frontend_request().show_profile_file(profile_result)
+        profile_file.close()
 
 builtins.profile_cell = profile_cell
 
