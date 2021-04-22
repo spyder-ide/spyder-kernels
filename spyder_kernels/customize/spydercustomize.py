@@ -628,7 +628,8 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
     else:
         debugger = get_new_debugger(filename, True)
         runfile(
-            filename=filename, args=args, wdir=wdir,
+            filename=debugger.canonic(filename),
+            args=args, wdir=wdir,
             current_namespace=current_namespace,
             debugger=debugger)
 
@@ -759,7 +760,7 @@ def debugcell(cellname, filename=None, post_mortem=False):
         debugger = get_new_debugger(filename, False)
         runcell(
             cellname=cellname,
-            filename=filename,
+            filename=debugger.canonic(filename),
             debugger=debugger)
 
 
