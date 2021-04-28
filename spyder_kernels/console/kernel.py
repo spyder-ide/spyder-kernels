@@ -176,13 +176,16 @@ class SpyderKernel(IPythonKernel):
                 return
         # Cleanup main thread
         if is_main:
-            start_idx = 9
+            start_idx = -1
             for idx in range(len(stack)):
                 if stack[idx].filename.endswith(
                         ("IPython/core/interactiveshell.py",
                          "IPython\\core\\interactiveshell.py")):
                     start_idx = idx + 1
-            stack = stack[start_idx:]
+            if start_idx != -1:
+                stack = stack[start_idx:]
+            else:
+                stack = []
         return stack
 
     def get_current_frames(self, ignore_internal_threads=True,
