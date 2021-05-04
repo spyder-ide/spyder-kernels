@@ -779,6 +779,15 @@ def profile_cell(cellname, filename=None, post_mortem=False):
 builtins.profile_cell = profile_cell
 
 
+def profile(line):
+    """Profile the given line."""
+    with profile_tmp_file() as tmp_file:
+        cProfile.run(
+            line,
+            filename=tmp_file
+        )
+
+
 def cell_count(filename=None):
     """
     Get the number of cells in a file.
