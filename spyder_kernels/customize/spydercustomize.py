@@ -13,10 +13,13 @@
 
 import bdb
 import cmd
+import contextlib
+import cProfile
 import io
 import logging
 import os
 import pdb
+import tempfile
 import shlex
 import sys
 import time
@@ -27,7 +30,7 @@ from IPython.core.getipython import get_ipython
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
-from spyder_kernels.customize.spyderpdb import SpyderPdb, enter_debugger
+from spyder_kernels.customize.spyderpdb import SpyderPdb, get_new_debugger
 from spyder_kernels.customize.umr import UserModuleReloader
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, encode
 
@@ -410,7 +413,8 @@ def transform_cell(code, indent_only=False):
     return '\n' * number_empty_lines + code
 
 
-def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
+def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
+              profile_filename=None, debugger=None):
     """Execute code and display any exception."""
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
@@ -450,7 +454,24 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
                         SHOW_INVALID_SYNTAX_MSG = False
         else:
             compiled = compile(transform_cell(code), filename, 'exec')
-        exec(compiled, ns_globals, ns_locals)
+
+        if debugger:
+            debugger.run(
+                compiled,
+                globals=ns_globals,
+                locals=ns_locals
+            )
+        elif profile_filename:
+            # Run with profiler
+            cProfile.runctx(
+                compiled,
+                globals=ns_globals,
+                locals=ns_locals,
+                filename=profile_filename
+            )
+        else:
+            exec(compiled, ns_globals, ns_locals)
+
     except SystemExit as status:
         # ignore exit(0)
         if status.code:
@@ -484,7 +505,7 @@ def get_file_code(filename, save_all=True):
 
 
 def runfile(filename=None, args=None, wdir=None, namespace=None,
-            post_mortem=False, current_namespace=False):
+            post_mortem=False, current_namespace=False, **kwargs):
     """
     Run filename
     args: command line arguments (string)
@@ -563,7 +584,8 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
                 ipython_shell.run_cell_magic('cython', '', f.read())
         else:
             exec_code(file_code, filename, ns_globals, ns_locals,
-                      post_mortem=post_mortem)
+                      post_mortem=post_mortem,
+                      **kwargs)
 
         sys.argv = ['']
 
@@ -586,17 +608,70 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
         if filename is None:
             return
 
-    enter_debugger(
-        filename, True,
-        "runfile({}" +
-        ", args=%r, wdir=%r, current_namespace=%r)" % (
-            args, wdir, current_namespace))
+    kernel = get_ipython().kernel
+    recursive = kernel.is_debugging()
+    if recursive:
+        if os.name == 'nt':
+            code_filename = filename.replace('\\', '/')
+        else:
+            code_filename = filename
+
+        code = (
+            "runfile({}".format(repr(code_filename)) +
+            ", args=%r, wdir=%r, current_namespace=%r)" % (
+                args, wdir, current_namespace))
+
+        kernel._pdb_obj.enter_recursive_debugger(
+            code, filename, True,
+        )
+
+    else:
+        debugger = get_new_debugger(filename, True)
+        runfile(
+            filename=debugger.canonic(filename),
+            args=args, wdir=wdir,
+            current_namespace=current_namespace,
+            debugger=debugger)
 
 
 builtins.debugfile = debugfile
 
 
-def runcell(cellname, filename=None, post_mortem=False):
+
+@contextlib.contextmanager
+def profile_tmp_file():
+    """Get temporary file for profiling results."""
+    tempdir = tempfile.TemporaryDirectory()
+    profile_file = os.path.join(tempdir.name, "profile.results")
+    try:
+        yield profile_file
+    finally:
+        if os.path.isfile(profile_file):
+            with open(profile_file, "br") as f:
+                profile_result = f.read()
+                frontend_request().show_profile_file(profile_result)
+        tempdir.cleanup()
+
+
+def profile_file(filename=None, args=None, wdir=None, post_mortem=False,
+                 current_namespace=False):
+    """
+    Profile filename
+    args: command line arguments (string)
+    wdir: working directory
+    post_mortem: boolean, included for compatiblity with runfile
+    """
+    with profile_tmp_file() as tmp_file:
+        runfile(
+            filename=filename, args=args, wdir=wdir,
+            current_namespace=current_namespace,
+            profile_filename=tmp_file)
+
+
+builtins.profile_file = profile_file
+
+
+def runcell(cellname, filename=None, post_mortem=False, **kwargs):
     """
     Run a code cell from an editor as a file.
 
@@ -653,7 +728,7 @@ def runcell(cellname, filename=None, post_mortem=False):
     with NamespaceManager(filename, current_namespace=True,
                           file_code=file_code) as (ns_globals, ns_locals):
         exec_code(cell_code, filename, ns_globals, ns_locals,
-                  post_mortem=post_mortem)
+                  post_mortem=post_mortem, **kwargs)
 
 
 builtins.runcell = runcell
@@ -668,13 +743,49 @@ def debugcell(cellname, filename=None, post_mortem=False):
         if filename is None:
             return
 
-    enter_debugger(
-        filename, False,
-        "runcell({}, ".format(repr(cellname)) +
-        "{})")
+    kernel = get_ipython().kernel
+    if kernel.is_debugging():
+        if os.name == 'nt':
+            code_filename = filename.replace('\\', '/')
+        else:
+            code_filename = filename
+
+        code = (
+            "runcell({}, ".format(repr(cellname)) +
+            "{})".format(repr(code_filename)))
+        kernel._pdb_obj.enter_recursive_debugger(
+            code, filename, False,
+        )
+    else:
+        debugger = get_new_debugger(filename, False)
+        runcell(
+            cellname=cellname,
+            filename=debugger.canonic(filename),
+            debugger=debugger)
 
 
 builtins.debugcell = debugcell
+
+
+def profile_cell(cellname, filename=None, post_mortem=False):
+    """Profile a cell."""
+    with profile_tmp_file() as tmp_file:
+        runcell(
+            cellname=cellname,
+            filename=filename,
+            profile_filename=tmp_file)
+
+
+builtins.profile_cell = profile_cell
+
+
+def profile(line):
+    """Profile the given line."""
+    with profile_tmp_file() as tmp_file:
+        cProfile.run(
+            line,
+            filename=tmp_file
+        )
 
 
 def cell_count(filename=None):
