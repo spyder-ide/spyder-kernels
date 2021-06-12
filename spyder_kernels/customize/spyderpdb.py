@@ -6,14 +6,17 @@
 
 """Spyder debugger."""
 
+import ast
 import bdb
-import sys
 import logging
+import os
+import sys
 import traceback
 from collections import namedtuple
 
-from IPython.core.getipython import get_ipython
+from IPython.core.autocall import ZMQExitAutocall
 from IPython.core.debugger import Pdb as ipyPdb
+from IPython.core.getipython import get_ipython
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.utils import path_is_library
@@ -89,11 +92,15 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         self._pdb_breaking = False
         self._frontend_notified = False
 
+        # Don't report hidden frames for IPython 7.24+. This attribute
+        # has no effect in previous versions.
+        self.report_skipped = False
+
     # --- Methods overriden for code execution
     def print_exclamation_warning(self):
         """Print pdb warning for exclamation mark."""
         if not self._exclamation_warning_printed:
-            print("Warning: The exclamation mark option is enabled."
+            print("Warning: The exclamation mark option is enabled. "
                   "Please use '!' as a prefix for Pdb commands.")
             self._exclamation_warning_printed = True
 
@@ -136,9 +143,23 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             if cmd:
                 cmd_in_namespace = (
                     cmd in ns or cmd in builtins.__dict__)
+                # Special case for quit and exit
+                if cmd in ("quit", "exit"):
+                    if cmd in ns and isinstance(ns[cmd], ZMQExitAutocall):
+                        # Use the pdb call
+                        cmd_in_namespace = False
                 cmd_func = getattr(self, 'do_' + cmd, None)
                 is_pdb_cmd = cmd_func is not None
-                is_assignment = arg and arg[0] == "="
+                # Look for assignment
+                is_assignment = False
+                try:
+                    for node in ast.walk(ast.parse(line)):
+                        if isinstance(node, ast.Assign):
+                            is_assignment = True
+                            break
+                except SyntaxError:
+                    pass
+
                 if is_pdb_cmd:
                     if not cmd_in_namespace and not is_assignment:
                         # This is a pdb command without the '!' prefix.
@@ -494,7 +515,19 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         argument (which is an arbitrary expression or statement to be
         executed in the current environment).
         """
-        super(SpyderPdb, self).do_debug(arg)
+        try:
+            super(SpyderPdb, self).do_debug(arg)
+        except Exception:
+            if PY2:
+                t, v = sys.exc_info()[:2]
+                if type(t) == type(''):
+                    exc_type_name = t
+                else: exc_type_name = t.__name__
+                print >>self.stdout, '***', exc_type_name + ':', v
+            else:
+                exc_info = sys.exc_info()[:2]
+                self.error(
+                    traceback.format_exception_only(*exc_info)[-1].strip())
         kernel = get_ipython().kernel
         kernel._register_pdb_session(self)
 
@@ -506,7 +539,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
                     or frame.f_lineno <= 0):
                 return
-            self._wait_for_mainpyfile = 0
+            self._wait_for_mainpyfile = False
         super(SpyderPdb, self).user_return(frame, return_value)
 
     def _cmdloop(self):
@@ -593,12 +626,15 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         bdb.Breakpoint.bplist = {}
         bdb.Breakpoint.bpbynumber = [None]
         # -----
-        i = 0
         for fname, data in list(breakpoints.items()):
             for linenumber, condition in data:
-                i += 1
-                self.set_break(self.canonic(fname), linenumber,
-                               cond=condition)
+                try:
+                    self.set_break(self.canonic(fname), linenumber,
+                                   cond=condition)
+                except ValueError:
+                    # Fixes spyder/issues/15546
+                    # The file is not readable
+                    pass
 
         # Jump to first breakpoint.
         # Fixes issue 2034
@@ -694,3 +730,44 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         """
         with DebugWrapper(self):
             super(SpyderPdb, self).runcall(*args, **kwds)
+
+
+def enter_debugger(filename, continue_if_has_breakpoints, code_format):
+    """Enter debugger. Code format should be a format that accept filename."""
+    kernel = get_ipython().kernel
+    recursive = kernel.is_debugging()
+    if recursive:
+        parent_debugger = kernel._pdb_obj
+        sys.settrace(None)
+        globals = parent_debugger.curframe.f_globals
+        locals = parent_debugger.curframe_locals
+        # Create child debugger
+        debugger = SpyderPdb(
+            completekey=parent_debugger.completekey,
+            stdin=parent_debugger.stdin, stdout=parent_debugger.stdout)
+        debugger.use_rawinput = parent_debugger.use_rawinput
+        debugger.prompt = "(%s) " % parent_debugger.prompt.strip()
+    else:
+        debugger = SpyderPdb()
+
+    filename = debugger.canonic(filename)
+    debugger._wait_for_mainpyfile = True
+    debugger.mainpyfile = filename
+    debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
+    debugger._user_requested_quit = False
+
+    if os.name == 'nt':
+        filename = filename.replace('\\', '/')
+
+    code = code_format.format(repr(filename))
+
+    if recursive:
+        # Enter recursive debugger
+        sys.call_tracing(debugger.run, (code, globals, locals))
+        # Reset parent debugger
+        sys.settrace(parent_debugger.trace_dispatch)
+        parent_debugger.lastcmd = debugger.lastcmd
+        kernel._register_pdb_session(parent_debugger)
+    else:
+        # The breakpoint might not be in the cell
+        debugger.run(code)

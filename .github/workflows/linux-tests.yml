@@ -4,9 +4,11 @@ on:
   push:
     branches:
     - master
+    - 2.x
   pull_request:
     branches:
     - master
+    - 2.x
 
 jobs:
   linux:
@@ -29,7 +31,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install libegl1-mesa
       - name: Install Conda
-        uses: goanpeca/setup-miniconda@v1
+        uses: conda-incubator/setup-miniconda@v2
         with:
            activate-environment: test
            auto-update-conda: true
@@ -43,6 +45,8 @@ jobs:
         run: |
           conda install nomkl -y -q
           conda install --file requirements/tests.txt -y -q
+          if [ "$PYTHON_VERSION" != "2.7" ]; then conda install -y -q jedi=0.17.2; fi
+          if [ "$PYTHON_VERSION" = "2.7" ]; then conda install -y -q click=7; fi
       - name: Install Package
         shell: bash -l {0}
         run: pip install -e .

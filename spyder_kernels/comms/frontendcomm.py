@@ -63,11 +63,13 @@ class FrontendComm(CommBase):
         self.register_call_handler('_send_comm_config',
                                    self._send_comm_config)
 
+        self.comm_lock = threading.Lock()
+
         # self.kernel.parent is IPKernelApp unless we are in tests
         if self.kernel.parent:
             # Create a new socket
-            context = zmq.Context()
-            self.comm_socket = context.socket(zmq.ROUTER)
+            self.context = zmq.Context()
+            self.comm_socket = self.context.socket(zmq.ROUTER)
             self.comm_socket.linger = 1000
 
             self.comm_port = get_free_port()
@@ -90,12 +92,27 @@ class FrontendComm(CommBase):
 
                 def close():
                     """Close comm_socket_thread."""
-                    self.comm_thread_close.set()
-                    context.term()
-                    self.comm_socket_thread.join()
+                    self.close_thread()
                     parent_close()
 
                 self.kernel.parent.close = close
+
+    def close(self, comm_id=None):
+        """Close the comm and notify the other side."""
+        with self.comm_lock:
+            return super(FrontendComm, self).close(comm_id)
+
+    def _send_message(self, *args, **kwargs):
+        """Publish custom messages to the other side."""
+        with self.comm_lock:
+            return super(FrontendComm, self)._send_message(*args, **kwargs)
+
+    def close_thread(self):
+        """Close comm."""
+        self.comm_thread_close.set()
+        self.comm_socket.close()
+        self.context.term()
+        self.comm_socket_thread.join()
 
     def poll_thread(self):
         """Receive messages from comm socket."""
@@ -114,6 +131,8 @@ class FrontendComm(CommBase):
             out_stream = self.kernel.shell_streams[0]
         try:
             ident, msg = self.kernel.session.recv(self.comm_socket, 0)
+        except zmq.error.ContextTerminated:
+            return
         except Exception:
             self.kernel.log.warning("Invalid Message:", exc_info=True)
             return
@@ -121,6 +140,7 @@ class FrontendComm(CommBase):
 
         if msg_type == 'shutdown_request':
             self.comm_thread_close.set()
+            self._comm_close(msg)
             return
 
         handler = self.kernel.shell_handlers.get(msg_type, None)
@@ -201,10 +221,9 @@ class FrontendComm(CommBase):
     def _comm_close(self, msg):
         """Close comm."""
         comm_id = msg['content']['comm_id']
-        comm = self._comms[comm_id]['comm']
-        # Pretend it is already closed to avoid problems when closing
-        comm._closed = True
-        del self._comms[comm_id]
+        # Send back a close message confirmation
+        # Fixes spyder-ide/spyder#15356
+        self.close(comm_id)
 
     def _async_error(self, error_wrapper):
         """
@@ -222,3 +241,34 @@ class FrontendComm(CommBase):
                 comm._msg_callback(msg)
         comm.handle_msg = handle_msg
         super(FrontendComm, self)._register_comm(comm)
+
+    def _remote_callback(self, call_name, call_args, call_kwargs):
+        """Call the callback function for the remote call."""
+        saved_stdout_write = sys.stdout.write
+        saved_stderr_write = sys.stderr.write
+        sys.stdout.write = WriteWrapper(saved_stdout_write, call_name)
+        sys.stderr.write = WriteWrapper(saved_stderr_write, call_name)
+        try:
+            return super(FrontendComm, self)._remote_callback(
+                call_name, call_args, call_kwargs)
+        finally:
+            sys.stdout.write = saved_stdout_write
+            sys.stderr.write = saved_stderr_write
+
+
+class WriteWrapper():
+    """Wrapper to warn user when text is printed."""
+
+    def __init__(self, write, name):
+        self._write = write
+        self._name = name
+        self._warning_shown = False
+
+    def __call__(self, string):
+        """Print warning once."""
+        if not self._warning_shown:
+            self._warning_shown = True
+            self._write(
+                "\nOutput from spyder call "
+                + repr(self._name) + ":\n")
+        return self._write(string)

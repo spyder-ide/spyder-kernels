@@ -19,6 +19,8 @@ import threading
 # Third-party imports
 import ipykernel
 from ipykernel.ipkernel import IPythonKernel
+from ipykernel.zmqshell import ZMQInteractiveShell
+from traitlets.config.loader import LazyConfigValue
 
 # Local imports
 from spyder_kernels.py3compat import TEXT_TYPES, to_text_string
@@ -35,12 +37,36 @@ from spyder_kernels.utils.nsview import get_remote_data, make_remote_view
 EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 
 
+class SpyderShell(ZMQInteractiveShell):
+    """Spyder shell."""
+
+    def ask_exit(self):
+        """Engage the exit actions."""
+        self.kernel.frontend_comm.close_thread()
+        return super(SpyderShell, self).ask_exit()
+
+    def get_local_scope(self, stack_depth):
+        """Get local scope at given frame depth."""
+        frame = sys._getframe(stack_depth + 1)
+        if self.kernel._pdb_frame is frame:
+            # we also give the globals because they might not be in
+            # self.user_ns
+            namespace = frame.f_globals.copy()
+            namespace.update(self.kernel._pdb_locals)
+            return namespace
+        else:
+            return frame.f_locals
+
+
 class SpyderKernel(IPythonKernel):
     """Spyder kernel for Jupyter."""
+
+    shell_class = SpyderShell
 
     def __init__(self, *args, **kwargs):
         super(SpyderKernel, self).__init__(*args, **kwargs)
 
+        self.comm_manager.get_comm = self._get_comm
         self.frontend_comm = FrontendComm(self)
 
         # All functions that can be called through the comm
@@ -71,14 +97,6 @@ class SpyderKernel(IPythonKernel):
             'update_syspath': self.update_syspath,
             'is_special_kernel_valid': self.is_special_kernel_valid,
             'get_matplotlib_backend': self.get_matplotlib_backend,
-            'set_matplotlib_backend': self.set_matplotlib_backend,
-            'set_mpl_inline_figure_format': self.set_mpl_inline_figure_format,
-            'set_mpl_inline_resolution': self.set_mpl_inline_resolution,
-            'set_mpl_inline_figure_size': self.set_mpl_inline_figure_size,
-            'set_mpl_inline_bbox_inches': self.set_mpl_inline_bbox_inches,
-            'set_jedi_completer': self.set_jedi_completer,
-            'set_greedy_completer': self.set_greedy_completer,
-            'set_autocall': self.set_autocall,
             'pdb_input_reply': self.pdb_input_reply,
             '_interrupt_eventloop': self._interrupt_eventloop,
             }
@@ -87,26 +105,12 @@ class SpyderKernel(IPythonKernel):
                 call_id, handlers[call_id])
 
         self.namespace_view_settings = {}
-
         self._pdb_obj = None
         self._pdb_step = None
         self._do_publish_pdb_state = True
         self._mpl_backend_error = None
         self._running_namespace = None
         self._pdb_input_line = None
-        self.shell.get_local_scope = self.get_local_scope
-
-    def get_local_scope(self, stack_depth):
-        """Get local scope at given frame depth."""
-        frame = sys._getframe(stack_depth + 1)
-        if self._pdb_frame is frame:
-            # we also give the globals because they might not be in
-            # self.shell.user_ns
-            namespace = frame.f_globals.copy()
-            namespace.update(self._pdb_locals)
-            return namespace
-        else:
-            return frame.f_locals
 
     # -- Public API -----------------------------------------------------------
     def frontend_call(self, blocking=False, broadcast=True,
@@ -135,13 +139,25 @@ class SpyderKernel(IPythonKernel):
 
         This is a dictionary with the following structure
 
-        {'a': {'color': '#800000', 'size': 1, 'type': 'str', 'view': '1'}}
+        {'a':
+            {
+                'type': 'str',
+                'size': 1,
+                'view': '1',
+                'python_type': 'int',
+                'numpy_type': 'Unknown'
+            }
+        }
 
         Here:
-        * 'a' is the variable name
-        * 'color' is the color used to show it
-        * 'size' and 'type' are self-evident
-        * and'view' is its value or the text shown in the last column
+        * 'a' is the variable name.
+        * 'type' and 'size' are self-evident.
+        * 'view' is its value or its repr computed with
+          `value_to_display`.
+        * 'python_type' is its Python type computed with
+          `get_type_string`.
+        * 'numpy_type' is its Numpy type (if any) computed with
+          `get_numpy_type_string`.
         """
 
         settings = self.namespace_view_settings
@@ -349,12 +365,20 @@ class SpyderKernel(IPythonKernel):
             is_main_thread = isinstance(
                 threading.current_thread(), threading._MainThread)
 
+        # Get input by running eventloop
         if is_main_thread and self.eventloop:
             while self._pdb_input_line is None:
-                self.eventloop(self)
-        else:
+                eventloop = self.eventloop
+                if eventloop:
+                    eventloop(self)
+                else:
+                    break
+
+        # Get input by blocking
+        if self._pdb_input_line is None:
             self.frontend_comm.wait_until(
                 lambda: self._pdb_input_line is not None)
+
         return self._pdb_input_line
 
     def _interrupt_eventloop(self):
@@ -428,7 +452,7 @@ class SpyderKernel(IPythonKernel):
         """
         Set inline print figure bbox inches.
 
-        The change is done by updating the ´rint_figure_kwargs' config dict.
+        The change is done by updating the 'print_figure_kwargs' config dict.
         """
         from IPython.core.getipython import get_ipython
         config = get_ipython().kernel.config
@@ -440,6 +464,14 @@ class SpyderKernel(IPythonKernel):
         bbox_inches_dict = {
             'bbox_inches': 'tight' if bbox_inches else None}
         print_figure_kwargs.update(bbox_inches_dict)
+
+        # This seems to be necessary for newer versions of Traitlets because
+        # print_figure_kwargs doesn't return a dict.
+        if isinstance(print_figure_kwargs, LazyConfigValue):
+            figure_kwargs_dict = print_figure_kwargs.to_dict().get('update')
+            if figure_kwargs_dict:
+                print_figure_kwargs = figure_kwargs_dict
+
         self._set_config_option(
             'InlineBackend.print_figure_kwargs', print_figure_kwargs)
 
@@ -463,7 +495,10 @@ class SpyderKernel(IPythonKernel):
 
     def get_cwd(self):
         """Get current working directory."""
-        return os.getcwd()
+        try:
+            return os.getcwd()
+        except (IOError, OSError):
+            pass
 
     def get_syspath(self):
         """Return sys.path contents."""
@@ -799,3 +834,16 @@ class SpyderKernel(IPythonKernel):
                 get_ipython().run_line_magic('reload_ext', 'wurlitzer')
             except Exception:
                 pass
+
+    def _get_comm(self, comm_id):
+        """
+        We need to redefine this method from ipykernel.comm_manager to
+        avoid showing a warning when the comm corresponding to comm_id
+        is not present.
+
+        Fixes spyder-ide/spyder#15498
+        """
+        try:
+            return self.comm_manager.comms[comm_id]
+        except KeyError:
+            pass

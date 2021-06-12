@@ -13,7 +13,6 @@
 
 import bdb
 import cmd
-from distutils.version import LooseVersion
 import io
 import logging
 import os
@@ -28,11 +27,11 @@ from IPython.core.getipython import get_ipython
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
-from spyder_kernels.customize.spyderpdb import SpyderPdb
+from spyder_kernels.customize.spyderpdb import SpyderPdb, enter_debugger
 from spyder_kernels.customize.umr import UserModuleReloader
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, encode
 
-if LooseVersion(ipy_version) > LooseVersion('7.0.0'):
+if not PY2:
     from IPython.core.inputtransformer2 import (
         TransformerManager, leading_indent, leading_empty_lines)
 else:
@@ -375,18 +374,6 @@ def get_current_file_name():
         return None
 
 
-def get_debugger(filename):
-    """Get a debugger for a given filename."""
-    debugger = pdb.Pdb()
-    filename = debugger.canonic(filename)
-    debugger._wait_for_mainpyfile = 1
-    debugger.mainpyfile = filename
-    debugger._user_requested_quit = 0
-    if os.name == 'nt':
-        filename = filename.replace('\\', '/')
-    return debugger, filename
-
-
 def count_leading_empty_lines(cell):
     """Count the number of leading empty cells."""
     if PY2:
@@ -402,11 +389,11 @@ def count_leading_empty_lines(cell):
 
 
 def transform_cell(code, indent_only=False):
-    """Transform ipython code to python code."""
+    """Transform IPython code to Python code."""
     number_empty_lines = count_leading_empty_lines(code)
     if indent_only:
         # Not implemented for PY2
-        if LooseVersion(ipy_version) < LooseVersion('7.0.0'):
+        if PY2:
             return code
         if not code.endswith('\n'):
             code += '\n'  # Ensure the cell has a trailing newline
@@ -414,7 +401,7 @@ def transform_cell(code, indent_only=False):
         lines = leading_indent(leading_empty_lines(lines))
         code = ''.join(lines)
     else:
-        if LooseVersion(ipy_version) < LooseVersion('7.0.0'):
+        if PY2:
             tm = IPythonInputSplitter()
             return tm.transform_cell(code)
         else:
@@ -598,10 +585,12 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
         filename = get_current_file_name()
         if filename is None:
             return
-    debugger, filename = get_debugger(filename)
-    debugger.continue_if_has_breakpoints = True
-    debugger.run("runfile(%r, args=%r, wdir=%r, current_namespace=%r)" % (
-        filename, args, wdir, current_namespace))
+
+    enter_debugger(
+        filename, True,
+        "runfile({}" +
+        ", args=%r, wdir=%r, current_namespace=%r)" % (
+            args, wdir, current_namespace))
 
 
 builtins.debugfile = debugfile
@@ -679,11 +668,10 @@ def debugcell(cellname, filename=None, post_mortem=False):
         if filename is None:
             return
 
-    debugger, filename = get_debugger(filename)
-    # The breakpoint might not be in the cell
-    debugger.continue_if_has_breakpoints = False
-    debugger.run("runcell({}, {})".format(
-        repr(cellname), repr(filename)))
+    enter_debugger(
+        filename, False,
+        "runcell({}, ".format(repr(cellname)) +
+        "{})")
 
 
 builtins.debugcell = debugcell

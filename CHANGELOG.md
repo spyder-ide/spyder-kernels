@@ -1,5 +1,134 @@
 # History of changes
 
+## Version 2.0.4 (2021-06-10)
+
+### Issues Closed
+
+* [Issue 288](https://github.com/spyder-ide/spyder-kernels/issues/288) - Support decorator >= 5 ([PR 301](https://github.com/spyder-ide/spyder-kernels/pull/301) by [@ccordoba12](https://github.com/ccordoba12))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+* [PR 301](https://github.com/spyder-ide/spyder-kernels/pull/301) - PR: Remove pin on decorator because the Cython magic is working fine again, by [@ccordoba12](https://github.com/ccordoba12) ([288](https://github.com/spyder-ide/spyder-kernels/issues/288))
+* [PR 299](https://github.com/spyder-ide/spyder-kernels/pull/299) - PR: Clear argv before adding the exec lines that come from Spyder, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 298](https://github.com/spyder-ide/spyder-kernels/pull/298) - PR: Use backslash instead of slash for UMR path regex detection, by [@dalthviz](https://github.com/dalthviz)
+* [PR 297](https://github.com/spyder-ide/spyder-kernels/pull/297) - PR: Don't report skipped frames for IPython 7.24+ (Debugger), by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 296](https://github.com/spyder-ide/spyder-kernels/pull/296) - PR: Redefine comm_manager method to avoid showing warning, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 295](https://github.com/spyder-ide/spyder-kernels/pull/295) - PR: Fix recursive debugger, by [@impact27](https://github.com/impact27)
+* [PR 293](https://github.com/spyder-ide/spyder-kernels/pull/293) - PR: Install click 7 to run our tests in Python 2, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 7 pull requests were closed.
+
+
+----
+
+
+## Version 2.0.3 (2021-05-15)
+
+### Pull Requests Merged
+
+* [PR 291](https://github.com/spyder-ide/spyder-kernels/pull/291) - PR: Pass adding breakpoint on ValueError, by [@impact27](https://github.com/impact27)
+
+In this release 1 pull request was closed.
+
+
+----
+
+
+## Version 2.0.2 (2021-05-02)
+
+### Pull Requests Merged
+
+* [PR 289](https://github.com/spyder-ide/spyder-kernels/pull/289) - PR: Fix setting tight layout in inline figures, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 287](https://github.com/spyder-ide/spyder-kernels/pull/287) - PR: Close comm on shutdown, by [@impact27](https://github.com/impact27)
+* [PR 282](https://github.com/spyder-ide/spyder-kernels/pull/282) - PR: Fix numpy.complex deprecation warning in tests, by [@ArchangeGabriel](https://github.com/ArchangeGabriel)
+
+In this release 3 pull requests were closed.
+
+
+----
+
+
+## Version 2.0.1 (2021-04-02)
+
+* This release also contains all fixes present in version 1.10.3
+
+
+----
+
+
+## Version 2.0.0 (2021-04-01)
+
+### New features
+* Color handling in namespace view was moved to Spyder.
+
+### Pull Requests Merged
+
+* [PR 284](https://github.com/spyder-ide/spyder-kernels/pull/284) - PR: Remove handling of colors for object types, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 279](https://github.com/spyder-ide/spyder-kernels/pull/279) - PR: Add Python types to namespace view, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 2 pull requests were closed.
+
+
+----
+
+
+## Version 1.10.3 (2021-04-02)
+
+### Pull Requests Merged
+
+* [PR 285](https://github.com/spyder-ide/spyder-kernels/pull/285) - PR: Add a new dependency on decorator to fix the Cython magic, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 1 pull request was closed.
+
+
+----
+
+
+## Version 1.10.2 (2021-02-21)
+
+### Pull Requests Merged
+
+* [PR 278](https://github.com/spyder-ide/spyder-kernels/pull/278) - PR: Warn when comm call creates text output, by [@impact27](https://github.com/impact27)
+* [PR 277](https://github.com/spyder-ide/spyder-kernels/pull/277) - PR: Increase minimal required version of ipykernel, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 275](https://github.com/spyder-ide/spyder-kernels/pull/275) - PR: Better test for non-interactive context, by [@juliangilbey](https://github.com/juliangilbey)
+* [PR 272](https://github.com/spyder-ide/spyder-kernels/pull/272) - PR: Fix assignment detection in exclamation mark mode (Pdb), by [@impact27](https://github.com/impact27)
+* [PR 271](https://github.com/spyder-ide/spyder-kernels/pull/271) - PR: Fix recursive debugger, by [@impact27](https://github.com/impact27)
+
+In this release 5 pull requests were closed.
+
+
+----
+
+
+## Version 1.10.1 (2020-12-18)
+
+### Issues Closed
+
+* [Issue 269](https://github.com/spyder-ide/spyder-kernels/issues/269) - Mark Windows intaller pkgs path as a library to prevent reloading modules  ([PR 270](https://github.com/spyder-ide/spyder-kernels/pull/270) by [@dalthviz](https://github.com/dalthviz))
+* [Issue 256](https://github.com/spyder-ide/spyder-kernels/issues/256) - ImportError: cannot import name 'leading_empty_lines' ([PR 264](https://github.com/spyder-ide/spyder-kernels/pull/264) by [@ccordoba12](https://github.com/ccordoba12))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+* [PR 270](https://github.com/spyder-ide/spyder-kernels/pull/270) - PR: Treat 'pkgs' path as a library, by [@dalthviz](https://github.com/dalthviz) ([269](https://github.com/spyder-ide/spyder-kernels/issues/269))
+* [PR 267](https://github.com/spyder-ide/spyder-kernels/pull/267) - PR: Remove handlers that require direct code execution, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 266](https://github.com/spyder-ide/spyder-kernels/pull/266) - PR: Add exception for quit and exit in SpyderPdb, by [@impact27](https://github.com/impact27)
+* [PR 265](https://github.com/spyder-ide/spyder-kernels/pull/265) - PR: Add space after dot in a message, by [@impact27](https://github.com/impact27)
+* [PR 264](https://github.com/spyder-ide/spyder-kernels/pull/264) - PR: Add explicit requirement on IPython and require version 7.6.0+, by [@ccordoba12](https://github.com/ccordoba12) ([256](https://github.com/spyder-ide/spyder-kernels/issues/256))
+* [PR 263](https://github.com/spyder-ide/spyder-kernels/pull/263) - PR: Add extra validation to is_module_installed, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 262](https://github.com/spyder-ide/spyder-kernels/pull/262) - PR: Avoid infinite hang when quitting external kernels, by [@impact27](https://github.com/impact27)
+* [PR 261](https://github.com/spyder-ide/spyder-kernels/pull/261) - PR: Fix get_cwd permission errors, by [@steff456](https://github.com/steff456)
+* [PR 260](https://github.com/spyder-ide/spyder-kernels/pull/260) - PR: Fix Github actions, by [@ccordoba12](https://github.com/ccordoba12)
+
+In this release 9 pull requests were closed.
+
+
+----
+
+
 ## Version 1.10.0 (2020-11-08)
 
 ### New features
