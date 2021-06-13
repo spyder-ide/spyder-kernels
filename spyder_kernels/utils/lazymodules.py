@@ -10,108 +10,60 @@
 Delayed modules classes.
 
 They are useful to not import big modules until it's really necessary.
-
-Notes:
-
-* When accessing second level objects (e.g. numpy.ma.MaskedArray), you
-  need to add them to the fake class that is returned in place of the
-  missing module.
 """
 
+from spyder_kernels.utils.misc import is_module_installed
+
+
 # =============================================================================
-# Class to use for missing objects
+# Auxiliary classes
 # =============================================================================
 class FakeObject(object):
     """Fake class used in replacement of missing objects"""
     pass
 
 
-# =============================================================================
-# Numpy
-# =============================================================================
-class _DelayedNumpy(object):
-    """Import Numpy only when one of its attributes is accessed."""
+class _LazyModuleLoader(object):
+    """Lazy module loader class."""
 
-    def __getattribute__(self, name):
-        try:
-            import numpy
-        except Exception:
-            FakeNumpy = FakeObject
-            FakeNumpy.MaskedArray = FakeObject
-            return FakeNumpy
+    def __init__(self, modname, second_level_attrs=None):
+        """
+        Lazy module loader class.
 
-        return getattr(numpy, name)
+        Parameters
+        ----------
+        modname: str
+            Module name to lazy load.
+        second_level_attrs: list (optional)
+            List of second level attributes to add to the FakeObject
+            that stands for the module in case it's not found.
+        """
+        self.__spy_modname__ = modname
+        self.__spy_mod__ = FakeObject
 
-numpy = _DelayedNumpy()
+        # Set required second level attributes
+        if second_level_attrs is not None:
+            for attr in second_level_attrs:
+                setattr(self.__spy_mod__, attr, FakeObject)
 
+    def __getattr__(self, name):
+        if is_module_installed(self.__spy_modname__):
+            self.__spy_mod__ = __import__(self.__spy_modname__)
+        else:
+            return self.__spy_mod__
 
-# =============================================================================
-# Pandas
-# =============================================================================
-class _DelayedPandas(object):
-    """Import Pandas only when one of its attributes is accessed."""
-
-    def __getattribute__(self, name):
-        try:
-            import pandas
-        except Exception:
-            return FakeObject
-
-        return getattr(pandas, name)
-
-pandas = _DelayedPandas()
+        return getattr(self.__spy_mod__, name)
 
 
 # =============================================================================
-# Pillow
+# Lazy modules
 # =============================================================================
-class _DelayedPIL(object):
-    """Import Pillow only when one of its attributes is accessed."""
+numpy = _LazyModuleLoader('numpy', ['MaskedArray'])
 
-    def __getattribute__(self, name):
-        try:
-            import PIL.Image
-        except Exception:
-            FakePIL = FakeObject
-            FakePIL.Image = FakeObject
-            return FakePIL
+pandas = _LazyModuleLoader('pandas')
 
-        return getattr(PIL, name)
+PIL = _LazyModuleLoader('PIL', ['Image'])
 
-PIL = _DelayedPIL()
+bs4 = _LazyModuleLoader('bs4', ['NavigableString'])
 
-
-# =============================================================================
-# BeautifulSoup
-# =============================================================================
-class _DelayedBs4(object):
-    """Import bs4 only when one of its attributes is accessed."""
-
-    def __getattribute__(self, name):
-        try:
-            import bs4
-        except Exception:
-            FakeBs4 = FakeObject
-            FakeBs4.NavigableString = FakeObject
-            return FakeBs4
-
-        return getattr(bs4, name)
-
-bs4 = _DelayedBs4()
-
-
-# =============================================================================
-# Scipy
-# =============================================================================
-class _DelayedScipy(object):
-    """Import Scipy only when one of its attributes is accessed."""
-
-    def __getattribute__(self, name):
-        try:
-            import scipy.io
-        except Exception:
-            return FakeObject
-
-        return getattr(scipy, name)
-
-scipy = _DelayedScipy()
+scipy = _LazyModuleLoader('scipy.io')
