@@ -62,7 +62,7 @@ numpy = _LazyModuleLoader('numpy', ['MaskedArray'])
 
 pandas = _LazyModuleLoader('pandas')
 
-PIL = _LazyModuleLoader('PIL', ['Image'])
+PIL = _LazyModuleLoader('PIL.Image', ['Image'])
 
 bs4 = _LazyModuleLoader('bs4', ['NavigableString'])
 
