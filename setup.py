@@ -43,6 +43,7 @@ REQUIREMENTS = [
     'ipython>=7.6.0; python_version>="3"',
     'jupyter-client>=5.3.4',
     'pyzmq>=17',
+    'traitlets'
     'wurlitzer>=1.0.3;platform_system!="Windows"',
 ]
 

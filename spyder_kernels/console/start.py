@@ -240,7 +240,6 @@ def varexp(line):
     pyplot.show()
     del __fig__, __items__
 
-print('import spyder_kernels.console.start')
 
 def main():
     # Remove this module's path from sys.path:
@@ -285,7 +284,6 @@ def main():
 
     # Fire up the kernel instance.
     kernel = SpyderKernelApp.instance()
-    #kernel.outstream_class = DottedObjectName('spyder_kernels.console.outstream.TTYOutStream', help="The importstring for the OutStream factory").tag(config=True)
     kernel.kernel_class = SpyderKernel
     try:
         kernel.config = kernel_config()
