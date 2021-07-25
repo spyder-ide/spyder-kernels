@@ -17,6 +17,8 @@ import os.path as osp
 import sys
 import site
 
+from traitlets import DottedObjectName
+
 # Local imports
 from spyder_kernels.utils.misc import (
     MPL_BACKENDS_FROM_SPYDER, INLINE_FIGURE_FORMATS, is_module_installed)
@@ -238,6 +240,7 @@ def varexp(line):
     pyplot.show()
     del __fig__, __items__
 
+print('import spyder_kernels.console.start')
 
 def main():
     # Remove this module's path from sys.path:
@@ -269,6 +272,8 @@ def main():
 
     class SpyderKernelApp(IPKernelApp):
 
+        outstream_class = DottedObjectName('spyder_kernels.console.outstream.TTYOutStream', help="The importstring for the OutStream factory").tag(config=True)
+
         def init_pdb(self):
             """
             This method was added in IPykernel 5.3.1 and it replaces
@@ -280,6 +285,7 @@ def main():
 
     # Fire up the kernel instance.
     kernel = SpyderKernelApp.instance()
+    #kernel.outstream_class = DottedObjectName('spyder_kernels.console.outstream.TTYOutStream', help="The importstring for the OutStream factory").tag(config=True)
     kernel.kernel_class = SpyderKernel
     try:
         kernel.config = kernel_config()
