@@ -271,7 +271,8 @@ def main():
 
     class SpyderKernelApp(IPKernelApp):
 
-        outstream_class = DottedObjectName('spyder_kernels.console.outstream.TTYOutStream', help="The importstring for the OutStream factory").tag(config=True)
+        outstream_class = DottedObjectName(
+            'spyder_kernels.console.outstream.TTYOutStream')
 
         def init_pdb(self):
             """
