@@ -21,8 +21,9 @@ from traitlets import DottedObjectName
 import ipykernel
 
 # Local imports
-from spyder_kernels.utils.misc import (
-    MPL_BACKENDS_FROM_SPYDER, INLINE_FIGURE_FORMATS, is_module_installed)
+from spyder_kernels.utils.misc import is_module_installed
+from spyder_kernels.utils.mpl import (
+    MPL_BACKENDS_FROM_SPYDER, INLINE_FIGURE_FORMATS)
 
 
 PY2 = sys.version[0] == '2'
