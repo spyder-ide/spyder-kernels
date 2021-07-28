@@ -18,6 +18,7 @@ import sys
 import site
 
 from traitlets import DottedObjectName
+import ipykernel
 
 # Local imports
 from spyder_kernels.utils.misc import (
@@ -25,6 +26,8 @@ from spyder_kernels.utils.misc import (
 
 
 PY2 = sys.version[0] == '2'
+IPYKERNEL_6 = ipykernel.__version__[0] >= '6'
+
 
 
 def import_spydercustomize():
@@ -271,8 +274,9 @@ def main():
 
     class SpyderKernelApp(IPKernelApp):
 
-        outstream_class = DottedObjectName(
-            'spyder_kernels.console.outstream.TTYOutStream')
+        if IPYKERNEL_6:
+            outstream_class = DottedObjectName(
+                'spyder_kernels.console.outstream.TTYOutStream')
 
         def init_pdb(self):
             """
