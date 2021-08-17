@@ -55,6 +55,7 @@ class NamespaceManager(object):
         self._previous_main = None
         self._reset_main = False
         self._file_code = file_code
+        self._saved_globals = None
 
     def __enter__(self):
         """
@@ -62,16 +63,28 @@ class NamespaceManager(object):
         """
         # Save previous __file__
         if self.ns_globals is None:
+            global_namespace, local_namespace = _get_globals_locals()
             if self.current_namespace:
-                self.ns_globals, self.ns_locals = _get_globals_locals()
+                self.ns_globals = global_namespace
+                self.ns_locals = local_namespace
                 if '__file__' in self.ns_globals:
                     self._previous_filename = self.ns_globals['__file__']
                 self.ns_globals['__file__'] = self.filename
             else:
                 ipython_shell = get_ipython()
+                shell_namespace = ipython_shell.user_ns
                 main_mod = ipython_shell.new_main_mod(
                     self.filename, '__main__')
-                self.ns_globals = main_mod.__dict__
+                if shell_namespace is global_namespace:
+                    # Run in the global namespace
+                    self._saved_globals = shell_namespace.copy()
+                    # Here we clear all variables, let's hope ipykernel
+                    # is not too mad
+                    shell_namespace.clear()
+                    self.ns_globals = shell_namespace
+                    self.ns_globals.update(main_mod.__dict__)
+                else:
+                    self.ns_globals = main_mod.__dict__
                 self.ns_locals = None
                 # Needed to allow pickle to reference main
                 if '__main__' in sys.modules:
@@ -111,6 +124,9 @@ class NamespaceManager(object):
             self.ns_globals.pop('__file__')
 
         if not self.current_namespace:
+            if self._saved_globals is not None:
+                self._saved_globals.update(self.ns_globals)
+                self.ns_globals.update(self._saved_globals)
             _set_globals_locals(self.ns_globals, self.ns_locals)
 
         if self._previous_main:
