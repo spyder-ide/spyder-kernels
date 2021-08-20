@@ -41,7 +41,7 @@ REQUIREMENTS = [
     'ipykernel>=5.3.0; python_version>="3"',
     'ipython<6; python_version<"3"',
     'ipython>=7.6.0; python_version>="3"',
-    'jupyter-client>=5.3.4',
+    'jupyter-client>=5.3.4,<7',
     'pyzmq>=17',
     'wurlitzer>=1.0.3;platform_system!="Windows"',
 ]
@@ -91,6 +91,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Software Development :: Interpreters',
     ]
 )
