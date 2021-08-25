@@ -36,6 +36,7 @@ def get_version(module='spyder_kernels'):
 
 
 REQUIREMENTS = [
+    'backports.functools-lru-cache; python_version<"3"',
     'cloudpickle',
     'ipykernel<5; python_version<"3"',
     'ipykernel>=5.3.0; python_version>="3"',
