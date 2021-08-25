@@ -36,15 +36,9 @@ jobs:
            auto-update-conda: true
            auto-activate-base: false
            python-version: ${{ matrix.PYTHON_VERSION }} 
-      - name: Install package dependencies
+      - name: Install dependencies
         shell: bash -l {0}
-        run: conda install --file requirements/posix.txt -y -q
-      - name: Install test dependencies
-        shell: bash -l {0}
-        run: |
-          conda install nomkl -y -q
-          conda install --file requirements/tests.txt -y -q
-          if [ "$PYTHON_VERSION" = "2.7" ]; then conda install -y -q click=7; fi
+        run: conda env update --file requirements.yml -q
       - name: Install Package
         shell: bash -l {0}
         run: pip install -e .

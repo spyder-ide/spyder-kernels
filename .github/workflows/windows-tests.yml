@@ -32,13 +32,9 @@ jobs:
            auto-update-conda: true
            auto-activate-base: false
            python-version: ${{ matrix.PYTHON_VERSION }}
-      - name: Install package dependencies
+      - name: Install dependencies
         shell: bash -l {0}
-        run: conda install --file requirements/windows.txt -y -q
-      - name: Install test dependencies
-        shell: bash -l {0}
-        run: |
-          conda install --file requirements/tests.txt -y -q
+        run: conda env update --file requirements.yml -q
       - name: Install Package
         shell: bash -l {0}
         run: pip install -e .
