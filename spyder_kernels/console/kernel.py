@@ -40,22 +40,77 @@ EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 class SpyderShell(ZMQInteractiveShell):
     """Spyder shell."""
 
+    def __init__(self, *args, **kwargs):
+        # Create _pdb_obj before __init__
+        self._pdb_obj = None
+        super(SpyderShell, self).__init__(*args, **kwargs)
+
     def ask_exit(self):
         """Engage the exit actions."""
         self.kernel.frontend_comm.close_thread()
         return super(SpyderShell, self).ask_exit()
 
+    # --- For Pdb namespace integration
     def get_local_scope(self, stack_depth):
         """Get local scope at given frame depth."""
         frame = sys._getframe(stack_depth + 1)
-        if self.kernel._pdb_frame is frame:
-            # we also give the globals because they might not be in
-            # self.user_ns
-            namespace = frame.f_globals.copy()
-            namespace.update(self.kernel._pdb_locals)
-            return namespace
+        if self._pdb_frame is frame:
+            # Avoid calling f_locals on _pdb_frame
+            return self._pdb_obj.curframe_locals
         else:
             return frame.f_locals
+
+    # --- For Pdb namespace integration
+    def get_global_scope(self, stack_depth):
+        """Get global scope at given frame depth."""
+        frame = sys._getframe(stack_depth + 1)
+        return frame.f_globals
+
+    def is_debugging(self):
+        """
+        Check if we are currently debugging.
+        """
+        return bool(self._pdb_frame)
+
+    @property
+    def pdb_session(self):
+        """Get current pdb session."""
+        return self._pdb_obj
+
+    @pdb_session.setter
+    def pdb_session(self, pdb_obj):
+        """Register Pdb session to use it later"""
+        self._pdb_obj = pdb_obj
+
+    @property
+    def _pdb_frame(self):
+        """Return current Pdb frame if there is any"""
+        if self.pdb_session is not None:
+            return self.pdb_session.curframe
+
+    @property
+    def _pdb_locals(self):
+        """
+        Return current Pdb frame locals if available. Otherwise
+        return an empty dictionary
+        """
+        if self._pdb_frame is not None:
+            return self._pdb_obj.curframe_locals
+        else:
+            return {}
+
+    @property
+    def user_ns(self):
+        """Get the current namespace."""
+        if self._pdb_frame is not None:
+            return self._pdb_frame.f_globals
+        else:
+            return self.__user_ns
+
+    @user_ns.setter
+    def user_ns(self, namespace):
+        """Set user_ns."""
+        self.__user_ns = namespace
 
 
 class SpyderKernel(IPythonKernel):
@@ -105,7 +160,6 @@ class SpyderKernel(IPythonKernel):
                 call_id, handlers[call_id])
 
         self.namespace_view_settings = {}
-        self._pdb_obj = None
         self._pdb_step = None
         self._mpl_backend_error = None
         self._running_namespace = None
@@ -233,7 +287,7 @@ class SpyderKernel(IPythonKernel):
         """
         from spyder_kernels.utils.misc import fix_reference_name
 
-        glbs = self._mglobals()
+        glbs = self.shell.user_ns
         load_func = iofunctions.load_funcs[ext]
         data, error_message = load_func(filename)
 
@@ -263,12 +317,6 @@ class SpyderKernel(IPythonKernel):
         return iofunctions.save(data, filename)
 
     # --- For Pdb
-    def is_debugging(self):
-        """
-        Check if we are currently debugging.
-        """
-        return bool(self._pdb_frame)
-
     def _do_complete(self, code, cursor_pos):
         """Call parent class do_complete"""
         return super(SpyderKernel, self).do_complete(code, cursor_pos)
@@ -279,13 +327,13 @@ class SpyderKernel(IPythonKernel):
 
         Public method of ipykernel overwritten for debugging.
         """
-        if self.is_debugging():
-            return self._pdb_obj.do_complete(code, cursor_pos)
+        if self.shell.is_debugging():
+            return self.shell.pdb_session.do_complete(code, cursor_pos)
         return self._do_complete(code, cursor_pos)
 
     def publish_pdb_state(self):
         """Publish Pdb state."""
-        if self._pdb_obj:
+        if self.shell.pdb_session:
             state = dict(namespace_view = self.get_namespace_view(),
                          var_properties = self.get_var_properties(),
                          step = self._pdb_step)
@@ -295,35 +343,36 @@ class SpyderKernel(IPythonKernel):
         """
         Handle a message from the frontend
         """
-        if self._pdb_obj:
-            self._pdb_obj.set_spyder_breakpoints(breakpoints)
+        if self.shell.pdb_session:
+            self.shell.pdb_session.set_spyder_breakpoints(breakpoints)
 
     def set_pdb_ignore_lib(self, state):
         """
         Change the "Ignore libraries while stepping" debugger setting.
         """
-        if self._pdb_obj:
-            self._pdb_obj.pdb_ignore_lib = state
+        if self.shell.pdb_session:
+            self.shell.pdb_session.pdb_ignore_lib = state
 
     def set_pdb_execute_events(self, state):
         """
         Handle a message from the frontend
         """
-        if self._pdb_obj:
-            self._pdb_obj.pdb_execute_events = state
+        if self.shell.pdb_session:
+            self.shell.pdb_session.pdb_execute_events = state
 
     def set_pdb_use_exclamation_mark(self, state):
         """
         Set an option on the current debugging session to decide wether
         the Pdb commands needs to be prefixed by '!'
         """
-        if self._pdb_obj:
-            self._pdb_obj.pdb_use_exclamation_mark = state
+        if self.shell.pdb_session:
+            self.shell.pdb_session.pdb_use_exclamation_mark = state
 
     def pdb_input_reply(self, line, echo_stack_entry=True):
         """Get a pdb command from the frontend."""
-        if self._pdb_obj:
-            self._pdb_obj._disable_next_stack_entry = not echo_stack_entry
+        if self.shell.pdb_session:
+            self.shell.pdb_session._disable_next_stack_entry = (
+                not echo_stack_entry)
         self._pdb_input_line = line
         if self.eventloop:
             # Interrupting the eventloop is only implemented when a message is
@@ -340,7 +389,7 @@ class SpyderKernel(IPythonKernel):
         Runs the eventloop while debugging.
         """
         # Only works if the comm is open and this is a pdb prompt.
-        if not self.frontend_comm.is_open() or not self._pdb_frame:
+        if not self.frontend_comm.is_open() or not self.shell.is_debugging():
             return input(prompt)
 
         # Flush output before making the request.
@@ -566,16 +615,16 @@ class SpyderKernel(IPythonKernel):
         """
         ns = {}
         if self._running_namespace is None:
-            ns.update(self._mglobals())
+            ns.update(self.shell.user_ns)
         else:
+            # This is true when a file is executing.
             running_globals, running_locals = self._running_namespace
             ns.update(running_globals)
             if running_locals is not None:
                 ns.update(running_locals)
 
-        if self._pdb_frame is not None:
-            ns.update(self._pdb_locals)
-
+        # Add debugging locals
+        ns.update(self.shell._pdb_locals)
         # Add magics to ns so we can show help about them on the Help
         # plugin
         if with_magics:
@@ -583,7 +632,6 @@ class SpyderKernel(IPythonKernel):
             cell_magics = self.shell.magics_manager.magics['cell']
             ns.update(line_magics)
             ns.update(cell_magics)
-
         return ns
 
     def _get_reference_namespace(self, name):
@@ -592,22 +640,10 @@ class SpyderKernel(IPythonKernel):
 
         It returns the globals() if reference has not yet been defined
         """
-        glbs = self._mglobals()
-        if self._pdb_frame is None:
-            return glbs
-        else:
-            lcls = self._pdb_locals
-            if name in lcls:
-                return lcls
-            else:
-                return glbs
-
-    def _mglobals(self):
-        """Return current globals -- handles Pdb frames"""
-        if self._pdb_frame is not None:
-            return self._pdb_frame.f_globals
-        else:
-            return self.shell.user_ns
+        lcls = self.shell._pdb_locals
+        if name in lcls:
+            return lcls
+        return self.shell.user_ns
 
     def _get_len(self, var):
         """Return sequence length"""
@@ -667,28 +703,6 @@ class SpyderKernel(IPythonKernel):
                 return None
         except:
             return None
-
-    # --- For Pdb
-    def _register_pdb_session(self, pdb_obj):
-        """Register Pdb session to use it later"""
-        self._pdb_obj = pdb_obj
-
-    @property
-    def _pdb_frame(self):
-        """Return current Pdb frame if there is any"""
-        if self._pdb_obj is not None and self._pdb_obj.curframe is not None:
-            return self._pdb_obj.curframe
-
-    @property
-    def _pdb_locals(self):
-        """
-        Return current Pdb frame locals if available. Otherwise
-        return an empty dictionary
-        """
-        if self._pdb_frame:
-            return self._pdb_obj.curframe_locals
-        else:
-            return {}
 
     # --- For the Help plugin
     def _eval(self, text):

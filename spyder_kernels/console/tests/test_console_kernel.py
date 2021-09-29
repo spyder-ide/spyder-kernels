@@ -754,7 +754,7 @@ def test_do_complete(kernel):
     pdb_obj = SpyderPdb()
     pdb_obj.curframe = inspect.currentframe()
     pdb_obj.completenames = lambda *ignore: ['baba']
-    kernel._pdb_obj = pdb_obj
+    kernel.shell.pdb_session = pdb_obj
     match = kernel.do_complete('ba', 2)
     assert 'baba' in match['matches']
 
@@ -811,18 +811,18 @@ def test_comprehensions_with_locals_in_pdb(kernel):
     pdb_obj = SpyderPdb()
     pdb_obj.curframe = inspect.currentframe()
     pdb_obj.curframe_locals = pdb_obj.curframe.f_locals
-    kernel._pdb_obj = pdb_obj
+    kernel.shell.pdb_session = pdb_obj
 
     # Create a local variable.
-    kernel._pdb_obj.default('zz = 10')
+    kernel.shell.pdb_session.default('zz = 10')
     assert kernel.get_value('zz') == 10
 
     # Run a list comprehension with this variable.
-    kernel._pdb_obj.default("compr = [zz * i for i in [1, 2, 3]]")
+    kernel.shell.pdb_session.default("compr = [zz * i for i in [1, 2, 3]]")
     assert kernel.get_value('compr') == [10, 20, 30]
 
     # Check that the variable is not reported as being part of globals.
-    kernel._pdb_obj.default("in_globals = 'zz' in globals()")
+    kernel.shell.pdb_session.default("in_globals = 'zz' in globals()")
     assert kernel.get_value('in_globals') == False
 
 

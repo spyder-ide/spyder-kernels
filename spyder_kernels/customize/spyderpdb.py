@@ -131,11 +131,11 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         # frame locals. It also fallbacks to the right globals if the
         # user wants to work with them instead.
         # See spyder-ide/spyder#13909.
-        if not 'globals()' in line:
-            ns = self.curframe.f_globals.copy()
-            ns.update(locals)
-        else:
-            ns = self.curframe.f_globals
+        # if not 'globals()' in line:
+        #     ns = self.curframe.f_globals.copy()
+        #     ns.update(locals)
+        # else:
+        ns = self.curframe.f_globals
 
         if self.pdb_use_exclamation_mark:
             # Find pdb commands executed without !
@@ -504,8 +504,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         Register Pdb session after reset.
         """
         super(SpyderPdb, self).reset()
-        kernel = get_ipython().kernel
-        kernel._register_pdb_session(self)
+        get_ipython().pdb_session = self
 
     def do_debug(self, arg):
         """
@@ -528,8 +527,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 exc_info = sys.exc_info()[:2]
                 self.error(
                     traceback.format_exception_only(*exc_info)[-1].strip())
-        kernel = get_ipython().kernel
-        kernel._register_pdb_session(self)
+        get_ipython().pdb_session = self
 
     def user_return(self, frame, return_value):
         """This function is called when a return trap is set here."""
@@ -737,10 +735,10 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
 def enter_debugger(filename, continue_if_has_breakpoints, code_format):
     """Enter debugger. Code format should be a format that accept filename."""
-    kernel = get_ipython().kernel
-    recursive = kernel.is_debugging()
+    shell = get_ipython()
+    recursive = shell.is_debugging()
     if recursive:
-        parent_debugger = kernel._pdb_obj
+        parent_debugger = shell.pdb_session
         sys.settrace(None)
         globals = parent_debugger.curframe.f_globals
         locals = parent_debugger.curframe_locals
@@ -770,7 +768,7 @@ def enter_debugger(filename, continue_if_has_breakpoints, code_format):
         # Reset parent debugger
         sys.settrace(parent_debugger.trace_dispatch)
         parent_debugger.lastcmd = debugger.lastcmd
-        kernel._register_pdb_session(parent_debugger)
+        shell.pdb_session = parent_debugger
     else:
         # The breakpoint might not be in the cell
         debugger.run(code)
