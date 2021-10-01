@@ -34,6 +34,18 @@ else:
 logger = logging.getLogger(__name__)
 
 
+def uses_comprehension(code):
+    """Check if given code uses comprehensions."""
+    comprehension_statements = (
+        ast.ListComp,
+        ast.SetComp,
+        ast.GeneratorExp,
+        ast.DictComp
+        )
+    nodes = ast.walk(ast.parse(code))
+    return any(isinstance(node, comprehension_statements) for node in nodes)
+
+
 class DebugWrapper(object):
     """
     Notifies the frontend when debugging starts/stops
@@ -126,26 +138,18 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                        " command instead")
             return
         locals = self.curframe_locals
-
-        # This is necessary to allow running comprehensions with the
-        # frame locals. It also fallbacks to the right globals if the
-        # user wants to work with them instead.
-        # See spyder-ide/spyder#13909.
-        # if not 'globals()' in line:
-        #     ns = self.curframe.f_globals.copy()
-        #     ns.update(locals)
-        # else:
-        ns = self.curframe.f_globals
+        globals = self.curframe.f_globals
 
         if self.pdb_use_exclamation_mark:
             # Find pdb commands executed without !
             cmd, arg, line = self.parseline(line)
             if cmd:
                 cmd_in_namespace = (
-                    cmd in ns or cmd in builtins.__dict__)
+                    cmd in globals or cmd in builtins.__dict__)
                 # Special case for quit and exit
                 if cmd in ("quit", "exit"):
-                    if cmd in ns and isinstance(ns[cmd], ZMQExitAutocall):
+                    if cmd in globals and isinstance(
+                            globals[cmd], ZMQExitAutocall):
                         # Use the pdb call
                         cmd_in_namespace = False
                 cmd_func = getattr(self, 'do_' + cmd, None)
@@ -184,7 +188,31 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 sys.displayhook = self.displayhook
                 if execute_events:
                      get_ipython().events.trigger('pre_execute')
-                exec(code, ns, locals)
+
+                if uses_comprehension(line):
+                    # Mitigates a cPython bug (https://bugs.python.org/issue41918)
+                    # That prevents running comprehensions with the
+                    # frame locals in pdb.
+                    # See https://bugs.python.org/issue21161
+                    # spyder-ide/spyder#13909.
+                    fake_globals = globals.copy()
+                    fake_globals.update(locals)
+                    locals_keys = locals.keys()
+                    exec(code, fake_globals, locals)
+                    # Avoid mixing locals and globals
+                    for key in locals_keys:
+                        if key in fake_globals:
+                            del fake_globals[key]
+                    globals.update(fake_globals)
+                    # There is two potential problems with this approach:
+                        # 1 - If the code access a globals variable that is
+                        # masked by a locals variable, it will get the locals one.
+                        # Any edit to that variable will be lost.
+                        # 2 -The globals will appear to contain all the locals
+                        # variables
+                else:
+                    exec(code, globals, locals)
+
                 if execute_events:
                      get_ipython().events.trigger('post_execute')
             finally:
