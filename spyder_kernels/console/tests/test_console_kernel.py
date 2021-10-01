@@ -30,7 +30,7 @@ from jupyter_client import BlockingKernelClient
 import numpy as np
 
 # Local imports
-from spyder_kernels.py3compat import PY3, to_text_string
+from spyder_kernels.py3compat import PY2, PY3, to_text_string
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 from spyder_kernels.customize.spyderpdb import SpyderPdb
@@ -757,6 +757,7 @@ def test_do_complete(kernel):
     kernel.shell.pdb_session = pdb_obj
     match = kernel.do_complete('ba', 2)
     assert 'baba' in match['matches']
+    pdb_obj.curframe = None
 
 
 @pytest.mark.parametrize("exclude_callables_and_modules", [True, False])
@@ -826,6 +827,7 @@ def test_comprehensions_with_locals_in_pdb(kernel):
     assert kernel.get_value('in_globals') == False
 
     pdb_obj.curframe = None
+    pdb_obj.curframe_locals = None
 
 
 def test_namespaces_in_pdb(kernel):
@@ -839,9 +841,14 @@ def test_namespaces_in_pdb(kernel):
     pdb_obj.curframe = inspect.currentframe()
     pdb_obj.curframe_locals = pdb_obj.curframe.f_locals
     kernel.shell.pdb_session = pdb_obj
-    # CHeck adding something to globals works
+    # Check adding something to globals works
     pdb_obj.default("globals()['test2'] = 0")
     assert pdb_obj.curframe.f_globals["test2"] == 0
+    if PY2:
+        # no error method in py2
+        pdb_obj.curframe = None
+        pdb_obj.curframe_locals = None
+        return
     # Create wrapper to check for errors
     old_error = pdb_obj.error
     pdb_obj._error_occured = False
@@ -861,7 +868,9 @@ def test_namespaces_in_pdb(kernel):
     # Test user namespace is not visible
     pdb_obj.default("%timeit test")
     assert pdb_obj._error_occured
+
     pdb_obj.curframe = None
+    pdb_obj.curframe_locals = None
 
 
 if __name__ == "__main__":
