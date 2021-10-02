@@ -145,7 +145,9 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             cmd, arg, line = self.parseline(line)
             if cmd:
                 cmd_in_namespace = (
-                    cmd in globals or cmd in builtins.__dict__)
+                    cmd in globals
+                    or cmd in locals
+                    or cmd in builtins.__dict__)
                 # Special case for quit and exit
                 if cmd in ("quit", "exit"):
                     if cmd in globals and isinstance(
