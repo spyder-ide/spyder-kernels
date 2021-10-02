@@ -203,8 +203,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     exec(code, fake_globals, locals)
                     # Avoid mixing locals and globals
                     for key in locals_keys:
-                        if key in fake_globals:
-                            del fake_globals[key]
+                        fake_globals.pop(key, None)
                     globals.update(fake_globals)
                     # There is two potential problems with this approach:
                         # 1 - If the code access a globals variable that is
