@@ -841,14 +841,17 @@ def test_namespaces_in_pdb(kernel):
     pdb_obj.curframe = inspect.currentframe()
     pdb_obj.curframe_locals = pdb_obj.curframe.f_locals
     kernel.shell.pdb_session = pdb_obj
+
     # Check adding something to globals works
     pdb_obj.default("globals()['test2'] = 0")
     assert pdb_obj.curframe.f_globals["test2"] == 0
+
     if PY2:
         # no error method in py2
         pdb_obj.curframe = None
         pdb_obj.curframe_locals = None
         return
+
     # Create wrapper to check for errors
     old_error = pdb_obj.error
     pdb_obj._error_occured = False
@@ -857,14 +860,17 @@ def test_namespaces_in_pdb(kernel):
         pdb_obj._error_occured = True
         return old_error(*args, **kwargs)
     pdb_obj.error = error_wrapper
+
     # Test globals are visible
     pdb_obj.curframe.f_globals["test3"] = 0
     pdb_obj.default("%timeit test3")
     assert not pdb_obj._error_occured
+
     # Test locals are visible
     pdb_obj.curframe_locals["test4"] = 0
     pdb_obj.default("%timeit test4")
     assert not pdb_obj._error_occured
+
     # Test user namespace is not visible
     pdb_obj.default("%timeit test")
     assert pdb_obj._error_occured

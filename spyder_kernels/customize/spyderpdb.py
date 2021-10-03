@@ -41,7 +41,7 @@ def uses_comprehension(code):
         ast.SetComp,
         ast.GeneratorExp,
         ast.DictComp
-        )
+    )
     nodes = ast.walk(ast.parse(code))
     return any(isinstance(node, comprehension_statements) for node in nodes)
 
@@ -147,7 +147,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 cmd_in_namespace = (
                     cmd in globals
                     or cmd in locals
-                    or cmd in builtins.__dict__)
+                    or cmd in builtins.__dict__
+                )
                 # Special case for quit and exit
                 if cmd in ("quit", "exit"):
                     if cmd in globals and isinstance(
@@ -191,12 +192,19 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 if execute_events:
                      get_ipython().events.trigger('pre_execute')
 
+                 # Mitigates a CPython bug (https://bugs.python.org/issue41918)
+                 # that prevents running comprehensions with the frame locals
+                 # in Pdb.
+                 # See https://bugs.python.org/issue21161 and
+                 # spyder-ide/spyder#13909.
                 if uses_comprehension(line):
-                    # Mitigates a cPython bug (https://bugs.python.org/issue41918)
-                    # That prevents running comprehensions with the
-                    # frame locals in pdb.
-                    # See https://bugs.python.org/issue21161
-                    # spyder-ide/spyder#13909.
+                    # There are three potential problems with this approach:
+                    # 1. If the code access a globals variable that is
+                    #    masked by a locals variable, it will get the locals
+                    #   one.
+                    # 2. Any edit to that variable will be lost.
+                    # 3. The globals will appear to contain all the locals
+                    #    variables.
                     fake_globals = globals.copy()
                     fake_globals.update(locals)
                     locals_keys = locals.keys()
@@ -205,12 +213,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     for key in locals_keys:
                         fake_globals.pop(key, None)
                     globals.update(fake_globals)
-                    # There is two potential problems with this approach:
-                        # 1 - If the code access a globals variable that is
-                        # masked by a locals variable, it will get the locals one.
-                        # Any edit to that variable will be lost.
-                        # 2 -The globals will appear to contain all the locals
-                        # variables
                 else:
                     exec(code, globals, locals)
 
