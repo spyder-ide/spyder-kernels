@@ -19,7 +19,6 @@ import threading
 # Third-party imports
 import ipykernel
 from ipykernel.ipkernel import IPythonKernel
-from ipykernel.zmqshell import ZMQInteractiveShell
 from traitlets.config.loader import LazyConfigValue
 
 # Local imports
@@ -30,87 +29,12 @@ from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.mpl import (
     MPL_BACKENDS_FROM_SPYDER, MPL_BACKENDS_TO_SPYDER, INLINE_FIGURE_FORMATS)
 from spyder_kernels.utils.nsview import get_remote_data, make_remote_view
+from spyder_kernels.console.shell import SpyderShell
 
 
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
 EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
-
-
-class SpyderShell(ZMQInteractiveShell):
-    """Spyder shell."""
-
-    def __init__(self, *args, **kwargs):
-        # Create _pdb_obj before __init__
-        self._pdb_obj = None
-        super(SpyderShell, self).__init__(*args, **kwargs)
-
-    def ask_exit(self):
-        """Engage the exit actions."""
-        self.kernel.frontend_comm.close_thread()
-        return super(SpyderShell, self).ask_exit()
-
-    # --- For Pdb namespace integration
-    def get_local_scope(self, stack_depth):
-        """Get local scope at given frame depth."""
-        frame = sys._getframe(stack_depth + 1)
-        if self._pdb_frame is frame:
-            # Avoid calling f_locals on _pdb_frame
-            return self._pdb_obj.curframe_locals
-        else:
-            return frame.f_locals
-
-    # --- For Pdb namespace integration
-    def get_global_scope(self, stack_depth):
-        """Get global scope at given frame depth."""
-        frame = sys._getframe(stack_depth + 1)
-        return frame.f_globals
-
-    def is_debugging(self):
-        """
-        Check if we are currently debugging.
-        """
-        return bool(self._pdb_frame)
-
-    @property
-    def pdb_session(self):
-        """Get current pdb session."""
-        return self._pdb_obj
-
-    @pdb_session.setter
-    def pdb_session(self, pdb_obj):
-        """Register Pdb session to use it later"""
-        self._pdb_obj = pdb_obj
-
-    @property
-    def _pdb_frame(self):
-        """Return current Pdb frame if there is any"""
-        if self.pdb_session is not None:
-            return self.pdb_session.curframe
-
-    @property
-    def _pdb_locals(self):
-        """
-        Return current Pdb frame locals if available. Otherwise
-        return an empty dictionary
-        """
-        if self._pdb_frame is not None:
-            return self._pdb_obj.curframe_locals
-        else:
-            return {}
-
-    @property
-    def user_ns(self):
-        """Get the current namespace."""
-        if self._pdb_frame is not None:
-            return self._pdb_frame.f_globals
-        else:
-            return self.__user_ns
-
-    @user_ns.setter
-    def user_ns(self, namespace):
-        """Set user_ns."""
-        self.__user_ns = namespace
 
 
 class SpyderKernel(IPythonKernel):
