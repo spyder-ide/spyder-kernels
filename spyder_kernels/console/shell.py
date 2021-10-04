@@ -7,10 +7,13 @@
 # -----------------------------------------------------------------------------
 
 """
-Spyder shell for Jupyter.
+Spyder shell for Jupyter kernels.
 """
+
+# Standard library imports
 import sys
 
+# Third-party imports
 from ipykernel.zmqshell import ZMQInteractiveShell
 
 

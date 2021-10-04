@@ -201,7 +201,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # There are three potential problems with this approach:
                     # 1. If the code access a globals variable that is
                     #    masked by a locals variable, it will get the locals
-                    #   one.
+                    #    one.
                     # 2. Any edit to that variable will be lost.
                     # 3. The globals will appear to contain all the locals
                     #    variables.
