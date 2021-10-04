@@ -258,7 +258,7 @@ def varexp(line):
         import matplotlib.pyplot as pyplot
     __fig__ = pyplot.figure();
     __items__ = getattr(pyplot, funcname[2:])(
-        ip._get_current_namespace()[name])
+        ip.kernel._get_current_namespace()[name])
     pyplot.show()
     del __fig__, __items__
 
