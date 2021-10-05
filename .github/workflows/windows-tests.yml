@@ -1,16 +1,18 @@
-name: Windows tests 1.x
+name: Windows tests
 
 on:
   push:
     branches:
-    - 1.x
+    - master
+    - 2.*
   pull_request:
     branches:
-    - 1.x
+    - master
+    - 2.*
 
 jobs:
   windows:
-    name: Windows Py${{ matrix.PYTHON_VERSION }}
+    name: Py${{ matrix.PYTHON_VERSION }}
     runs-on: windows-latest
     env:
       CI: True
@@ -19,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false 
       matrix:
-        PYTHON_VERSION: ['3.6', '3.7', '3.8']
+        PYTHON_VERSION: ['3.7', '3.8', '3.9']
     steps:
       - name: Checkout branch
         uses: actions/checkout@v1
@@ -37,7 +39,6 @@ jobs:
         shell: bash -l {0}
         run: |
           conda install --file requirements/tests.txt -y -q
-          if [ "$PYTHON_VERSION" != "2.7" ]; then conda install -q -y jedi=0.17.2; fi
       - name: Install Package
         shell: bash -l {0}
         run: pip install -e .
@@ -53,6 +54,3 @@ jobs:
       - name: Run tests
         shell: bash -l {0}
         run: pytest spyder_kernels --cov=spyder_kernels -x -vv
-      - name: Upload coverage to Codecov
-        shell: bash -l {0}
-        run: codecov -t 02fa9892-fa7f-4cf8-ac3c-d54143ddc933

@@ -7,7 +7,7 @@
 # -----------------------------------------------------------------------------
 
 """
-Utilities
+Utilities to build a namespace view.
 """
 
 from __future__ import print_function
@@ -22,44 +22,25 @@ from spyder_kernels.py3compat import (NUMERIC_TYPES, INT_TYPES, TEXT_TYPES,
                                       is_type_text_string,
                                       is_binary_string, PY2,
                                       to_binary_string, iteritems)
+from spyder_kernels.utils.lazymodules import (
+    bs4, FakeObject, numpy as np, pandas as pd, PIL)
 
 
 #==============================================================================
-# FakeObject
+# Numpy support
 #==============================================================================
-class FakeObject(object):
-    """Fake class used in replacement of missing modules"""
-    pass
-
-
-#==============================================================================
-# Numpy arrays and numeric types support
-#==============================================================================
-try:
-    from numpy import (ndarray, array, matrix, recarray, integer,
-                       int64, int32, int16, int8, uint64, uint32, uint16, uint8,
-                       float64, float32, float16, complex64, complex128, bool_)
-    from numpy.ma import MaskedArray
-    from numpy import savetxt as np_savetxt
-    from numpy import get_printoptions, set_printoptions
-except:
-    ndarray = array = matrix = recarray = MaskedArray = np_savetxt = \
-     int64 = int32 = int16 = int8 = uint64 = uint32 = uint16 = uint8 = \
-     float64 = float32 = float16 = complex64 = complex128 = bool_ = FakeObject
-
-
-NUMERIC_NUMPY_TYPES = (int64, int32, int16, int8, uint64, uint32, uint16,
-                       uint8, float64, float32, float16, complex64, complex128,
-                       bool_)
+def get_numeric_numpy_types():
+    return (np.int64, np.int32, np.int16, np.int8, np.uint64, np.uint32,
+            np.uint16, np.uint8, np.float64, np.float32, np.float16,
+            np.complex64, np.complex128, np.bool_)
 
 
 def get_numpy_dtype(obj):
     """Return NumPy data type associated to obj
     Return None if NumPy is not available
     or if obj is not a NumPy array or scalar"""
-    if ndarray is not FakeObject:
+    if np.ndarray is not FakeObject:
         # NumPy is available
-        import numpy as np
         if isinstance(obj, np.generic) or isinstance(obj, np.ndarray):
         # Numpy scalars all inherit from np.generic.
         # Numpy arrays all inherit from np.ndarray.
@@ -73,33 +54,15 @@ def get_numpy_dtype(obj):
                 return
 
 
-#==============================================================================
-# Pandas support
-#==============================================================================
-try:
-    from pandas import DataFrame, Index, Series
-except:
-    DataFrame = Index = Series = FakeObject
-
-
-#==============================================================================
-# PIL Images support
-#==============================================================================
-try:
-    from spyder import pil_patch
-    Image = pil_patch.Image.Image
-except:
-    Image = FakeObject  # analysis:ignore
-
-
-#==============================================================================
-# BeautifulSoup support (see Issue 2448)
-#==============================================================================
-try:
-    import bs4
-    NavigableString = bs4.element.NavigableString
-except:
-    NavigableString = FakeObject  # analysis:ignore
+def get_numpy_type_string(value):
+    """Get the type of a Numpy object as a string."""
+    np_dtype = get_numpy_dtype(value)
+    if np_dtype is None or not hasattr(value, 'size'):
+        return 'Unknown'
+    elif value.size == 1:
+        return 'Scalar'
+    else:
+        return 'Array'
 
 
 #==============================================================================
@@ -122,7 +85,8 @@ def try_to_eval(value):
 def get_size(item):
     """Return shape/size/len of an item of arbitrary type"""
     try:
-        if hasattr(item, 'shape') and isinstance(item.shape, (tuple, integer)):
+        if (hasattr(item, 'shape') and
+                isinstance(item.shape, (tuple, np.integer))):
             try:
                 if item.shape:
                     return item.shape
@@ -134,7 +98,8 @@ def get_size(item):
                 # get the shape of these objects.
                 # Fixes spyder-ide/spyder-kernels#217
                 return (-1, -1)
-        elif hasattr(item, 'size') and isinstance(item.size, (tuple, integer)):
+        elif (hasattr(item, 'size') and
+                isinstance(item.size, (tuple, np.integer))):
             try:
                 return item.size
             except RecursionError:
@@ -164,7 +129,6 @@ def get_object_attrs(obj):
 # Date and datetime objects support
 #==============================================================================
 import datetime
-
 
 try:
     from dateutil.parser import parse as dateparse
@@ -210,52 +174,29 @@ def str_to_timedelta(value):
 
 
 #==============================================================================
-# Background colors for supported types
+# Supported types
 #==============================================================================
-ARRAY_COLOR = "#00ff00"
-SCALAR_COLOR = "#0000ff"
-COLORS = {
-          bool:               "#ff00ff",
-          NUMERIC_TYPES:      SCALAR_COLOR,
-          list:               "#ffff00",
-          set:                "#008000",
-          dict:               "#00ffff",
-          tuple:              "#c0c0c0",
-          TEXT_TYPES:         "#800000",
-          (ndarray,
-           MaskedArray,
-           matrix,
-           DataFrame,
-           Series,
-           Index):            ARRAY_COLOR,
-          Image:              "#008000",
-          datetime.date:      "#808000",
-          datetime.timedelta: "#808000",
-          }
-CUSTOM_TYPE_COLOR = "#7755aa"
-UNSUPPORTED_COLOR = "#ffffff"
-
-def get_color_name(value):
-    """Return color name depending on value type"""
-    if not is_known_type(value):
-        return CUSTOM_TYPE_COLOR
-    for typ, name in list(COLORS.items()):
-        if isinstance(value, typ):
-            return name
-    else:
-        np_dtype = get_numpy_dtype(value)
-        if np_dtype is None or not hasattr(value, 'size'):
-            return UNSUPPORTED_COLOR
-        elif value.size == 1:
-            return SCALAR_COLOR
-        else:
-            return ARRAY_COLOR
-
-
 def is_editable_type(value):
-    """Return True if data type is editable with a standard GUI-based editor,
-    like CollectionsEditor, ArrayEditor, QDateEdit or a simple QLineEdit"""
-    return get_color_name(value) not in (UNSUPPORTED_COLOR, CUSTOM_TYPE_COLOR)
+    """
+    Return True if data type is editable with a standard GUI-based editor,
+    like CollectionsEditor, ArrayEditor, QDateEdit or a simple QLineEdit.
+    """
+    if not is_known_type(value):
+        return False
+    else:
+        supported_types = [
+            'bool', 'int', 'long', 'float', 'complex', 'list', 'set', 'dict',
+            'tuple', 'str', 'unicode', 'NDArray', 'MaskedArray', 'Matrix',
+            'DataFrame', 'Series', 'PIL.Image.Image', 'datetime.date',
+            'datetime.timedelta'
+        ]
+
+        if (get_type_string(value) not in supported_types and
+                not isinstance(value, pd.Index)):
+            np_dtype = get_numpy_dtype(value)
+            if np_dtype is None or not hasattr(value, 'size'):
+                return False
+        return True
 
 
 #==============================================================================
@@ -362,33 +303,34 @@ def value_to_display(value, minmax=False, level=0):
     """Convert value for display purpose"""
     # To save current Numpy printoptions
     np_printoptions = FakeObject
+    numeric_numpy_types = get_numeric_numpy_types()
 
     try:
-        if ndarray is not FakeObject:
+        if np.ndarray is not FakeObject:
             # Save printoptions
-            np_printoptions = get_printoptions()
+            np_printoptions = np.get_printoptions()
             # Set max number of elements to show for Numpy arrays
             # in our display
-            set_printoptions(threshold=10)
-        if isinstance(value, recarray):
+            np.set_printoptions(threshold=10)
+        if isinstance(value, np.recarray):
             if level == 0:
                 fields = value.names
                 display = 'Field names: ' + ', '.join(fields)
             else:
                 display = 'Recarray'
-        elif isinstance(value, MaskedArray):
+        elif isinstance(value, np.ma.MaskedArray):
             display = 'Masked array'
-        elif isinstance(value, ndarray):
+        elif isinstance(value, np.ndarray):
             if level == 0:
                 if minmax:
                     try:
                         display = 'Min: %r\nMax: %r' % (value.min(), value.max())
                     except (TypeError, ValueError):
-                        if value.dtype.type in NUMERIC_NUMPY_TYPES:
+                        if value.dtype.type in numeric_numpy_types:
                             display = str(value)
                         else:
                             display = default_display(value)
-                elif value.dtype.type in NUMERIC_NUMPY_TYPES:
+                elif value.dtype.type in numeric_numpy_types:
                     display = str(value)
                 else:
                     display = default_display(value)
@@ -396,12 +338,12 @@ def value_to_display(value, minmax=False, level=0):
                 display = 'Numpy array'
         elif any([type(value) == t for t in [list, set, tuple, dict]]):
             display = collections_display(value, level+1)
-        elif isinstance(value, Image):
+        elif isinstance(value, PIL.Image.Image):
             if level == 0:
                 display = '%s  Mode: %s' % (address(value), value.mode)
             else:
                 display = 'Image'
-        elif isinstance(value, DataFrame):
+        elif isinstance(value, pd.DataFrame):
             if level == 0:
                 cols = value.columns
                 if PY2 and len(cols) > 0:
@@ -420,12 +362,12 @@ def value_to_display(value, minmax=False, level=0):
                 display = 'Column names: ' + ', '.join(list(cols))
             else:
                 display = 'Dataframe'
-        elif isinstance(value, NavigableString):
+        elif isinstance(value, bs4.element.NavigableString):
             # Fixes Issue 2448
             display = to_text_string(value)
             if level > 0:
                 display = u"'" + display + u"'"
-        elif isinstance(value, Index):
+        elif isinstance(value, pd.Index):
             if level == 0:
                 try:
                     display = value._summary()
@@ -461,14 +403,14 @@ def value_to_display(value, minmax=False, level=0):
             display = str(value)
         elif (isinstance(value, NUMERIC_TYPES) or
               isinstance(value, bool) or
-              isinstance(value, NUMERIC_NUMPY_TYPES)):
+              isinstance(value, numeric_numpy_types)):
             display = repr(value)
         else:
             if level == 0:
                 display = default_display(value)
             else:
                 display = default_display(value, with_module=False)
-    except:
+    except Exception:
         display = default_display(value)
 
     # Truncate display at 70 chars to avoid freezing Spyder
@@ -482,7 +424,7 @@ def value_to_display(value, minmax=False, level=0):
 
     # Restore Numpy printoptions
     if np_printoptions is not FakeObject:
-        set_printoptions(**np_printoptions)
+        np.set_printoptions(**np_printoptions)
 
     return display
 
@@ -541,11 +483,20 @@ def display_to_value(value, default_value, ignore_errors=True):
 # =============================================================================
 def get_type_string(item):
     """Return type string of an object."""
-    if isinstance(item, DataFrame):
+    # Numpy objects (don't change the order!)
+    if isinstance(item, np.ma.MaskedArray):
+        return "MaskedArray"
+    if isinstance(item, np.matrix):
+        return "Matrix"
+    if isinstance(item, np.ndarray):
+        return "NDArray"
+
+    # Pandas objects
+    if isinstance(item, pd.DataFrame):
         return "DataFrame"
-    if isinstance(item, Index):
+    if isinstance(item, pd.Index):
         return type(item).__name__
-    if isinstance(item, Series):
+    if isinstance(item, pd.Series):
         return "Series"
 
     found = re.findall(r"<(?:type|class) '(\S*)'>",
@@ -555,27 +506,25 @@ def get_type_string(item):
             return 'class'
         return found[0]
     else:
-        return None
+        return 'Unknown'
 
 
 def is_known_type(item):
     """Return True if object has a known type"""
     # Unfortunately, the masked array case is specific
-    return isinstance(item, MaskedArray) or get_type_string(item) is not None
+    return (isinstance(item, np.ma.MaskedArray) or
+            get_type_string(item) != 'Unknown')
 
 
 def get_human_readable_type(item):
     """Return human-readable type string of an item"""
-    if isinstance(item, (ndarray, MaskedArray)):
+    if isinstance(item, (np.ndarray, np.ma.MaskedArray)):
         return u'Array of ' + item.dtype.name
-    elif isinstance(item, Image):
+    elif isinstance(item, PIL.Image.Image):
         return "Image"
     else:
         text = get_type_string(item)
-        if text is None:
-            text = to_text_string('Unknown')
-        else:
-            return text[text.find('.')+1:]
+        return text[text.find('.')+1:]
 
 
 #==============================================================================
@@ -677,7 +626,7 @@ def get_supported_types():
         pass
     picklable_types = editable_types[:]
     try:
-        from spyder.pil_patch import Image
+        from PIL import Image
         editable_types.append(Image.Image)
     except:
         pass
@@ -719,8 +668,12 @@ def make_remote_view(data, settings, more_excluded_names=None):
     remote = {}
     for key, value in list(data.items()):
         view = value_to_display(value, minmax=settings['minmax'])
-        remote[key] = {'type':  get_human_readable_type(value),
-                       'size':  get_size(value),
-                       'color': get_color_name(value),
-                       'view':  view}
+        remote[key] = {
+            'type':  get_human_readable_type(value),
+            'size':  get_size(value),
+            'view':  view,
+            'python_type': get_type_string(value),
+            'numpy_type': get_numpy_type_string(value)
+        }
+
     return remote

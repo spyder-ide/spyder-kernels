@@ -8,16 +8,18 @@
 In addition to the remote_call mechanism implemented in CommBase:
  - Implements _wait_reply, so blocking calls can be made.
 """
+
 import pickle
 import socket
 import sys
 import threading
 import time
 
+import ipykernel
+from IPython.core.getipython import get_ipython
 from jupyter_client.localinterfaces import localhost
 from tornado import ioloop
 import zmq
-from IPython.core.getipython import get_ipython
 
 from spyder_kernels.comms.commbase import CommBase, CommError
 from spyder_kernels.py3compat import TimeoutError, PY2
@@ -63,6 +65,8 @@ class FrontendComm(CommBase):
         self.register_call_handler('_send_comm_config',
                                    self._send_comm_config)
 
+        self.comm_lock = threading.Lock()
+
         # self.kernel.parent is IPKernelApp unless we are in tests
         if self.kernel.parent:
             # Create a new socket
@@ -94,6 +98,16 @@ class FrontendComm(CommBase):
                     parent_close()
 
                 self.kernel.parent.close = close
+
+    def close(self, comm_id=None):
+        """Close the comm and notify the other side."""
+        with self.comm_lock:
+            return super(FrontendComm, self).close(comm_id)
+
+    def _send_message(self, *args, **kwargs):
+        """Publish custom messages to the other side."""
+        with self.comm_lock:
+            return super(FrontendComm, self)._send_message(*args, **kwargs)
 
     def close_thread(self):
         """Close comm."""
@@ -128,6 +142,7 @@ class FrontendComm(CommBase):
 
         if msg_type == 'shutdown_request':
             self.comm_thread_close.set()
+            self._comm_close(msg)
             return
 
         handler = self.kernel.shell_handlers.get(msg_type, None)
@@ -135,7 +150,24 @@ class FrontendComm(CommBase):
             self.kernel.log.warning("Unknown message type: %r", msg_type)
         else:
             try:
-                handler(out_stream, ident, msg)
+                if not PY2:
+                    import asyncio
+                    if (not getattr(asyncio, 'run', False) or
+                            ipykernel.__version__[0] < '6'):
+                        # This is required for Python 3.6, which doesn't have
+                        # asyncio.run or ipykernel versions less than 6. The
+                        # nice thing is that ipykernel 6, which requires
+                        # asyncio, doesn't support Python 3.6.
+                        handler(out_stream, ident, msg)
+                    else:
+                        # This is needed for ipykernel 6+
+                        asyncio.run(handler(out_stream, ident, msg))
+                else:
+                    handler(out_stream, ident, msg)
+            except ValueError as e:
+                # This avoids showing an unnecessary message about expected
+                # coroutines.
+                return
             except Exception:
                 self.kernel.log.error("Exception in message handler:",
                                       exc_info=True)
@@ -208,10 +240,9 @@ class FrontendComm(CommBase):
     def _comm_close(self, msg):
         """Close comm."""
         comm_id = msg['content']['comm_id']
-        comm = self._comms[comm_id]['comm']
-        # Pretend it is already closed to avoid problems when closing
-        comm._closed = True
-        del self._comms[comm_id]
+        # Send back a close message confirmation
+        # Fixes spyder-ide/spyder#15356
+        self.close(comm_id)
 
     def _async_error(self, error_wrapper):
         """
