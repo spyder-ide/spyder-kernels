@@ -15,8 +15,8 @@ import traceback
 from collections import namedtuple
 
 from IPython.core.autocall import ZMQExitAutocall
-from IPython.core.getipython import get_ipython
 from IPython.core.debugger import Pdb as ipyPdb
+from IPython.core.getipython import get_ipython
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.utils import path_is_library
@@ -34,9 +34,21 @@ else:
 logger = logging.getLogger(__name__)
 
 
+def uses_comprehension(code):
+    """Check if given code uses comprehensions."""
+    comprehension_statements = (
+        ast.ListComp,
+        ast.SetComp,
+        ast.GeneratorExp,
+        ast.DictComp
+    )
+    nodes = ast.walk(ast.parse(code))
+    return any(isinstance(node, comprehension_statements) for node in nodes)
+
+
 class DebugWrapper(object):
     """
-    Notifies the frontend when debuggging starts/stops
+    Notifies the frontend when debugging starts/stops
     """
     def __init__(self, pdb_obj):
         self.pdb_obj = pdb_obj
@@ -92,6 +104,10 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         self._pdb_breaking = False
         self._frontend_notified = False
 
+        # Don't report hidden frames for IPython 7.24+. This attribute
+        # has no effect in previous versions.
+        self.report_skipped = False
+
     # --- Methods overriden for code execution
     def print_exclamation_warning(self):
         """Print pdb warning for exclamation mark."""
@@ -122,26 +138,21 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                        " command instead")
             return
         locals = self.curframe_locals
-
-        # This is necessary to allow running comprehensions with the
-        # frame locals. It also fallbacks to the right globals if the
-        # user wants to work with them instead.
-        # See spyder-ide/spyder#13909.
-        if not 'globals()' in line:
-            ns = self.curframe.f_globals.copy()
-            ns.update(locals)
-        else:
-            ns = self.curframe.f_globals
+        globals = self.curframe.f_globals
 
         if self.pdb_use_exclamation_mark:
             # Find pdb commands executed without !
             cmd, arg, line = self.parseline(line)
             if cmd:
                 cmd_in_namespace = (
-                    cmd in ns or cmd in builtins.__dict__)
+                    cmd in globals
+                    or cmd in locals
+                    or cmd in builtins.__dict__
+                )
                 # Special case for quit and exit
                 if cmd in ("quit", "exit"):
-                    if cmd in ns and isinstance(ns[cmd], ZMQExitAutocall):
+                    if cmd in globals and isinstance(
+                            globals[cmd], ZMQExitAutocall):
                         # Use the pdb call
                         cmd_in_namespace = False
                 cmd_func = getattr(self, 'do_' + cmd, None)
@@ -180,7 +191,31 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 sys.displayhook = self.displayhook
                 if execute_events:
                      get_ipython().events.trigger('pre_execute')
-                exec(code, ns, locals)
+
+                 # Mitigates a CPython bug (https://bugs.python.org/issue41918)
+                 # that prevents running comprehensions with the frame locals
+                 # in Pdb.
+                 # See https://bugs.python.org/issue21161 and
+                 # spyder-ide/spyder#13909.
+                if uses_comprehension(line):
+                    # There are three potential problems with this approach:
+                    # 1. If the code access a globals variable that is
+                    #    masked by a locals variable, it will get the locals
+                    #    one.
+                    # 2. Any edit to that variable will be lost.
+                    # 3. The globals will appear to contain all the locals
+                    #    variables.
+                    fake_globals = globals.copy()
+                    fake_globals.update(locals)
+                    locals_keys = locals.keys()
+                    exec(code, fake_globals, locals)
+                    # Avoid mixing locals and globals
+                    for key in locals_keys:
+                        fake_globals.pop(key, None)
+                    globals.update(fake_globals)
+                else:
+                    exec(code, globals, locals)
+
                 if execute_events:
                      get_ipython().events.trigger('post_execute')
             finally:
@@ -500,8 +535,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         Register Pdb session after reset.
         """
         super(SpyderPdb, self).reset()
-        kernel = get_ipython().kernel
-        kernel._register_pdb_session(self)
+        get_ipython().pdb_session = self
 
     def do_debug(self, arg):
         """
@@ -511,9 +545,20 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         argument (which is an arbitrary expression or statement to be
         executed in the current environment).
         """
-        super(SpyderPdb, self).do_debug(arg)
-        kernel = get_ipython().kernel
-        kernel._register_pdb_session(self)
+        try:
+            super(SpyderPdb, self).do_debug(arg)
+        except Exception:
+            if PY2:
+                t, v = sys.exc_info()[:2]
+                if type(t) == type(''):
+                    exc_type_name = t
+                else: exc_type_name = t.__name__
+                print >>self.stdout, '***', exc_type_name + ':', v
+            else:
+                exc_info = sys.exc_info()[:2]
+                self.error(
+                    traceback.format_exception_only(*exc_info)[-1].strip())
+        get_ipython().pdb_session = self
 
     def user_return(self, frame, return_value):
         """This function is called when a return trap is set here."""
@@ -610,12 +655,15 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         bdb.Breakpoint.bplist = {}
         bdb.Breakpoint.bpbynumber = [None]
         # -----
-        i = 0
         for fname, data in list(breakpoints.items()):
             for linenumber, condition in data:
-                i += 1
-                self.set_break(self.canonic(fname), linenumber,
-                               cond=condition)
+                try:
+                    self.set_break(self.canonic(fname), linenumber,
+                                   cond=condition)
+                except ValueError:
+                    # Fixes spyder/issues/15546
+                    # The file is not readable
+                    pass
 
         # Jump to first breakpoint.
         # Fixes issue 2034
@@ -693,6 +741,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
         globals defaults to __main__.dict; locals defaults to globals.
         """
+        self.starting = True
         with DebugWrapper(self):
             super(SpyderPdb, self).run(cmd, globals, locals)
 
@@ -701,6 +750,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
         globals defaults to __main__.dict; locals defaults to globals.
         """
+        self.starting = True
         with DebugWrapper(self):
             super(SpyderPdb, self).runeval(expr, globals, locals)
 
@@ -709,16 +759,17 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
         Return the result of the function call.
         """
+        self.starting = True
         with DebugWrapper(self):
             super(SpyderPdb, self).runcall(*args, **kwds)
 
 
 def enter_debugger(filename, continue_if_has_breakpoints, code_format):
     """Enter debugger. Code format should be a format that accept filename."""
-    kernel = get_ipython().kernel
-    recursive = kernel.is_debugging()
+    shell = get_ipython()
+    recursive = shell.is_debugging()
     if recursive:
-        parent_debugger = kernel._pdb_obj
+        parent_debugger = shell.pdb_session
         sys.settrace(None)
         globals = parent_debugger.curframe.f_globals
         locals = parent_debugger.curframe_locals
@@ -748,7 +799,7 @@ def enter_debugger(filename, continue_if_has_breakpoints, code_format):
         # Reset parent debugger
         sys.settrace(parent_debugger.trace_dispatch)
         parent_debugger.lastcmd = debugger.lastcmd
-        kernel._register_pdb_session(parent_debugger)
+        shell.pdb_session = parent_debugger
     else:
         # The breakpoint might not be in the cell
         debugger.run(code)

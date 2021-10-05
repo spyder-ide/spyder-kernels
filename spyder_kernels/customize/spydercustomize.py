@@ -109,6 +109,7 @@ if os.name == 'nt' and HIDE_CMD_WINDOWS:
 
     subprocess.Popen = SubprocessPopen
 
+
 # =============================================================================
 # Importing user's sitecustomize
 # =============================================================================
@@ -184,6 +185,7 @@ try:
     QtGui.QApplication = SpyderQApplication
 except Exception:
     pass
+
 
 # =============================================================================
 # IPython adjustments
@@ -309,6 +311,16 @@ if not PY2:
         multiprocessing.spawn.get_preparation_data = _patched_preparation_data
     except Exception:
         pass
+
+
+# =============================================================================
+# os adjustments
+# =============================================================================
+# This is necessary to have better support for Rich and Colorama.
+def _patched_get_terminal_size(fd=None):
+    return os.terminal_size((80, 30))
+
+os.get_terminal_size = _patched_get_terminal_size
 
 
 # =============================================================================
@@ -457,9 +469,9 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
             ipython_shell.showtraceback(exception_only=True)
     except BaseException as error:
         if (isinstance(error, bdb.BdbQuit)
-                and ipython_shell.kernel._pdb_obj):
+                and ipython_shell.pdb_session):
             # Ignore BdbQuit if we are debugging, as it is expected.
-            ipython_shell.kernel._pdb_obj = None
+            ipython_shell.pdb_session = None
         elif post_mortem and isinstance(error, Exception):
             error_type, error, tb = sys.exc_info()
             post_mortem_excepthook(error_type, error, tb)
@@ -475,7 +487,7 @@ def get_file_code(filename, save_all=True):
     try:
         file_code = frontend_request().get_file_code(
             filename, save_all=save_all)
-    except (CommError, TimeoutError):
+    except (CommError, TimeoutError, RuntimeError):
         file_code = None
     if file_code is None:
         with open(filename, 'r') as f:
@@ -568,7 +580,13 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         sys.argv = ['']
 
 
-builtins.runfile = runfile
+# IPykernel 6.3.0+ shadows our runfile because it depends on the Pydev
+# debugger, which adds its own runfile to builtins. So we replace it with
+# our own using exec_lines in start.py
+if PY2:
+    builtins.runfile = runfile
+else:
+    builtins.spyder_runfile = runfile
 
 
 def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
