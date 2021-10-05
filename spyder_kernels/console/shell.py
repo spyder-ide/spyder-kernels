@@ -16,6 +16,9 @@ import sys
 # Third-party imports
 from ipykernel.zmqshell import ZMQInteractiveShell
 
+# Local imports
+from spyder_kernels.utils.mpl import automatic_backend
+
 
 class SpyderShell(ZMQInteractiveShell):
     """Spyder shell."""
@@ -29,6 +32,17 @@ class SpyderShell(ZMQInteractiveShell):
         """Engage the exit actions."""
         self.kernel.frontend_comm.close_thread()
         return super(SpyderShell, self).ask_exit()
+
+    def enable_matplotlib(self, gui=None):
+        """Enable matplotlib."""
+        if gui.lower() == "auto":
+            gui = automatic_backend()
+        gui, backend = super(SpyderShell, self).enable_matplotlib(gui)
+        try:
+            self.kernel.frontend_call(blocking=False).update_matplotlib_gui(gui)
+        except Exception:
+            pass
+        return gui, backend
 
     # --- For Pdb namespace integration
     def get_local_scope(self, stack_depth):
