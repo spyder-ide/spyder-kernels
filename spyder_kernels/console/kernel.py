@@ -12,7 +12,6 @@ Spyder kernel for Jupyter.
 
 # Standard library imports
 from distutils.version import LooseVersion
-import re
 import os
 import sys
 import threading
@@ -117,13 +116,13 @@ class SpyderKernel(IPythonKernel):
             timeout=timeout)
 
     def flush_std(self):
-        """Flush C std."""
+        """Flush C standard streams."""
         sys.__stderr__.flush()
         sys.__stdout__.flush()
 
     def enable_faulthandler(self, fn):
         """
-        Open a file to save the faulthandling and save the identifiers for
+        Open a file to save the faulthandling and identifiers for internal
         internal threads.
         """
         if not PY3:
@@ -142,7 +141,7 @@ class SpyderKernel(IPythonKernel):
 
     def disable_faulthandler(self):
         """
-        Cancel the faulthandling, close the file handle, remove the file.
+        Cancel the faulthandling, close the file handle and remove the file.
         """
         if not PY3:
             # Not implemented
