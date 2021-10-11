@@ -122,7 +122,7 @@ class SpyderKernel(IPythonKernel):
 
     def enable_faulthandler(self, fn):
         """
-        Open a file to save the faulthandling and identifiers for internal
+        Open a file to save the faulthandling and identifiers for
         internal threads.
         """
         if not PY3:
