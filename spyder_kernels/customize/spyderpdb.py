@@ -310,7 +310,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         Take a number as argument as an (optional) number of context line to
         print"""
         super(SpyderPdb, self).do_where(arg)
-        frontend_request().do_where()
+        frontend_request(blocking=False).do_where()
 
     do_w = do_where
 
@@ -506,7 +506,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
-            pdb_settings = frontend_request().get_pdb_settings()
+            pdb_settings = frontend_request(blocking=True).get_pdb_settings()
             self.pdb_ignore_lib = pdb_settings['pdb_ignore_lib']
             self.pdb_execute_events = pdb_settings['pdb_execute_events']
             self.pdb_use_exclamation_mark = pdb_settings[
@@ -607,7 +607,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         """
         Notify spyder on any pdb command.
         """
-        self.notify_spyder(self.curframe)
+        self.notify_spyder()
         return super(SpyderPdb, self).postcmd(stop, line)
 
     if PY2:
@@ -704,15 +704,12 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     logger.debug(
                         "Could not send a Pdb continue call to the frontend.")
 
-    def notify_spyder(self, frame=None):
+    def notify_spyder(self):
         """Send kernel state to the frontend."""
-        if frame is None:
-            frame = self.curframe
 
+        frame = self.curframe
         if frame is None:
             return
-
-        kernel = get_ipython().kernel
 
         # Get filename and line number of the current frame
         fname = self.canonic(frame.f_code.co_filename)
@@ -728,13 +725,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         if isinstance(fname, basestring) and isinstance(lineno, int):
             step = dict(fname=fname, lineno=lineno)
 
-        # Publish Pdb state so we can update the Variable Explorer
-        # and the Editor on the Spyder side
-        kernel._pdb_step = step
-        try:
-            kernel.publish_pdb_state()
-        except (CommError, TimeoutError):
-            logger.debug("Could not send Pdb state to the frontend.")
+        get_ipython().kernel.publish_pdb_state(step)
 
     def run(self, cmd, globals=None, locals=None):
         """Debug a statement executed via the exec() function.

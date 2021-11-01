@@ -13,7 +13,6 @@
 
 import bdb
 import cmd
-import contextlib
 import io
 import logging
 import os
@@ -378,7 +377,7 @@ def post_mortem_excepthook(type, value, tb):
 def get_current_file_name():
     """Get the current file name."""
     try:
-        return frontend_request().current_filename()
+        return frontend_request(blocking=True).current_filename()
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the current file name from Spyder's"
@@ -495,7 +494,7 @@ def get_file_code(filename, save_all=True):
     """Retrive the content of a file."""
     # Get code from spyder
     try:
-        file_code = frontend_request().get_file_code(
+        file_code = frontend_request(blocking=True).get_file_code(
             filename, save_all=save_all)
     except (CommError, TimeoutError, RuntimeError):
         file_code = None
@@ -602,6 +601,14 @@ else:
     builtins.spyder_runfile = runfile
 
 
+def normalise_filename(filename):
+    """Normalise path for window."""
+    # Recursive
+    if os.name == 'nt':
+        return filename.replace('\\', '/')
+    return filename
+
+
 def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
               current_namespace=False):
     """
@@ -618,15 +625,10 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
             return
 
     shell = get_ipython()
-    recursive = shell.is_debugging()
-    if recursive:
-        if os.name == 'nt':
-            code_filename = filename.replace('\\', '/')
-        else:
-            code_filename = filename
-
+    if shell.is_debugging():
+        # Recursive
         code = (
-            "runfile({}".format(repr(code_filename)) +
+            "runfile({}".format(repr(normalise_filename(filename))) +
             ", args=%r, wdir=%r, current_namespace=%r)" % (
                 args, wdir, current_namespace))
 
@@ -683,7 +685,8 @@ def runcell(cellname, filename=None, post_mortem=False, stack_depth=0,
     ipython_shell = get_ipython()
     try:
         # Get code from spyder
-        cell_code = frontend_request().run_cell(cellname, filename)
+        cell_code = frontend_request(
+            blocking=True).run_cell(cellname, filename)
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the cell code from Spyder's"
@@ -723,14 +726,10 @@ def debugcell(cellname, filename=None, post_mortem=False):
 
     shell = get_ipython()
     if shell.is_debugging():
-        if os.name == 'nt':
-            code_filename = filename.replace('\\', '/')
-        else:
-            code_filename = filename
-
+        # Recursive
         code = (
             "runcell({}, ".format(repr(cellname)) +
-            "{})".format(repr(code_filename)))
+            "{})".format(repr(normalise_filename(filename))))
         shell.pdb_session.enter_recursive_debugger(
             code, filename, False,
         )
@@ -761,7 +760,7 @@ def cell_count(filename=None):
             raise RuntimeError('Could not get cell count from frontend.')
     try:
         # Get code from spyder
-        cell_count = frontend_request().cell_count(filename)
+        cell_count = frontend_request(blocking=True).cell_count(filename)
         return cell_count
     except Exception:
         etype, error, tb = sys.exc_info()
