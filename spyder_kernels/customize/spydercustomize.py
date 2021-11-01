@@ -465,12 +465,15 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
             compiled = compile(transform_cell(code), filename, 'exec')
 
         if exec_fun is None:
-            exec_fun = exec
-
-        exec_fun(
-            compiled,
-            ns_globals,
-            ns_locals)
+            exec(
+                compiled,
+                ns_globals,
+                ns_locals)
+        else:
+            exec_fun(
+                compiled,
+                ns_globals,
+                ns_locals)
 
     except SystemExit as status:
         # ignore exit(0)
