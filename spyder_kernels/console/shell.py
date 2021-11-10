@@ -35,7 +35,7 @@ class SpyderShell(ZMQInteractiveShell):
 
     def enable_matplotlib(self, gui=None):
         """Enable matplotlib."""
-        if gui.lower() == "auto":
+        if gui is None or gui.lower() == "auto":
             gui = automatic_backend()
         gui, backend = super(SpyderShell, self).enable_matplotlib(gui)
         try:
