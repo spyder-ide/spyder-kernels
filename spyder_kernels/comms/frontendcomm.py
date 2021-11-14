@@ -156,7 +156,7 @@ class FrontendComm(CommBase):
             import asyncio
 
             if (getattr(asyncio, 'run', False) and
-                asyncio.iscoroutinefunction(handler)):
+                    asyncio.iscoroutinefunction(handler)):
                 # This is needed for ipykernel 6+
                 asyncio.run(handler(out_stream, ident, msg))
             else:
