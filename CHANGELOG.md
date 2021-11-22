@@ -1,12 +1,12 @@
 # History of changes
 
+## Version 2.2.0 (2021-11-22)
+
 ### New features
 
 * Add the ability to capture segfaults and flush standard streams from
   Spyder.
 * Add support for jupyter_client 7.
-
-## Version 2.2.0 (2021-11-22)
 
 ### Issues Closed
 
