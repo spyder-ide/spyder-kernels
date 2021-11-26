@@ -20,15 +20,9 @@ from IPython.core.getipython import get_ipython
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.utils import path_is_library
-from spyder_kernels.py3compat import TimeoutError, PY2, _print, isidentifier
 
-if not PY2:
-    from IPython.core.inputtransformer2 import TransformerManager
-    import builtins
-    basestring = (str,)
-else:
-    import __builtin__ as builtins
-    from IPython.core.inputsplitter import IPythonInputSplitter as TransformerManager
+from IPython.core.inputtransformer2 import TransformerManager
+import builtins
 
 
 logger = logging.getLogger(__name__)
@@ -46,7 +40,7 @@ def uses_comprehension(code):
     return any(isinstance(node, comprehension_statements) for node in nodes)
 
 
-class DebugWrapper(object):
+class DebugWrapper:
     """
     Notifies the frontend when debugging starts/stops
     """
@@ -74,7 +68,7 @@ class DebugWrapper(object):
             logger.debug("Could not send debugging state to the frontend.")
 
 
-class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
+class SpyderPdb(ipyPdb):
     """
     Extends Pdb to add features:
 
@@ -226,23 +220,14 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 sys.stdin = save_stdin
                 sys.displayhook = save_displayhook
         except BaseException:
-            if PY2:
-                t, v = sys.exc_info()[:2]
-                if type(t) == type(''):
-                    exc_type_name = t
-                else: exc_type_name = t.__name__
-                print >>self.stdout, '***', exc_type_name + ':', v
-            else:
-                exc_info = sys.exc_info()[:2]
-                self.error(
-                    traceback.format_exception_only(*exc_info)[-1].strip())
+            exc_info = sys.exc_info()[:2]
+            self.error(
+                traceback.format_exception_only(*exc_info)[-1].strip())
 
     # --- Methods overriden for signal handling
     def sigint_handler(self, signum, frame):
         """
         Handle a sigint signal. Break on the frame above this one.
-
-        This method is not present in python2 so this won't be called there.
         """
         if self.allow_kbdint:
             raise KeyboardInterrupt
@@ -369,7 +354,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
             if not text or text[0] == '.':
                 return False
             # We want to keep value.subvalue
-            return isidentifier(text.replace('.', ''))
+            return text.replace('.', '').isidentifier()
 
         while text and not is_name_or_composed(text):
             text = text[1:]
@@ -472,7 +457,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 if not text or text[0] == '.':
                     return False
                 # We want to keep value.subvalue
-                return isidentifier(text.replace('.', ''))
+                return text.replace('.', '').isidentifier()
 
             while text and not is_name_or_composed(text):
                 text = text[1:]
@@ -551,16 +536,9 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         try:
             super(SpyderPdb, self).do_debug(arg)
         except Exception:
-            if PY2:
-                t, v = sys.exc_info()[:2]
-                if type(t) == type(''):
-                    exc_type_name = t
-                else: exc_type_name = t.__name__
-                print >>self.stdout, '***', exc_type_name + ':', v
-            else:
-                exc_info = sys.exc_info()[:2]
-                self.error(
-                    traceback.format_exception_only(*exc_info)[-1].strip())
+            exc_info = sys.exc_info()[:2]
+            self.error(
+                traceback.format_exception_only(*exc_info)[-1].strip())
         get_ipython().pdb_session = self
 
     def user_return(self, frame, return_value):
@@ -585,7 +563,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 self.allow_kbdint = False
                 break
             except KeyboardInterrupt:
-                _print("--KeyboardInterrupt--\n"
+                print("--KeyboardInterrupt--\n"
                        "For copying text while debugging, use Ctrl+Shift+C",
                        file=self.stdout)
 
@@ -612,39 +590,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         """
         self.notify_spyder(self.curframe)
         return super(SpyderPdb, self).postcmd(stop, line)
-
-    if PY2:
-        def break_here(self, frame):
-            """
-            Breakpoints don't work for files with non-ascii chars in Python 2
-
-            Fixes Issue 1484
-            """
-            from bdb import effective
-            filename = self.canonic(frame.f_code.co_filename)
-            try:
-                filename = unicode(filename, "utf-8")
-            except TypeError:
-                pass
-            if filename not in self.breaks:
-                return False
-            lineno = frame.f_lineno
-            if lineno not in self.breaks[filename]:
-                # The line itself has no breakpoint, but maybe the line is the
-                # first line of a function with breakpoint set by function name
-                lineno = frame.f_code.co_firstlineno
-                if lineno not in self.breaks[filename]:
-                    return False
-
-            # flag says ok to delete temp. bp
-            (bp, flag) = effective(filename, lineno, frame)
-            if bp:
-                self.currentbp = bp.number
-                if (flag and bp.temporary):
-                    self.do_clear(str(bp.number))
-                return True
-            else:
-                return False
 
     # --- Methods defined by us for Spyder integration
     def set_spyder_breakpoints(self, breakpoints):
@@ -719,16 +664,11 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
         # Get filename and line number of the current frame
         fname = self.canonic(frame.f_code.co_filename)
-        if PY2:
-            try:
-                fname = unicode(fname, "utf-8")
-            except TypeError:
-                pass
         lineno = frame.f_lineno
 
         # Set step of the current frame (if any)
         step = {}
-        if isinstance(fname, basestring) and isinstance(lineno, int):
+        if isinstance(fname, str) and isinstance(lineno, int):
             step = dict(fname=fname, lineno=lineno)
 
         # Publish Pdb state so we can update the Variable Explorer

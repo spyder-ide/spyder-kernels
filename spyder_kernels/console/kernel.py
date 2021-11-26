@@ -15,6 +15,7 @@ from distutils.version import LooseVersion
 import os
 import sys
 import threading
+import faulthandler
 
 # Third-party imports
 import ipykernel
@@ -22,17 +23,13 @@ from ipykernel.ipkernel import IPythonKernel
 from traitlets.config.loader import LazyConfigValue
 
 # Local imports
-from spyder_kernels.py3compat import TEXT_TYPES, to_text_string
 from spyder_kernels.comms.frontendcomm import FrontendComm
-from spyder_kernels.py3compat import PY3, input
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.mpl import (
     MPL_BACKENDS_FROM_SPYDER, MPL_BACKENDS_TO_SPYDER, INLINE_FIGURE_FORMATS)
 from spyder_kernels.utils.nsview import get_remote_data, make_remote_view
 from spyder_kernels.console.shell import SpyderShell
 
-if PY3:
-    import faulthandler
 
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
@@ -125,9 +122,6 @@ class SpyderKernel(IPythonKernel):
         Open a file to save the faulthandling and identifiers for
         internal threads.
         """
-        if not PY3:
-            # Not implemented
-            return
         self.disable_faulthandler()
         f = open(fn, 'w')
         self.faulthandler_handle = f
@@ -143,9 +137,6 @@ class SpyderKernel(IPythonKernel):
         """
         Cancel the faulthandling, close the file handle and remove the file.
         """
-        if not PY3:
-            # Not implemented
-            return
         if self.faulthandler_handle:
             faulthandler.disable()
             self.faulthandler_handle.close()
@@ -371,12 +362,8 @@ class SpyderKernel(IPythonKernel):
         self.frontend_call().pdb_input(prompt)
 
         # Allow GUI event loop to update
-        if PY3:
-            is_main_thread = (
-                threading.current_thread() is threading.main_thread())
-        else:
-            is_main_thread = isinstance(
-                threading.current_thread(), threading._MainThread)
+        is_main_thread = (
+            threading.current_thread() is threading.main_thread())
 
         # Get input by running eventloop
         if is_main_thread and self.eventloop:
@@ -439,7 +426,7 @@ class SpyderKernel(IPythonKernel):
 
     def set_matplotlib_backend(self, backend, pylab=False):
         """Set matplotlib backend given a Spyder backend option."""
-        mpl_backend = MPL_BACKENDS_FROM_SPYDER[to_text_string(backend)]
+        mpl_backend = MPL_BACKENDS_FROM_SPYDER[str(backend)]
         self._set_mpl_backend(mpl_backend, pylab=pylab)
 
     def set_mpl_inline_figure_format(self, figure_format):
@@ -681,9 +668,8 @@ class SpyderKernel(IPythonKernel):
         where *obj* is the object represented by *text*
         and *valid* is True if object evaluation did not raise any exception
         """
-        from spyder_kernels.py3compat import is_text_string
 
-        assert is_text_string(text)
+        assert isinstance(text, str)
         ns = self._get_current_namespace(with_magics=True)
         try:
             return eval(text, ns), True
@@ -757,7 +743,7 @@ class SpyderKernel(IPythonKernel):
         try:
             base_config = "{option} = "
             value_line = (
-                "'{value}'" if isinstance(value, TEXT_TYPES) else "{value}")
+                "'{value}'" if isinstance(value, str) else "{value}")
             config_line = base_config + value_line
             get_ipython().run_line_magic(
                 'config',
