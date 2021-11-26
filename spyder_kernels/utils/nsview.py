@@ -377,9 +377,14 @@ def value_to_display(value, minmax=False, level=0):
             else:
                 display = default_display(value)
         elif isinstance(value, str):
-            display = value
-            if level > 0:
-                display = "'" + display + "'"
+            # We don't apply this to classes that extend string types
+            # See issue 5636
+            if type(value) in [str, bytes]:
+                display = value
+                if level > 0:
+                    display = "'" + display + "'"
+            else:
+                display = default_display(value)
 
         elif (isinstance(value, datetime.date) or
               isinstance(value, datetime.timedelta)):
