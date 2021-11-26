@@ -384,7 +384,7 @@ def value_to_display(value, minmax=False, level=0):
         elif (isinstance(value, datetime.date) or
               isinstance(value, datetime.timedelta)):
             display = str(value)
-        elif (isinstance(value, [int, float, complex]) or
+        elif (isinstance(value, (int, float, complex)) or
               isinstance(value, bool) or
               isinstance(value, numeric_numpy_types)):
             display = repr(value)
@@ -596,7 +596,7 @@ def get_supported_types():
     """
     from datetime import date, timedelta
     editable_types = [int, float, complex, list, set, dict, tuple, date,
-                      timedelta, str, int, float, complex]
+                      timedelta, str]
     try:
         from numpy import ndarray, matrix, generic
         editable_types += [ndarray, matrix, generic]
