@@ -12,6 +12,7 @@
 #
 
 import bdb
+import builtins
 import cmd
 import io
 import logging
@@ -52,12 +53,6 @@ if not hasattr(sys, 'argv'):
 IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
 HIDE_CMD_WINDOWS = os.environ.get('SPY_HIDE_CMD') == "True"
 SHOW_INVALID_SYNTAX_MSG = True
-
-
-# =============================================================================
-# Execfile functions
-# =============================================================================
-import builtins
 
 
 # =============================================================================
