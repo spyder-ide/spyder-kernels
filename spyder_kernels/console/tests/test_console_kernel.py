@@ -19,6 +19,7 @@ import time
 from subprocess import Popen, PIPE
 import sys
 import inspect
+from collections import namedtuple
 
 # Test imports
 import ipykernel
@@ -904,6 +905,37 @@ def test_namespaces_in_pdb(kernel):
 
 
 def test_functions_with_locals_in_pdb(kernel):
+    """
+    Test that functions with locals works in Pdb.
+
+    This is a regression test for spyder-ide/spyder-kernels#345
+    """
+    pdb_obj = SpyderPdb()
+    Frame = namedtuple("Frame", ["f_globals"])
+    pdb_obj.curframe = Frame(f_globals=kernel.shell.user_ns)
+    pdb_obj.curframe_locals = kernel.shell.user_ns
+    kernel.shell.pdb_session = pdb_obj
+
+    # Create a local variable.
+    kernel.shell.pdb_session.default(
+        'def fun_a(): return [i for i in range(1)]')
+    kernel.shell.pdb_session.default(
+        'zz = fun_a()')
+    assert kernel.get_value('zz') == [0]
+
+    kernel.shell.pdb_session.default(
+        'a = 1')
+    kernel.shell.pdb_session.default(
+        'def fun_a(): return a')
+    kernel.shell.pdb_session.default(
+        'zz = fun_a()')
+    assert kernel.get_value('zz') == 1
+
+
+    pdb_obj.curframe = None
+    pdb_obj.curframe_locals = None
+
+def test_functions_with_locals_in_pdb_2(kernel):
     """
     Test that functions with locals works in Pdb.
 
