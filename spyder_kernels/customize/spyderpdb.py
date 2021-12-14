@@ -34,8 +34,8 @@ else:
 logger = logging.getLogger(__name__)
 
 
-def uses_comprehension(code):
-    """Check if given code uses comprehensions."""
+def capture_locals(code):
+    """Check if given code could capture locals."""
     comprehension_statements = (
         ast.ListComp,
         ast.SetComp,
@@ -192,12 +192,13 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 if execute_events:
                      get_ipython().events.trigger('pre_execute')
 
-                 # Mitigates a CPython bug (https://bugs.python.org/issue41918)
-                 # that prevents running comprehensions with the frame locals
-                 # in Pdb.
-                 # See https://bugs.python.org/issue21161 and
-                 # spyder-ide/spyder#13909.
-                if uses_comprehension(line):
+                # Mitigates a CPython bug (https://bugs.python.org/issue41918)
+                # that prevents running comprehensions with the frame locals
+                # in Pdb.
+                # See https://bugs.python.org/issue21161 and
+                # spyder-ide/spyder#13909.
+                # See spyder-ide/spyder-kernels#345
+                if capture_locals(code):
                     # There are three potential problems with this approach:
                     # 1. If the code access a globals variable that is
                     #    masked by a locals variable, it will get the locals
@@ -213,9 +214,11 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # Don't pass locals, solves spyder-ide/spyder#16790
                     exec(code, fake_globals)
                     # Avoid mixing locals and globals
+                    # Need a copy as fake_globals might have been saved
+                    fake_globals_copy = fake_globals.copy()
                     for key in locals_keys:
-                        locals[key] = fake_globals.pop(key, None)
-                    globals.update(fake_globals)
+                        locals[key] = fake_globals_copy.pop(key, None)
+                    globals.update(fake_globals_copy)
                 else:
                     exec(code, globals, locals)
 
