@@ -903,5 +903,36 @@ def test_namespaces_in_pdb(kernel):
     pdb_obj.curframe_locals = None
 
 
+def test_functions_with_locals_in_pdb(kernel):
+    """
+    Test that functions with locals works in Pdb.
+
+    This is a regression test for spyder-ide/spyder-kernels#345
+    """
+    pdb_obj = SpyderPdb()
+    pdb_obj.curframe = inspect.currentframe()
+    pdb_obj.curframe_locals = pdb_obj.curframe.f_locals
+    kernel.shell.pdb_session = pdb_obj
+
+    # Create a local variable.
+    kernel.shell.pdb_session.default(
+        'def fun_a(): return [i for i in range(1)]')
+    kernel.shell.pdb_session.default(
+        'zz = fun_a()')
+    assert kernel.get_value('zz') == [0]
+
+    kernel.shell.pdb_session.default(
+        'a = 1')
+    kernel.shell.pdb_session.default(
+        'def fun_a(): return a')
+    kernel.shell.pdb_session.default(
+        'zz = fun_a()')
+    assert kernel.get_value('zz') == 1
+
+
+    pdb_obj.curframe = None
+    pdb_obj.curframe_locals = None
+
+
 if __name__ == "__main__":
     pytest.main()
