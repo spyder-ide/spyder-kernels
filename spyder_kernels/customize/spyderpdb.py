@@ -40,7 +40,11 @@ def capture_locals(code):
         ast.ListComp,
         ast.SetComp,
         ast.GeneratorExp,
-        ast.DictComp
+        ast.DictComp,
+        ast.FunctionDef,
+        ast.AsyncFunctionDef,
+        ast.ClassDef,
+        ast.Lambda
     )
     nodes = ast.walk(ast.parse(code))
     return any(isinstance(node, comprehension_statements) for node in nodes)
@@ -198,7 +202,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 # See https://bugs.python.org/issue21161 and
                 # spyder-ide/spyder#13909.
                 # See spyder-ide/spyder-kernels#345
-                if capture_locals(code):
+                if capture_locals(line):
                     # There are three potential problems with this approach:
                     # 1. If the code access a globals variable that is
                     #    masked by a locals variable, it will get the locals

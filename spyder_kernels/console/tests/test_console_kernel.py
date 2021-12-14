@@ -941,6 +941,7 @@ def test_functions_with_locals_in_pdb_2(kernel):
 
     This is a regression test for spyder-ide/spyder-kernels#345
     """
+    baba = 1
     pdb_obj = SpyderPdb()
     pdb_obj.curframe = inspect.currentframe()
     pdb_obj.curframe_locals = pdb_obj.curframe.f_locals
@@ -961,6 +962,13 @@ def test_functions_with_locals_in_pdb_2(kernel):
         'zz = fun_a()')
     assert kernel.get_value('zz') == 1
 
+    # Check baba is in locals and not globals
+    kernel.shell.pdb_session.default(
+        'll = locals().keys()')
+    assert "baba" in kernel.get_value('ll')
+    kernel.shell.pdb_session.default(
+        'gg = globals().keys()')
+    assert "baba" not in kernel.get_value('gg')
 
     pdb_obj.curframe = None
     pdb_obj.curframe_locals = None
