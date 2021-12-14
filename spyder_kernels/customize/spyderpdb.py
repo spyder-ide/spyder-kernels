@@ -42,10 +42,12 @@ def capture_locals(code):
         ast.GeneratorExp,
         ast.DictComp,
         ast.FunctionDef,
-        ast.AsyncFunctionDef,
         ast.ClassDef,
         ast.Lambda
     )
+    if not PY2:
+        comprehension_statements += (
+            ast.AsyncFunctionDef, )
     nodes = ast.walk(ast.parse(code))
     return any(isinstance(node, comprehension_statements) for node in nodes)
 
