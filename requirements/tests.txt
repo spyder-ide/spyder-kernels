@@ -2,7 +2,7 @@ codecov
 cython
 dask
 flaky
-matplotlib
+matplotlib <3.5.0
 mock
 numpy
 pandas
@@ -11,5 +11,3 @@ pytest-cov
 scipy
 xarray
 pillow
-# Remove when Anaconda updates to a newer ipykernel
-ipython_genutils

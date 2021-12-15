@@ -475,8 +475,7 @@ if __name__ == '__main__':
 
 
 @flaky(max_runs=3)
-@pytest.mark.skipif(not PY3,
-                    reason="Only meant for Python 3")
+@pytest.mark.skipif(not PY3, reason="Only meant for Python 3")
 def test_dask_multiprocessing(tmpdir):
     """
     Test that dask multiprocessing works on Python 3.
