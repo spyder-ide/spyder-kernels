@@ -637,24 +637,32 @@ f = np.get_printoptions()['formatter']
         # Check correct decimal format
         client.inspect('a')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "data" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']['data']['text/plain']
         assert "123412341234.12" in content
 
         # Check threshold value
         client.inspect('t')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "data" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']['data']['text/plain']
         assert "inf" in content
 
         # Check suppress value
         client.inspect('s')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "data" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']['data']['text/plain']
         assert "True" in content
 
         # Check formatter
         client.inspect('f')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "data" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']['data']['text/plain']
         assert "{'float_kind': <built-in method format of str object" in content
 
@@ -712,6 +720,8 @@ turtle.bye()
         # Verify that the `tess` variable is defined
         client.inspect('tess')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "found" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
@@ -728,6 +738,8 @@ turtle.bye()
         # Verify that the `a` variable is defined
         client.inspect('a')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "found" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
@@ -743,6 +755,8 @@ def test_matplotlib_inline(kernel):
         code = "import matplotlib; backend = matplotlib.get_backend()"
         client.execute(code, user_expressions={'output': 'backend'})
         reply = client.get_shell_msg(timeout=TIMEOUT)
+        while 'user_expressions' not in reply['content']:
+            reply = client.get_shell_msg(timeout=TIMEOUT)
 
         # Transform value obtained through user_expressions
         user_expressions = reply['content']['user_expressions']
