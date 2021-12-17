@@ -425,6 +425,8 @@ def test_cwd_in_sys_path():
         msg_id = client.execute("import sys; sys_path = sys.path",
                                 user_expressions={'output':'sys_path'})
         reply = client.get_shell_msg(timeout=TIMEOUT)
+        while 'user_expressions' not in reply['content']:
+            reply = client.get_shell_msg(timeout=TIMEOUT)
 
         # Transform value obtained through user_expressions
         user_expressions = reply['content']['user_expressions']
@@ -471,6 +473,8 @@ if __name__ == '__main__':
         # Verify that the `result` variable is defined
         client.inspect('result')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "found" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
@@ -513,6 +517,8 @@ if __name__=='__main__':
         # Verify that the `x` variable is defined
         client.inspect('x')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "found" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
@@ -553,6 +559,8 @@ def test_runfile(tmpdir):
         # Verify that `result` is defined in the current namespace
         client.inspect('result')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "found" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
@@ -564,6 +572,8 @@ def test_runfile(tmpdir):
         # Verify that the variable `result2` is defined
         client.inspect('result2')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "found" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
@@ -576,12 +586,16 @@ def test_runfile(tmpdir):
         # Verify that the variable `result3` is defined
         client.inspect('result3')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "found" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
         assert content['found']
 
         # Verify that the variable `__file__` is undefined
         client.inspect('__file__')
         msg = client.get_shell_msg(timeout=TIMEOUT)
+        while "found" not in msg['content']:
+            msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
         assert not content['found']
 
