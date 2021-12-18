@@ -934,7 +934,7 @@ def test_namespaces_in_pdb(kernel):
 
 def test_functions_with_locals_in_pdb(kernel):
     """
-    Test that functions with locals works in Pdb.
+    Test that functions with locals work in Pdb.
 
     This is a regression test for spyder-ide/spyder-kernels#345
     """
@@ -944,7 +944,7 @@ def test_functions_with_locals_in_pdb(kernel):
     pdb_obj.curframe_locals = kernel.shell.user_ns
     kernel.shell.pdb_session = pdb_obj
 
-    # Create a local variable.
+    # Create a local function.
     kernel.shell.pdb_session.default(
         'def fun_a(): return [i for i in range(1)]')
     kernel.shell.pdb_session.default(
@@ -965,9 +965,9 @@ def test_functions_with_locals_in_pdb(kernel):
 
 def test_functions_with_locals_in_pdb_2(kernel):
     """
-    Test that functions with locals works in Pdb.
+    Test that functions with locals work in Pdb.
 
-    This is a regression test for spyder-ide/spyder-kernels#345
+    This is another regression test for spyder-ide/spyder-kernels#345
     """
     baba = 1
     pdb_obj = SpyderPdb()
@@ -975,7 +975,7 @@ def test_functions_with_locals_in_pdb_2(kernel):
     pdb_obj.curframe_locals = pdb_obj.curframe.f_locals
     kernel.shell.pdb_session = pdb_obj
 
-    # Create a local variable.
+    # Create a local function.
     kernel.shell.pdb_session.default(
         'def fun_a(): return [i for i in range(1)]')
     kernel.shell.pdb_session.default(

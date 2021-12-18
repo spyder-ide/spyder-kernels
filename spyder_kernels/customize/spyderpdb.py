@@ -203,7 +203,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 # in Pdb.
                 # See https://bugs.python.org/issue21161 and
                 # spyder-ide/spyder#13909.
-                # See spyder-ide/spyder-kernels#345
+                # See also spyder-ide/spyder-kernels#345
                 if capture_locals(line):
                     # There are three potential problems with this approach:
                     # 1. If the code access a globals variable that is
@@ -219,8 +219,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     locals_keys = locals.keys()
                     # Don't pass locals, solves spyder-ide/spyder#16790
                     exec(code, fake_globals)
-                    # Avoid mixing locals and globals
-                    # Need a copy as fake_globals might have been saved
+                    # Avoid mixing locals and globals.
+                    # Need a copy as fake_globals might have been saved.
                     fake_globals_copy = fake_globals.copy()
                     for key in locals_keys:
                         locals[key] = fake_globals_copy.pop(key, None)
