@@ -189,17 +189,30 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 # If this is ever fixed in python, this whole block can be
                 # Replaced by `exec(code, globals, locals)` (else included)
                 if locals is not globals:
-                    #
+                    # frame.f_globals is a mix of the "real" globals and
+                    # locals. `globals()` returns a copy of the real globals.
+                    # frame.f_globals is None. `locals()` returns the real
+                    # locals
                     # There are a few potential problems with this approach:
-                    # 1. frame.f_globals is a mix of the "real" globals and
-                    #    locals. `globals()` returns a copy of the real globals
-                    # 2. Any edit made explicitely to `globals()` is therefore
-                    #    lost, except if the variable was masked or added.
-                    # 3. frame.f_globals and globals() therefore do not match
+                    # 1. Any edit made explicitely to `globals()` is
+                    #    lost, except if the variable is masked or added.
+                    # 2. Any edit made explicitely to `locals()` is
+                    #    lost, except additions.
+                    # 3. frame.f_globals and globals() do not match
                     # 4. frame.f_locals and locals() do not match
                     #
-                    # As long as the user does not do more than looking at the
-                    # locals and globals, this should work as expected.
+                    # The last two are necessary to fix the issues above.
+                    # The first two are a consequence of not being able to
+                    # detect if a variable was modified in a dict.
+                    # The solution of subclassing dict does not work as `exec`
+                    # For example accesses directly the c object, bypassing
+                    # any python code. If a way is found of detecting
+                    # modifications after the exec, ordering becomes an issue.
+                    #
+                    # As long as the user does not modify explicitrely
+                    # `locals()` and `globals()`, and does not check
+                    # frame.f_globals or frame.f_locals,
+                    # this should work as expected.
 
                     # Save original state
                     original_locals_keys = list(locals.keys())
@@ -218,19 +231,20 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     def new_globals():
                         frame = sys._getframe(2)
                         if frame is default_frame:
+                            # This is called in exec directly
                             return globals_copy
-                        else:
-                            return frame.f_globals
+                        return sys._getframe(1).f_globals
 
                     def new_locals():
                         frame = sys._getframe(2)
                         if frame is default_frame:
+                            # This is called in exec directly
                             return locals
-                        elif frame is self.curframe:
+                        frame = sys._getframe(1)
+                        if frame is self.curframe:
                             # Do not call f_locals on curframe
                             return self.curframe_locals
-                        else:
-                            return frame.f_locals
+                        return frame.f_locals
 
                     # Replace the builtins globals and locals
                     globals_func = builtins.globals
@@ -245,11 +259,13 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     builtins.globals = globals_func
                     builtins.locals = locals_func
 
+                    # Addition to `globals()`
                     for key in globals_copy:
-                        if key not in original_globals_keys:
+                        if (key not in original_globals_keys
+                                and key not in globals):
                             globals[key] = globals_copy[key]
 
-                    # Deconvolute all the dictionnaries
+                    # put locals back in locals, and unmask variables
                     for key in original_locals_keys:
                         if key in globals:
                             # Put back in global
@@ -257,6 +273,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                         if key in globals_copy:
                             # Was masked, restore
                             globals[key] = globals_copy[key]
+
                     # Any new var goes in locals
                     globals_keys = list(globals.keys())
                     for key in globals_keys:
