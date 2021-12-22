@@ -203,6 +203,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
                     # Save original state
                     original_locals_keys = list(locals.keys())
+                    original_globals_keys = list(globals.keys())
 
                     # Save a copy of the globals for new_globals
                     globals_copy = globals.copy()
@@ -243,6 +244,10 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # Restore builtins
                     builtins.globals = globals_func
                     builtins.locals = locals_func
+
+                    for key in globals_copy:
+                        if key not in original_globals_keys:
+                            globals[key] = globals_copy[key]
 
                     # Deconvolute all the dictionnaries
                     for key in original_locals_keys:
