@@ -194,7 +194,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # 1. frame.f_globals is a mix of the "real" globals and
                     #    locals. `globals()` returns a copy of the real globals
                     # 2. Any edit made explicitely to `globals()` is therefore
-                    #    lost, except if the variable was masked.
+                    #    lost, except if the variable was masked or added.
                     # 3. frame.f_globals and globals() therefore do not match
                     # 4. frame.f_locals and locals() do not match
                     #
