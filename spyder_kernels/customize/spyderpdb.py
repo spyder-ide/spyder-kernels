@@ -186,13 +186,13 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 # See https://bugs.python.org/issue21161 and
                 # spyder-ide/spyder#13909.
                 # See also spyder-ide/spyder-kernels#345
-                # If this is ever fixed in python, this whole block can be
+                # If this is ever fixed in Python, this whole block can be
                 # Replaced by `exec(code, globals, locals)` (else included)
                 if locals is not globals:
                     # frame.f_globals is a mix of the "real" globals and
                     # locals. `globals()` returns a copy of the real globals.
                     # frame.f_globals is None. `locals()` returns the real
-                    # locals
+                    # locals.
                     # There are a few potential problems with this approach:
                     # 1. Any edit made explicitely to `globals()` is
                     #    lost, except if the variable is masked or added.
@@ -206,10 +206,10 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # detect if a variable was modified in a dict.
                     # The solution of subclassing dict does not work as `exec`
                     # For example accesses directly the c object, bypassing
-                    # any python code. If a way is found of detecting
+                    # any Python code. If a way is found of detecting
                     # modifications after the exec, ordering becomes an issue.
                     #
-                    # As long as the user does not modify explicitrely
+                    # As long as the user does not modify explicitly
                     # `locals()` and `globals()`, and does not check
                     # frame.f_globals or frame.f_locals,
                     # this should work as expected.
@@ -220,12 +220,12 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
                     # Save a copy of the globals for new_globals
                     globals_copy = globals.copy()
+
                     # Mix the locals with the globals
                     globals.update(locals)
 
-                    # Create new `locals` and `globals` function that return
-                    # the right dictionnary
-
+                    # Create new `locals` and `globals` functions that return
+                    # the right dictionaries.
                     default_frame = sys._getframe(0)
 
                     def new_globals():
@@ -265,7 +265,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                                 and key not in globals):
                             globals[key] = globals_copy[key]
 
-                    # put locals back in locals, and unmask variables
+                    # Put locals back in locals, and unmask variables
                     for key in original_locals_keys:
                         if key in globals:
                             # Put back in global
