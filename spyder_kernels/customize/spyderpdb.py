@@ -165,11 +165,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                         self.print_exclamation_warning()
         try:
             line = TransformerManager().transform_cell(line)
-            try:
-                code = compile(line + '\n', '<stdin>', 'single')
-            except SyntaxError:
-                # support multiline statments
-                code = compile(line + '\n', '<stdin>', 'exec')
             save_stdout = sys.stdout
             save_stdin = sys.stdin
             save_displayhook = sys.displayhook
@@ -180,107 +175,64 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 if execute_events:
                      get_ipython().events.trigger('pre_execute')
 
-                # Mitigates a CPython bug (https://bugs.python.org/issue41918)
-                # that prevents running comprehensions with the frame locals
-                # in Pdb.
-                # See https://bugs.python.org/issue21161 and
-                # spyder-ide/spyder#13909.
-                # See also spyder-ide/spyder-kernels#345
-                # If this is ever fixed in Python, this whole block can be
-                # Replaced by `exec(code, globals, locals)` (else included)
                 if locals is not globals:
-                    # frame.f_globals is a mix of the "real" globals and
-                    # locals. `globals()` returns a copy of the real globals.
-                    # frame.f_globals is None. `locals()` returns the real
-                    # locals.
-                    # There are a few potential problems with this approach:
-                    # 1. Any edit made explicitely to `globals()` is
-                    #    lost, except if the variable is masked or added.
-                    # 2. Any edit made explicitely to `locals()` is
-                    #    lost, except additions.
-                    # 3. frame.f_globals and globals() do not match
-                    # 4. frame.f_locals and locals() do not match
+                    # Mitigates a behaviour of CPython that makes it difficult
+                    # To work with exec and the local namespace
+                    # See:
+                    #  - https://bugs.python.org/issue41918
+                    #  - https://bugs.python.org/issue46153
+                    #  - https://bugs.python.org/issue21161
+                    #  - spyder-ide/spyder#13909
+                    #  - spyder-ide/spyder-kernels#345
                     #
-                    # The last two are necessary to fix the issues above.
-                    # The first two are a consequence of not being able to
-                    # detect if a variable was modified in a dict.
-                    # The solution of subclassing dict does not work as `exec`
-                    # For example accesses directly the c object, bypassing
-                    # any Python code. If a way is found of detecting
-                    # modifications after the exec, ordering becomes an issue.
+                    # The idea here is that the best way to emulate being in a
+                    # function is to actually execute the code in a function.
+                    # A function called `_spyder_pdb_code` is created and
+                    # called. It will first load the locals, execute the code,
+                    # and then update the locals.
                     #
-                    # As long as the user does not modify explicitly
-                    # `locals()` and `globals()`, and does not check
-                    # frame.f_globals or frame.f_locals,
-                    # this should work as expected.
+                    # One limitation of this approach is that locals() is only
+                    # a copy of the curframe locals. This means that closures
+                    # for example are early binding instead of late binding.
 
-                    # Save original state
-                    original_locals_keys = list(locals.keys())
-                    original_globals_keys = list(globals.keys())
+                    # Check if line is an expression to print
+                    print_ret = False
+                    try:
+                        code = ast.parse(line + '\n', '<stdin>', 'single')
+                        if len(code.body) == 1:
+                            print_ret = isinstance(code.body[0], ast.Expr)
+                    except SyntaxError:
+                        pass
 
-                    # Save a copy of the globals for new_globals
-                    globals_copy = globals.copy()
-
-                    # Mix the locals with the globals
-                    globals.update(locals)
-
-                    # Create new `locals` and `globals` functions that return
-                    # the right dictionaries.
-                    default_frame = sys._getframe(0)
-
-                    def new_globals():
-                        frame = sys._getframe(2)
-                        if frame is default_frame:
-                            # This is called in exec directly
-                            return globals_copy
-                        return sys._getframe(1).f_globals
-
-                    def new_locals():
-                        frame = sys._getframe(2)
-                        if frame is default_frame:
-                            # This is called in exec directly
-                            return locals
-                        frame = sys._getframe(1)
-                        if frame is self.curframe:
-                            # Do not call f_locals on curframe
-                            return self.curframe_locals
-                        return frame.f_locals
-
-                    # Replace the builtins globals and locals
-                    globals_func = builtins.globals
-                    builtins.globals = new_globals
-                    locals_func = builtins.locals
-                    builtins.locals = new_locals
-
-                    # Don't pass locals, solves spyder-ide/spyder#16790
-                    exec(code, globals)
-
-                    # Restore builtins
-                    builtins.globals = globals_func
-                    builtins.locals = locals_func
-
-                    # Addition to `globals()`
-                    for key in globals_copy:
-                        if (key not in original_globals_keys
-                                and key not in globals):
-                            globals[key] = globals_copy[key]
-
-                    # Put locals back in locals, and unmask variables
-                    for key in original_locals_keys:
-                        if key in globals:
-                            # Put back in global
-                            locals[key] = globals.pop(key)
-                        if key in globals_copy:
-                            # Was masked, restore
-                            globals[key] = globals_copy[key]
-
-                    # Any new var goes in locals
-                    globals_keys = list(globals.keys())
-                    for key in globals_keys:
-                        if key not in locals and key not in globals_copy:
-                            locals[key] = globals.pop(key)
+                    # create a function and load the locals
+                    builtins._get_spyderpdb_locals = lambda: locals
+                    indent = "    "
+                    code = [
+                        "def _spyder_pdb_code():",]
+                    code += [
+                        indent + f"{k} = _get_spyderpdb_locals()['{k}']"
+                        for k in locals]
+                    # Run the code
+                    if print_ret:
+                        code += [indent + 'print(' + line.strip() + ")"]
+                    else:
+                        code += [indent + l for l in line.splitlines()]
+                    # Update the locals
+                    code += [
+                        indent + "_get_spyderpdb_locals().update(locals())"]
+                    # Run the function
+                    code += [
+                        "_spyder_pdb_code()",
+                        "del _spyder_pdb_code"]
+                    code = compile('\n'.join(code) + '\n', '<stdin>', 'exec')
                 else:
-                    exec(code, globals)
+                    try:
+                        code = compile(line + '\n', '<stdin>', 'single')
+                    except SyntaxError:
+                        # support multiline statments
+                        code = compile(line + '\n', '<stdin>', 'exec')
+
+                exec(code, globals)
 
                 if execute_events:
                      get_ipython().events.trigger('post_execute')
