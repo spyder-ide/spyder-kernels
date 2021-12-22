@@ -34,24 +34,6 @@ else:
 logger = logging.getLogger(__name__)
 
 
-def capture_locals(code):
-    """Check if given code could capture locals."""
-    comprehension_statements = (
-        ast.ListComp,
-        ast.SetComp,
-        ast.GeneratorExp,
-        ast.DictComp,
-        ast.FunctionDef,
-        ast.ClassDef,
-        ast.Lambda
-    )
-    if not PY2:
-        comprehension_statements += (
-            ast.AsyncFunctionDef, )
-    nodes = ast.walk(ast.parse(code))
-    return any(isinstance(node, comprehension_statements) for node in nodes)
-
-
 class DebugWrapper(object):
     """
     Notifies the frontend when debugging starts/stops
@@ -204,29 +186,79 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 # See https://bugs.python.org/issue21161 and
                 # spyder-ide/spyder#13909.
                 # See also spyder-ide/spyder-kernels#345
-                if capture_locals(line):
-                    # There are three potential problems with this approach:
-                    # 1. If the code access a globals variable that is
-                    #    masked by a locals variable, it will get the locals
-                    #    one.
-                    # 2. Any edit to that variable will be lost.
-                    # 3. The globals will appear to contain all the locals
-                    #    variables.
-                    # 4. Any new locals variable will be saved to globals
-                    #    instead
-                    fake_globals = globals.copy()
-                    fake_globals.update(locals)
-                    locals_keys = locals.keys()
+                # If this is ever fixed in python, this whole block can be
+                # Replaced by `exec(code, globals, locals)` (else included)
+                if locals is not globals:
+                    #
+                    # There are a few potential problems with this approach:
+                    # 1. frame.f_globals is a mix of the "real" globals and
+                    #    locals. `globals()` returns a copy of the real globals
+                    # 2. Any edit made explicitely to `globals()` is therefore
+                    #    lost, except if the variable was masked.
+                    # 3. frame.f_globals and globals() therefore do not match
+                    # 4. frame.f_locals and locals() do not match
+                    #
+                    # As long as the user does not do more than looking at the
+                    # locals and globals, this should work as expected.
+
+                    # Save original state
+                    original_locals_keys = list(locals.keys())
+
+                    # Save a copy of the globals for new_globals
+                    globals_copy = globals.copy()
+                    # Mix the locals with the globals
+                    globals.update(locals)
+
+                    # Create new `locals` and `globals` function that return
+                    # the right dictionnary
+
+                    default_frame = sys._getframe(0)
+
+                    def new_globals():
+                        frame = sys._getframe(2)
+                        if frame is default_frame:
+                            return globals_copy
+                        else:
+                            return frame.f_globals
+
+                    def new_locals():
+                        frame = sys._getframe(2)
+                        if frame is default_frame:
+                            return locals
+                        elif frame is self.curframe:
+                            # Do not call f_locals on curframe
+                            return self.curframe_locals
+                        else:
+                            return frame.f_locals
+
+                    # Replace the builtins globals and locals
+                    globals_func = builtins.globals
+                    builtins.globals = new_globals
+                    locals_func = builtins.locals
+                    builtins.locals = new_locals
+
                     # Don't pass locals, solves spyder-ide/spyder#16790
-                    exec(code, fake_globals)
-                    # Avoid mixing locals and globals.
-                    # Need a copy as fake_globals might have been saved.
-                    fake_globals_copy = fake_globals.copy()
-                    for key in locals_keys:
-                        locals[key] = fake_globals_copy.pop(key, None)
-                    globals.update(fake_globals_copy)
+                    exec(code, globals)
+
+                    # Restore builtins
+                    builtins.globals = globals_func
+                    builtins.locals = locals_func
+
+                    # Deconvolute all the dictionnaries
+                    for key in original_locals_keys:
+                        if key in globals:
+                            # Put back in global
+                            locals[key] = globals.pop(key)
+                        if key in globals_copy:
+                            # Was masked, restore
+                            globals[key] = globals_copy[key]
+                    # Any new var goes in locals
+                    globals_keys = list(globals.keys())
+                    for key in globals_keys:
+                        if key not in locals and key not in globals_copy:
+                            locals[key] = globals.pop(key)
                 else:
-                    exec(code, globals, locals)
+                    exec(code, globals)
 
                 if execute_events:
                      get_ipython().events.trigger('post_execute')
