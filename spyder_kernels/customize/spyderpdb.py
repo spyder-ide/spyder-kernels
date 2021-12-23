@@ -207,40 +207,34 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # create a function and load the locals
                     globals["_spyderpdb_locals"] = locals
                     indent = "    "
-                    code = [
-                        "def _spyderpdb_code():",]
-                    code += [
-                        indent + "{k} = _spyderpdb_locals['{k}']".format(k=k)
-                        for k in locals]
+                    code = ["def _spyderpdb_code():"]
+                    code += [indent + "{k} = _spyderpdb_locals['{k}']".format(
+                        k=k) for k in locals]
                     # Run the code
                     if print_ret:
                         code += [indent + 'print(' + line.strip() + ")"]
                     else:
                         code += [indent + l for l in line.splitlines()]
                     # Update the locals
-                    code += [
-                        indent + "_spyderpdb_locals.update(locals())"]
+                    code += [indent + "_spyderpdb_locals.update(locals())"]
                     # Run the function
-                    code += [
-                        "_spyderpdb_code()",
-                        "del _spyderpdb_code"]
+                    code += ["_spyderpdb_code()"]
                     code = compile('\n'.join(code) + '\n', '<stdin>', 'exec')
+                    try:
+                        exec(code, globals)
+                    finally:
+                        globals.pop("_spyderpdb_locals", None)
+                        globals.pop("_spyderpdb_code", None)
                 else:
                     try:
                         code = compile(line + '\n', '<stdin>', 'single')
                     except SyntaxError:
                         # support multiline statments
                         code = compile(line + '\n', '<stdin>', 'exec')
-                try:
                     exec(code, globals)
-                finally:
-                    if locals is not globals:
-                        # Remove _spyderpdb_locals from globals
-                        del globals["_spyderpdb_locals"]
-
-                    if execute_events:
-                         get_ipython().events.trigger('post_execute')
             finally:
+                if execute_events:
+                     get_ipython().events.trigger('post_execute')
                 sys.stdout = save_stdout
                 sys.stdin = save_stdin
                 sys.displayhook = save_displayhook
