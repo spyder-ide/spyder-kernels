@@ -177,7 +177,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
                 if locals is not globals:
                     # Mitigates a behaviour of CPython that makes it difficult
-                    # To work with exec and the local namespace
+                    # to work with exec and the local namespace
                     # See:
                     #  - https://bugs.python.org/issue41918
                     #  - https://bugs.python.org/issue46153
@@ -204,19 +204,22 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     except SyntaxError:
                         pass
 
-                    # create a function and load the locals
+                    # Create a function and load the locals
                     globals["_spyderpdb_locals"] = locals
                     indent = "    "
                     code = ["def _spyderpdb_code():"]
                     code += [indent + "{k} = _spyderpdb_locals['{k}']".format(
                         k=k) for k in locals]
+
                     # Run the code
                     if print_ret:
                         code += [indent + 'print(' + line.strip() + ")"]
                     else:
                         code += [indent + l for l in line.splitlines()]
+
                     # Update the locals
                     code += [indent + "_spyderpdb_locals.update(locals())"]
+
                     # Run the function
                     code += ["_spyderpdb_code()"]
                     code = compile('\n'.join(code) + '\n', '<stdin>', 'exec')
@@ -229,7 +232,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     try:
                         code = compile(line + '\n', '<stdin>', 'single')
                     except SyntaxError:
-                        # support multiline statments
+                        # Support multiline statments
                         code = compile(line + '\n', '<stdin>', 'exec')
                     exec(code, globals)
             finally:
