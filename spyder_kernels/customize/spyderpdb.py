@@ -210,7 +210,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     code = [
                         "def _spyder_pdb_code():",]
                     code += [
-                        indent + f"{k} = _get_spyderpdb_locals()['{k}']"
+                        indent + "{k} = _get_spyderpdb_locals()['{k}']".format(k=k)
                         for k in locals]
                     # Run the code
                     if print_ret:
