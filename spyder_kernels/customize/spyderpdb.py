@@ -187,7 +187,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     #
                     # The idea here is that the best way to emulate being in a
                     # function is to actually execute the code in a function.
-                    # A function called `_spyder_pdb_code` is created and
+                    # A function called `_spyderpdb_code` is created and
                     # called. It will first load the locals, execute the code,
                     # and then update the locals.
                     #
@@ -205,12 +205,12 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                         pass
 
                     # create a function and load the locals
-                    builtins._get_spyderpdb_locals = lambda: locals
+                    globals["_spyderpdb_locals"] = locals
                     indent = "    "
                     code = [
-                        "def _spyder_pdb_code():",]
+                        "def _spyderpdb_code():",]
                     code += [
-                        indent + "{k} = _get_spyderpdb_locals()['{k}']".format(k=k)
+                        indent + "{k} = _spyderpdb_locals['{k}']".format(k=k)
                         for k in locals]
                     # Run the code
                     if print_ret:
@@ -219,11 +219,11 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                         code += [indent + l for l in line.splitlines()]
                     # Update the locals
                     code += [
-                        indent + "_get_spyderpdb_locals().update(locals())"]
+                        indent + "_spyderpdb_locals.update(locals())"]
                     # Run the function
                     code += [
-                        "_spyder_pdb_code()",
-                        "del _spyder_pdb_code"]
+                        "_spyderpdb_code()",
+                        "del _spyderpdb_code"]
                     code = compile('\n'.join(code) + '\n', '<stdin>', 'exec')
                 else:
                     try:
@@ -231,11 +231,15 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     except SyntaxError:
                         # support multiline statments
                         code = compile(line + '\n', '<stdin>', 'exec')
+                try:
+                    exec(code, globals)
+                finally:
+                    if locals is not globals:
+                        # Remove _spyderpdb_locals from globals
+                        del globals["_spyderpdb_locals"]
 
-                exec(code, globals)
-
-                if execute_events:
-                     get_ipython().events.trigger('post_execute')
+                    if execute_events:
+                         get_ipython().events.trigger('post_execute')
             finally:
                 sys.stdout = save_stdout
                 sys.stdin = save_stdin
