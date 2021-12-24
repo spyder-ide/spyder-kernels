@@ -213,10 +213,12 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                         k=k) for k in locals]
 
                     # Run the code
-                    for l in lines[:-1]:
-                        code += [indent + l]
+                    for line in lines[:-1]:
+                        code += [indent + line]
                     if print_last_line:
-                        code += [indent + 'globals()["_spyderpdb_out"] = ' + lines[-1]]
+                        code += [
+                            indent + 'globals()["_spyderpdb_out"] = '
+                            + lines[-1]]
                     else:
                         code += [indent + lines[-1]]
 
@@ -231,9 +233,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                         "del _spyderpdb_code",
                         "del _spyderpdb_locals"]
                 else:
-                    code = []
-                    for l in lines[:-1]:
-                        code += [l]
+                    code = lines[:-1]
                     if print_last_line:
                         code += ['globals()["_spyderpdb_out"] = ' + lines[-1]]
                     else:
@@ -243,11 +243,11 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 exec(code, globals)
 
                 if print_last_line:
-                   out = globals.pop("_spyderpdb_out", None)
-                   if out is not None:
-                       sys.stdout.flush()
-                       sys.stderr.flush()
-                       frontend_request(blocking=False).pdb_out(repr(out))
+                    out = globals.pop("_spyderpdb_out", None)
+                    if out is not None:
+                        sys.stdout.flush()
+                        sys.stderr.flush()
+                        frontend_request(blocking=False).pdb_out(repr(out))
 
             finally:
                 if execute_events:
