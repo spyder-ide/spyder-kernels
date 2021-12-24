@@ -1041,10 +1041,6 @@ def test_locals_globals_in_pdb(kernel):
         'test = "a" in locals()')
     assert kernel.get_value('test') == True
 
-    kernel.shell.pdb_session.default(
-        'test = f()')
-    assert kernel.get_value('test') == 2
-
     pdb_obj.curframe = None
     pdb_obj.curframe_locals = None
 
