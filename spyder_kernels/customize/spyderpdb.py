@@ -175,6 +175,16 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 if execute_events:
                      get_ipython().events.trigger('pre_execute')
 
+                lines = line.rstrip("\n").splitlines()
+                # Check if last line is an expression to print
+                print_last_line = False
+                try:
+                    code = ast.parse(lines[-1] + '\n', '<stdin>', 'single')
+                    if len(code.body) == 1:
+                        print_last_line = isinstance(code.body[0], ast.Expr)
+                except (SyntaxError, IndentationError):
+                    pass
+
                 if locals is not globals:
                     # Mitigates a behaviour of CPython that makes it difficult
                     # to work with exec and the local namespace
@@ -195,15 +205,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # a copy of the curframe locals. This means that closures
                     # for example are early binding instead of late binding.
 
-                    # Check if line is an expression to print
-                    print_ret = False
-                    try:
-                        code = ast.parse(line + '\n', '<stdin>', 'single')
-                        if len(code.body) == 1:
-                            print_ret = isinstance(code.body[0], ast.Expr)
-                    except SyntaxError:
-                        pass
-
                     # Create a function and load the locals
                     globals["_spyderpdb_locals"] = locals
                     indent = "    "
@@ -212,29 +213,42 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                         k=k) for k in locals]
 
                     # Run the code
-                    if print_ret:
-                        code += [indent + 'print(' + line.strip() + ")"]
+                    for l in lines[:-1]:
+                        code += [indent + l]
+                    if print_last_line:
+                        code += [indent + 'globals()["_spyderpdb_out"] = ' + lines[-1]]
                     else:
-                        code += [indent + l for l in line.splitlines()]
+                        code += [indent + lines[-1]]
 
                     # Update the locals
                     code += [indent + "_spyderpdb_locals.update(locals())"]
 
                     # Run the function
                     code += ["_spyderpdb_code()"]
-                    code = compile('\n'.join(code) + '\n', '<stdin>', 'exec')
-                    try:
-                        exec(code, globals)
-                    finally:
-                        globals.pop("_spyderpdb_locals", None)
-                        globals.pop("_spyderpdb_code", None)
+
+                    # Cleanup
+                    code += [
+                        "del _spyderpdb_code",
+                        "del _spyderpdb_locals"]
                 else:
-                    try:
-                        code = compile(line + '\n', '<stdin>', 'single')
-                    except SyntaxError:
-                        # Support multiline statments
-                        code = compile(line + '\n', '<stdin>', 'exec')
-                    exec(code, globals)
+                    code = []
+                    for l in lines[:-1]:
+                        code += [l]
+                    if print_last_line:
+                        code += ['globals()["_spyderpdb_out"] = ' + lines[-1]]
+                    else:
+                        code += [lines[-1]]
+
+                code = compile('\n'.join(code) + '\n', '<stdin>', 'exec')
+                exec(code, globals)
+
+                if print_last_line:
+                   out = globals.pop("_spyderpdb_out", None)
+                   if out is not None:
+                       sys.stdout.flush()
+                       sys.stderr.flush()
+                       frontend_request(blocking=False).pdb_out(repr(out))
+
             finally:
                 if execute_events:
                      get_ipython().events.trigger('post_execute')
