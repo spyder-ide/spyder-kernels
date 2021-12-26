@@ -178,9 +178,11 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 code_ast = ast.parse(line)
                 # Modify ast code to capture the last expression
                 capture_last_expression = False
-                if (len(code_ast.body)
-                        and isinstance(code_ast.body[-1], ast.Expr)
-                        and line.rstrip()[-1] != ";"):
+                if (
+                    len(code_ast.body)
+                    and isinstance(code_ast.body[-1], ast.Expr)
+                    and line.rstrip()[-1] != ";"
+                ):
                     capture_last_expression = True
                     expr_node = code_ast.body[-1]
                     # Create new assign node
@@ -227,7 +229,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # Cleanup
                     code += [
                         "del _spyderpdb_code",
-                        "del _spyderpdb_locals"]
+                        "del _spyderpdb_locals"
+                    ]
                     # Parse the function
                     fun_ast = ast.parse('\n'.join(code) + '\n')
 
@@ -235,7 +238,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     fun_ast.body[0].body = (
                         fun_ast.body[0].body[:-1]  # The locals
                         + code_ast.body  # Code to run
-                        + fun_ast.body[0].body[-1:])  # Locals update
+                        + fun_ast.body[0].body[-1:]  # Locals update
+                    )
                     code_ast = fun_ast
 
                 exec(compile(code_ast, "<stdin>", "exec"), globals)
