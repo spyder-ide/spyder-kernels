@@ -245,7 +245,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     if out is not None:
                         sys.stdout.flush()
                         sys.stderr.flush()
-                        frontend_request(blocking=False).pdb_out(repr(out))
+                        frontend_request(blocking=False).show_pdb_output(
+                            repr(out))
 
             finally:
                 if execute_events:
