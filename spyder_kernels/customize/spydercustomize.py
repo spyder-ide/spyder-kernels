@@ -28,7 +28,7 @@ from IPython.core.getipython import get_ipython
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
-from spyder_kernels.customize.spyderpdb import SpyderPdb, enter_debugger
+from spyder_kernels.customize.spyderpdb import SpyderPdb, get_new_debugger
 from spyder_kernels.customize.umr import UserModuleReloader
 from spyder_kernels.py3compat import TimeoutError, PY2, _print, encode
 from spyder_kernels.customize.utils import capture_last_Expr
@@ -603,6 +603,14 @@ else:
     builtins.spyder_runfile = runfile
 
 
+def normalise_filename(filename):
+    """Normalise path for window."""
+    # Recursive
+    if os.name == 'nt':
+        return filename.replace('\\', '/')
+    return filename
+
+
 def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
               current_namespace=False):
     """
@@ -618,11 +626,26 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
         if filename is None:
             return
 
-    enter_debugger(
-        filename, True,
-        "runfile({}" +
-        ", args=%r, wdir=%r, current_namespace=%r)" % (
-            args, wdir, current_namespace))
+    shell = get_ipython()
+    if shell.is_debugging():
+        # Recursive
+        code = (
+            "runfile({}".format(repr(normalise_filename(filename))) +
+            ", args=%r, wdir=%r, current_namespace=%r)" % (
+                args, wdir, current_namespace))
+
+        shell.pdb_session.enter_recursive_debugger(
+            code, filename, True,
+        )
+
+    else:
+        debugger = get_new_debugger(filename, True)
+        _exec_file(
+            filename=debugger.canonic(filename),
+            args=args, wdir=wdir,
+            current_namespace=current_namespace,
+            exec_fun=debugger.run,
+            stack_depth=1)
 
 
 builtins.debugfile = debugfile
@@ -701,10 +724,22 @@ def debugcell(cellname, filename=None, post_mortem=False):
         if filename is None:
             return
 
-    enter_debugger(
-        filename, False,
-        "runcell({}, ".format(repr(cellname)) +
-        "{})")
+    shell = get_ipython()
+    if shell.is_debugging():
+        # Recursive
+        code = (
+            "runcell({}, ".format(repr(cellname)) +
+            "{})".format(repr(normalise_filename(filename))))
+        shell.pdb_session.enter_recursive_debugger(
+            code, filename, False,
+        )
+    else:
+        debugger = get_new_debugger(filename, False)
+        _exec_cell(
+            cellname=cellname,
+            filename=debugger.canonic(filename),
+            exec_fun=debugger.run,
+            stack_depth=1)
 
 
 builtins.debugcell = debugcell
