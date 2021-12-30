@@ -379,7 +379,7 @@ def post_mortem_excepthook(type, value, tb):
 def get_current_file_name():
     """Get the current file name."""
     try:
-        return frontend_request().current_filename()
+        return frontend_request(blocking=True).current_filename()
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the current file name from Spyder's"
@@ -497,7 +497,7 @@ def get_file_code(filename, save_all=True):
     """Retrive the content of a file."""
     # Get code from spyder
     try:
-        file_code = frontend_request().get_file_code(
+        file_code = frontend_request(blocking=True).get_file_code(
             filename, save_all=save_all)
     except (CommError, TimeoutError, RuntimeError):
         file_code = None
@@ -663,7 +663,8 @@ def runcell(cellname, filename=None, post_mortem=False):
     ipython_shell = get_ipython()
     try:
         # Get code from spyder
-        cell_code = frontend_request().run_cell(cellname, filename)
+        cell_code = frontend_request(
+            blocking=True).run_cell(cellname, filename)
     except Exception:
         _print("This command failed to be executed because an error occurred"
                " while trying to get the cell code from Spyder's"
@@ -724,7 +725,7 @@ def cell_count(filename=None):
             raise RuntimeError('Could not get cell count from frontend.')
     try:
         # Get code from spyder
-        cell_count = frontend_request().cell_count(filename)
+        cell_count = frontend_request(blocking=True).cell_count(filename)
         return cell_count
     except Exception:
         etype, error, tb = sys.exc_info()

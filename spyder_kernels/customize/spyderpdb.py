@@ -329,7 +329,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         Take a number as argument as an (optional) number of context line to
         print"""
         super(SpyderPdb, self).do_where(arg)
-        frontend_request().do_where()
+        frontend_request(blocking=False).do_where()
 
     do_w = do_where
 
@@ -525,7 +525,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
-            pdb_settings = frontend_request().get_pdb_settings()
+            pdb_settings = frontend_request(blocking=True).get_pdb_settings()
             self.pdb_ignore_lib = pdb_settings['pdb_ignore_lib']
             self.pdb_execute_events = pdb_settings['pdb_execute_events']
             self.pdb_use_exclamation_mark = pdb_settings[
