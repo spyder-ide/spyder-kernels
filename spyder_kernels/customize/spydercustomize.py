@@ -424,7 +424,18 @@ def transform_cell(code, indent_only=False):
     return '\n' * number_empty_lines + code
 
 
-def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
+def compile_code(code, filename, capture_last_expression, indent_only=False):
+    """Compile code and capture last expression if needed."""
+    code = transform_cell(code, indent_only=indent_only)
+    if capture_last_expression:
+        code, capture_last_expression = capture_last_Expr(
+            code, "_spyder_out")
+    compiled = compile(code, filename, 'exec')
+    return compiled, capture_last_expression
+
+
+def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
+              exec_fun=None, capture_last_expression=False):
     """Execute code and display any exception."""
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
@@ -434,6 +445,9 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
         filename = encode(filename)
         code = encode(code)
 
+    if exec_fun is None:
+        exec_fun = exec
+
     ipython_shell = get_ipython()
     is_ipython = os.path.splitext(filename)[1] == '.ipy'
     try:
@@ -441,12 +455,12 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
             # TODO: remove the try-except and let the SyntaxError raise
             # Because there should not be ipython code in a python file
             try:
-                code_ast, capture_last_expression = capture_last_Expr(
-                    transform_cell(code, indent_only=True), "_spyder_out")
+                compiled, capture_last_expression = compile_code(
+                    code, filename, capture_last_expression, indent_only=True)
             except SyntaxError as e:
                 try:
-                    code_ast, capture_last_expression = capture_last_Expr(
-                        transform_cell(code), "_spyder_out")
+                    compiled, capture_last_expression = compile_code(
+                        code, filename, capture_last_expression)
                 except SyntaxError:
                     if PY2:
                         raise e
@@ -464,10 +478,10 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False):
                             ".ipy extension.\n")
                         SHOW_INVALID_SYNTAX_MSG = False
         else:
-            code_ast, capture_last_expression = capture_last_Expr(
-                transform_cell(code), "_spyder_out")
+            compiled, capture_last_expression = compile_code(
+                code, filename, capture_last_expression)
 
-        exec(compile(code_ast, filename, 'exec'), ns_globals, ns_locals)
+        exec_fun(compiled, ns_globals, ns_locals)
 
         if capture_last_expression:
             out = ns_globals.pop("_spyder_out", None)
@@ -517,6 +531,14 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     post_mortem: boolean, whether to enter post-mortem mode on error
     current_namespace: if true, run the file in the current namespace
     """
+    return _exec_file(
+        filename, args, wdir, namespace,
+        post_mortem, current_namespace, stack_depth=1)
+
+
+def _exec_file(filename=None, args=None, wdir=None, namespace=None,
+               post_mortem=False, current_namespace=False, stack_depth=0,
+               exec_fun=None):
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     ipython_shell = get_ipython()
@@ -556,7 +578,8 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         return
 
     with NamespaceManager(filename, namespace, current_namespace,
-                          file_code=file_code) as (ns_globals, ns_locals):
+                          file_code=file_code, stack_depth=stack_depth + 1
+                          ) as (ns_globals, ns_locals):
         sys.argv = [filename]
         if args is not None:
             for arg in shlex.split(args):
@@ -587,9 +610,9 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
                 with io.open(filename, encoding='utf-8') as f:
                     ipython_shell.run_cell_magic('cython', '', f.read())
             else:
-                exec_code(
-                    file_code, filename, ns_globals, ns_locals,
-                    post_mortem=post_mortem)
+                exec_code(file_code, filename, ns_globals, ns_locals,
+                          post_mortem=post_mortem, exec_fun=exec_fun,
+                          capture_last_expression=False)
         finally:
             sys.argv = ['']
 
@@ -655,16 +678,24 @@ def runcell(cellname, filename=None, post_mortem=False):
     """
     Run a code cell from an editor as a file.
 
-    Currently looks for code in an `ipython` property called `cell_code`.
-    This property must be set by the editor prior to calling this function.
-    This function deletes the contents of `cell_code` upon completion.
-
     Parameters
     ----------
     cellname : str or int
         Cell name or index.
     filename : str
         Needed to allow for proper traceback links.
+    post_mortem: bool
+        Automatically enter post mortem on exception.
+    """
+    # Tell IPython to hide this frame (>7.16)
+    __tracebackhide__ = True
+    return _exec_cell(cellname, filename, post_mortem, stack_depth=1)
+
+
+def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
+               exec_fun=None):
+    """
+    Execute a code cell with a given exec function.
     """
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
@@ -707,9 +738,11 @@ def runcell(cellname, filename=None, post_mortem=False):
     except Exception:
         file_code = None
     with NamespaceManager(filename, current_namespace=True,
-                          file_code=file_code) as (ns_globals, ns_locals):
+                          file_code=file_code, stack_depth=stack_depth + 1
+                          ) as (ns_globals, ns_locals):
         return exec_code(cell_code, filename, ns_globals, ns_locals,
-                         post_mortem=post_mortem)
+                         post_mortem=post_mortem, exec_fun=exec_fun,
+                         capture_last_expression=True)
 
 
 builtins.runcell = runcell
