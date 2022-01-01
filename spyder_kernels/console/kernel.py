@@ -14,12 +14,14 @@ Spyder kernel for Jupyter.
 from distutils.version import LooseVersion
 import os
 import sys
+import traceback
 import threading
 
 # Third-party imports
 import ipykernel
 from ipykernel.ipkernel import IPythonKernel
 from traitlets.config.loader import LazyConfigValue
+from zmq.utils.garbage import gc
 
 # Local imports
 from spyder_kernels.py3compat import TEXT_TYPES, to_text_string
@@ -82,6 +84,7 @@ class SpyderKernel(IPythonKernel):
             '_interrupt_eventloop': self._interrupt_eventloop,
             'enable_faulthandler': self.enable_faulthandler,
             "flush_std": self.flush_std,
+            'get_current_frames': self.get_current_frames,
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
@@ -151,12 +154,74 @@ class SpyderKernel(IPythonKernel):
             self.faulthandler_handle.close()
             self.faulthandler_handle = None
 
+    def get_system_threads_id(self):
+        """Return the list of system threads id."""
+        ignore_threads = [
+            self.parent.poller,  # Parent poller
+            self.shell.history_manager.save_thread,  # history
+            self.parent.heartbeat,  # heartbeat
+            self.parent.iopub_thread.thread,  # iopub
+            gc.thread,  # ZMQ garbage collector thread
+            ]
+        if hasattr(self.parent, "control_thread"):
+            ignore_threads.append(self.parent.control_thread)
+        return [
+            thread.ident for thread in ignore_threads if thread is not None]
+
+    def filter_stack(self, stack, is_main):
+        """Return the part of the stack the user needs to see."""
+        # Remove wurlitzer frames
+        for frame_summary in stack:
+            if "wurlitzer.py" in frame_summary.filename:
+                return
+        # Cleanup main thread
+        if is_main:
+            start_idx = -1
+            for idx in range(len(stack)):
+                if stack[idx].filename.endswith(
+                        ("IPython/core/interactiveshell.py",
+                         "IPython\\core\\interactiveshell.py")):
+                    start_idx = idx + 1
+            if start_idx != -1:
+                stack = stack[start_idx:]
+            else:
+                stack = []
+        return stack
+
+    def get_current_frames(self, ignore_internal_threads=True,
+                           capture_locals=False):
+        """Get the current frames."""
+        ignore_list = self.get_system_threads_id()
+        main_id = threading.main_thread().ident
+        frames = {}
+        thread_names = {thread.ident: thread.name
+                        for thread in threading.enumerate()}
+
+        for threadId, frame in sys._current_frames().items():
+            stack = traceback.StackSummary.extract(
+                traceback.walk_stack(frame))
+            if capture_locals:
+                for f_summary, f in zip(stack, traceback.walk_stack(frame)):
+                    f_summary.locals = self.get_namespace_view(frame=f[0])
+            stack.reverse()
+            if ignore_internal_threads:
+                if threadId in ignore_list:
+                    continue
+                stack = self.filter_stack(stack, main_id == threadId)
+            if stack is not None:
+                if threadId in thread_names:
+                    thread_name = thread_names[threadId]
+                else:
+                    thread_name = str(threadId)
+                frames[thread_name] = stack
+        return frames
+
     # --- For the Variable Explorer
     def set_namespace_view_settings(self, settings):
         """Set namespace_view_settings."""
         self.namespace_view_settings = settings
 
-    def get_namespace_view(self):
+    def get_namespace_view(self, frame=None):
         """
         Return the namespace view
 
@@ -185,7 +250,7 @@ class SpyderKernel(IPythonKernel):
 
         settings = self.namespace_view_settings
         if settings:
-            ns = self._get_current_namespace()
+            ns = self._get_current_namespace(frame=frame)
             view = make_remote_view(ns, settings, EXCLUDED_NAMES)
             return view
         else:
@@ -576,13 +641,21 @@ class SpyderKernel(IPythonKernel):
 
     # -- Private API ---------------------------------------------------
     # --- For the Variable Explorer
-    def _get_current_namespace(self, with_magics=False):
+    def _get_current_namespace(self, with_magics=False, frame=None):
         """
         Return current namespace
 
         This is globals() if not debugging, or a dictionary containing
         both locals() and globals() for current frame when debugging
         """
+        if frame is not None:
+            ns = frame.f_globals.copy()
+            if self.shell._pdb_frame is frame:
+                ns.update(self.shell._pdb_locals)
+            else:
+                ns.update(frame.f_locals)
+            return ns
+
         ns = {}
         if self._running_namespace is None:
             ns.update(self.shell.user_ns)
