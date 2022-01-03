@@ -25,14 +25,13 @@ import warnings
 
 from IPython import __version__ as ipy_version
 from IPython.core.getipython import get_ipython
+from IPython.core.inputtransformer2 import (
+    TransformerManager, leading_indent, leading_empty_lines)
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 from spyder_kernels.customize.spyderpdb import SpyderPdb, enter_debugger
 from spyder_kernels.customize.umr import UserModuleReloader
-
-from IPython.core.inputtransformer2 import (
-    TransformerManager, leading_indent, leading_empty_lines)
 
 
 logger = logging.getLogger(__name__)

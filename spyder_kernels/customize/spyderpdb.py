@@ -8,6 +8,7 @@
 
 import ast
 import bdb
+import builtins
 import logging
 import os
 import sys
@@ -17,12 +18,10 @@ from collections import namedtuple
 from IPython.core.autocall import ZMQExitAutocall
 from IPython.core.debugger import Pdb as ipyPdb
 from IPython.core.getipython import get_ipython
+from IPython.core.inputtransformer2 import TransformerManager
 
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.utils import path_is_library
-
-from IPython.core.inputtransformer2 import TransformerManager
-import builtins
 
 
 logger = logging.getLogger(__name__)

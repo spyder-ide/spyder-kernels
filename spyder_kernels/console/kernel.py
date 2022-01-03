@@ -12,10 +12,10 @@ Spyder kernel for Jupyter.
 
 # Standard library imports
 from distutils.version import LooseVersion
+import faulthandler
 import os
 import sys
 import threading
-import faulthandler
 
 # Third-party imports
 import ipykernel
