@@ -662,7 +662,6 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
         shell.pdb_session.enter_recursive_debugger(
             code, filename, True,
         )
-
     else:
         debugger = get_new_debugger(filename, True)
         _exec_file(
