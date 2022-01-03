@@ -136,4 +136,4 @@ class UserModuleReloader:
         if self.verbose and self.modnames_to_reload:
             modnames = self.modnames_to_reload
             print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"
-                   % ("Reloaded modules", ": "+", ".join(modnames)))
+                  % ("Reloaded modules", ": "+", ".join(modnames)))

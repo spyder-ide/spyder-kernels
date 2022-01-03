@@ -407,7 +407,7 @@ def value_to_display(value, minmax=False, level=0):
         if isinstance(display, bytes):
             ellipses = b' ...'
         else:
-            ellipses = u' ...'
+            ellipses = ' ...'
         display = display[:70].rstrip() + ellipses
 
     # Restore Numpy printoptions

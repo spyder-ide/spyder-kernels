@@ -324,8 +324,8 @@ def get_current_file_name():
         return frontend_request().current_filename()
     except Exception:
         print("This command failed to be executed because an error occurred"
-               " while trying to get the current file name from Spyder's"
-               " editor. The error was:\n\n")
+              " while trying to get the current file name from Spyder's"
+              " editor. The error was:\n\n")
         get_ipython().showtraceback(exception_only=True)
         return None
 
@@ -554,8 +554,8 @@ def runcell(cellname, filename=None, post_mortem=False):
         cell_code = frontend_request().run_cell(cellname, filename)
     except Exception:
         print("This command failed to be executed because an error occurred"
-               " while trying to get the cell code from Spyder's"
-               " editor. The error was:\n\n")
+              " while trying to get the cell code from Spyder's"
+              " editor. The error was:\n\n")
         get_ipython().showtraceback(exception_only=True)
         return
 

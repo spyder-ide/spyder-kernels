@@ -564,8 +564,8 @@ class SpyderPdb(ipyPdb):
                 break
             except KeyboardInterrupt:
                 print("--KeyboardInterrupt--\n"
-                       "For copying text while debugging, use Ctrl+Shift+C",
-                       file=self.stdout)
+                      "For copying text while debugging, use Ctrl+Shift+C",
+                      file=self.stdout)
 
     def precmd(self, line):
         """

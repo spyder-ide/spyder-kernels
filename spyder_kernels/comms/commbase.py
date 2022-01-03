@@ -62,7 +62,7 @@ import traceback
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_PICKLE_PROTOCOL = 2
+DEFAULT_PICKLE_PROTOCOL = 4
 
 # Max timeout (in secs) for blocking calls
 TIMEOUT = 3
