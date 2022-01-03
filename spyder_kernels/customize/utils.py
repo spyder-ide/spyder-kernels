@@ -117,3 +117,11 @@ def capture_last_Expr(line, out_varname):
         assign_node.col_offset = expr_node.col_offset
         code_ast.body[-1] = assign_node
     return code_ast, capture_last_expression
+
+
+def normalise_filename(filename):
+    """Normalise path for window."""
+    # Recursive
+    if os.name == 'nt':
+        return filename.replace('\\', '/')
+    return filename

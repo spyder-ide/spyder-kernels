@@ -11,7 +11,6 @@
 # Spyder consoles sitecustomize
 #
 
-import ast
 import bdb
 import cmd
 import io
@@ -32,7 +31,8 @@ from spyder_kernels.customize.spyderpdb import SpyderPdb, get_new_debugger
 from spyder_kernels.customize.umr import UserModuleReloader
 from spyder_kernels.py3compat import (
     TimeoutError, PY2, _print, encode, compat_exec)
-from spyder_kernels.customize.utils import capture_last_Expr
+from spyder_kernels.customize.utils import (
+    capture_last_Expr, normalise_filename)
 
 if not PY2:
     from IPython.core.inputtransformer2 import (
@@ -626,14 +626,6 @@ if PY2:
     builtins.runfile = runfile
 else:
     builtins.spyder_runfile = runfile
-
-
-def normalise_filename(filename):
-    """Normalise path for window."""
-    # Recursive
-    if os.name == 'nt':
-        return filename.replace('\\', '/')
-    return filename
 
 
 def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
