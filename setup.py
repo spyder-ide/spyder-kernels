@@ -45,7 +45,8 @@ REQUIREMENTS = [
     'ipython>=7.6.0,<8; python_version>="3"',
     'jupyter-client>=5.3.4,<6; python_version<"3"',
     'jupyter-client>=7.1.0; python_version>="3"',
-    'pyzmq>=17',
+    'pyzmq>=17,<20; python_version<"3"',
+    'pyzmq>=22.1.0; python_version>="3"',
     'wurlitzer>=1.0.3;platform_system!="Windows"',
 ]
 
