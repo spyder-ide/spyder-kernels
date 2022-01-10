@@ -479,7 +479,7 @@ if __name__ == '__main__':
         assert content['found']
 
 
-# @flaky(max_runs=3)
+@flaky(max_runs=3)
 @pytest.mark.skipif(not PY3,
                     reason="Only meant for Python 3")
 def test_multiprocessing_2(tmpdir):
