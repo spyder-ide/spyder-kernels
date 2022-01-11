@@ -60,6 +60,7 @@ if not hasattr(sys, 'argv'):
 IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
 HIDE_CMD_WINDOWS = os.environ.get('SPY_HIDE_CMD') == "True"
 SHOW_INVALID_SYNTAX_MSG = True
+SHOW_GLOBAL_MSG = True
 
 
 # =============================================================================
@@ -427,11 +428,13 @@ def transform_cell(code, indent_only=False):
 
 
 def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
-              exec_fun=None, capture_last_expression=False):
+              exec_fun=None, capture_last_expression=False,
+              global_warning=False):
     """Execute code and display any exception."""
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     global SHOW_INVALID_SYNTAX_MSG
+    global SHOW_GLOBAL_MSG
 
     if PY2:
         filename = encode(filename)
@@ -470,6 +473,19 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
                         SHOW_INVALID_SYNTAX_MSG = False
         else:
             ast_code = ast.parse(transform_cell(code))
+
+        # Print warning for global
+        if global_warning and SHOW_GLOBAL_MSG:
+            has_global = any(
+                isinstance(node, ast.Global) for node in ast.walk(ast_code))
+            if has_global:
+                _print(
+                    "\nWARNING: This file contains a global statment, "
+                    "but it is run in an empty namespace. "
+                    "Consider using the "
+                    "'Run in console's namespace instead of an empty one' "
+                    "option if you want to capture the namesapce.\n")
+                SHOW_GLOBAL_MSG = False
 
         if code.rstrip()[-1] == ";":
             # Supress output with ;
@@ -618,7 +634,8 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
             else:
                 exec_code(file_code, filename, ns_globals, ns_locals,
                           post_mortem=post_mortem, exec_fun=exec_fun,
-                          capture_last_expression=False)
+                          capture_last_expression=False,
+                          global_warning=not current_namespace)
         finally:
             sys.argv = ['']
 
