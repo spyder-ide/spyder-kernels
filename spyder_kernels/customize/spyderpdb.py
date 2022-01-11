@@ -175,8 +175,14 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 if execute_events:
                      get_ipython().events.trigger('pre_execute')
 
-                code_ast, capture_last_expression = capture_last_Expr(
-                    line, "_spyderpdb_out")
+                code_ast = ast.parse(line)
+
+                if line.rstrip()[-1] == ";":
+                    # Supress output with ;
+                    capture_last_expression = False
+                else:
+                    code_ast, capture_last_expression = capture_last_Expr(
+                        code_ast, "_spyderpdb_out")
 
                 if locals is not globals:
                     # Mitigates a behaviour of CPython that makes it difficult

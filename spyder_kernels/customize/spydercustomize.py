@@ -11,6 +11,7 @@
 # Spyder consoles sitecustomize
 #
 
+import ast
 import bdb
 import cmd
 import io
@@ -425,16 +426,6 @@ def transform_cell(code, indent_only=False):
     return '\n' * number_empty_lines + code
 
 
-def compile_code(code, filename, capture_last_expression, indent_only=False):
-    """Compile code and capture last expression if needed."""
-    code = transform_cell(code, indent_only=indent_only)
-    if capture_last_expression:
-        code, capture_last_expression = capture_last_Expr(
-            code, "_spyder_out")
-    compiled = compile(code, filename, 'exec')
-    return compiled, capture_last_expression
-
-
 def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
               exec_fun=None, capture_last_expression=False):
     """Execute code and display any exception."""
@@ -457,12 +448,10 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
             # TODO: remove the try-except and let the SyntaxError raise
             # Because there should not be ipython code in a python file
             try:
-                compiled, capture_last_expression = compile_code(
-                    code, filename, capture_last_expression, indent_only=True)
+                ast_code = ast.parse(transform_cell(code, indent_only=True))
             except SyntaxError as e:
                 try:
-                    compiled, capture_last_expression = compile_code(
-                        code, filename, capture_last_expression)
+                    ast_code = ast.parse(transform_cell(code))
                 except SyntaxError:
                     if PY2:
                         raise e
@@ -480,10 +469,18 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
                             ".ipy extension.\n")
                         SHOW_INVALID_SYNTAX_MSG = False
         else:
-            compiled, capture_last_expression = compile_code(
+            ast_code = ast.parse(transform_cell(code))
                 code, filename, capture_last_expression)
 
-        exec_fun(compiled, ns_globals, ns_locals)
+        if code.rstrip()[-1] == ";":
+            # Supress output with ;
+            capture_last_expression = False
+
+        if capture_last_expression:
+            ast_code, capture_last_expression = capture_last_Expr(
+                ast_code, "_spyder_out")
+
+        exec_fun(compile(ast_code, filename, 'exec'), ns_globals, ns_locals)
 
         if capture_last_expression:
             out = ns_globals.pop("_spyder_out", None)

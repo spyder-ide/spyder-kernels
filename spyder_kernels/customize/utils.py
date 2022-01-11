@@ -95,15 +95,13 @@ def path_is_library(path, initial_pathlist=None):
         return False
 
 
-def capture_last_Expr(line, out_varname):
+def capture_last_Expr(code_ast, out_varname):
     """Parse line and modify code to capture in globals the last expression."""
-    code_ast = ast.parse(line)
     # Modify ast code to capture the last expression
     capture_last_expression = False
     if (
         len(code_ast.body)
         and isinstance(code_ast.body[-1], ast.Expr)
-        and line.rstrip()[-1] != ";"
     ):
         capture_last_expression = True
         expr_node = code_ast.body[-1]
