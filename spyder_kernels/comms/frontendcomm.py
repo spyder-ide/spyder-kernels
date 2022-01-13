@@ -279,13 +279,21 @@ class WriteWrapper():
         self._name = name
         self._warning_shown = False
 
+    def is_benign_message(self, message):
+        """Determine if a message is benign in order to filter it."""
+        benign_messages = [
+            # Fixes spyder-ide/spyder#14928
+            # Fixes spyder-ide/spyder-kernels#343
+            'DeprecationWarning',
+            # Fixes spyder-ide/spyder-kernels#365
+            'IOStream.flush timed out'
+        ]
+
+        return any([msg in message for msg in benign_messages])
+
     def __call__(self, string):
         """Print warning once."""
-        # Don't print DeprecationWarning's because they unnecessarily pollute
-        # the console.
-        # Fixes spyder-ide/spyder#14928
-        # Fixes spyder-ide/spyder-kernels#343
-        if 'DeprecationWarning' not in string:
+        if not self.is_benign_message(string):
             if not self._warning_shown:
                 self._warning_shown = True
                 self._write(
