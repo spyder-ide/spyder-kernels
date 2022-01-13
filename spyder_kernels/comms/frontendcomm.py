@@ -271,7 +271,7 @@ class FrontendComm(CommBase):
             sys.stderr.write = saved_stderr_write
 
 
-class WriteWrapper():
+class WriteWrapper(object):
     """Wrapper to warn user when text is printed."""
 
     def __init__(self, write, name):
@@ -296,7 +296,12 @@ class WriteWrapper():
         if not self.is_benign_message(string):
             if not self._warning_shown:
                 self._warning_shown = True
-                self._write(
-                    "\nOutput from spyder call "
-                    + repr(self._name) + ":\n")
+
+                # Don't print handler name for `show_mpl_backend_errors`
+                # because we have a specific message for it.
+                if repr(self._name) != "'show_mpl_backend_errors'":
+                    self._write(
+                        "\nOutput from spyder call " + repr(self._name) + ":\n"
+                    )
+
             return self._write(string)
