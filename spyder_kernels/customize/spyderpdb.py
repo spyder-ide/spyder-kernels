@@ -208,17 +208,24 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     indent = "    "
                     code = ["def _spyderpdb_code():"]
                     # Load the locals
+                    globals["_spyderpdb_builtins_locals"] = builtins.locals
+                    # Save builtins locals in case it is shadowed
                     globals["_spyderpdb_locals"] = locals
+                    # Load locals if they have a valid name
+                    # In comprehensions, locals could contain ".0" for example
                     code += [indent + "{k} = _spyderpdb_locals['{k}']".format(
-                        k=k) for k in locals]
+                        k=k) for k in locals if k.isidentifier()]
+
                     # Update the locals
-                    code += [indent + "_spyderpdb_locals.update(locals())"]
+                    code += [indent + "_spyderpdb_locals.update("
+                             "_spyderpdb_builtins_locals())"]
                     # Run the function
                     code += ["_spyderpdb_code()"]
                     # Cleanup
                     code += [
                         "del _spyderpdb_code",
-                        "del _spyderpdb_locals"
+                        "del _spyderpdb_locals",
+                        "del _spyderpdb_builtins_locals"
                     ]
                     # Parse the function
                     fun_ast = ast.parse('\n'.join(code) + '\n')
