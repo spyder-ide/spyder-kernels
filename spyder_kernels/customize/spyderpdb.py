@@ -214,7 +214,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                     # Load locals if they have a valid name
                     # In comprehensions, locals could contain ".0" for example
                     code += [indent + "{k} = _spyderpdb_locals['{k}']".format(
-                        k=k) for k in locals if k.isidentifier()]
+                        k=k) for k in locals if not k[0] == "."]
 
                     # Update the locals
                     code += [indent + "_spyderpdb_locals.update("
