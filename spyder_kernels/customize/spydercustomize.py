@@ -657,7 +657,8 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
         code = (
             "runfile({}".format(repr(normalise_filename(filename))) +
             ", args=%r, wdir=%r, current_namespace=%r)" % (
-                args, wdir, current_namespace))
+                args, wdir, current_namespace)
+        )
 
         shell.pdb_session.enter_recursive_debugger(
             code, filename, True,
@@ -669,7 +670,8 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
             args=args, wdir=wdir,
             current_namespace=current_namespace,
             exec_fun=debugger.run,
-            stack_depth=1)
+            stack_depth=1
+        )
 
 
 builtins.debugfile = debugfile
@@ -768,7 +770,8 @@ def debugcell(cellname, filename=None, post_mortem=False):
         # Recursive
         code = (
             "runcell({}, ".format(repr(cellname)) +
-            "{})".format(repr(normalise_filename(filename))))
+            "{})".format(repr(normalise_filename(filename)))
+        )
         shell.pdb_session.enter_recursive_debugger(
             code, filename, False,
         )
@@ -778,7 +781,8 @@ def debugcell(cellname, filename=None, post_mortem=False):
             cellname=cellname,
             filename=debugger.canonic(filename),
             exec_fun=debugger.run,
-            stack_depth=1)
+            stack_depth=1
+        )
 
 
 builtins.debugcell = debugcell
