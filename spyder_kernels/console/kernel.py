@@ -634,11 +634,14 @@ class SpyderKernel(IPythonKernel):
                 sys.path.remove(path)
 
         # Add new paths
-        # We do this in reverse order as we use `sys.path.insert(1, path)`.
+        # We do this in reverse order as we use `sys.path.insert(0, path)`.
         # This ensures the end result has the correct path order.
+        pythonpath = []
         for path, active in reversed(new_path_dict.items()):
             if active:
-                sys.path.insert(1, path)
+                sys.path.insert(0, path)
+                pythonpath.insert(0, path)
+        os.environ.update({'PYTHONPATH': os.pathsep.join(pythonpath)})
 
     # -- Private API ---------------------------------------------------
     # --- For the Variable Explorer
