@@ -644,9 +644,14 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
 
     def postcmd(self, stop, line):
         """
-        Notify spyder on any pdb command.
+        Notify spyder about a changed frame
         """
-        self.notify_spyder()
+        line = line.strip()
+        if line.startswith("!"):
+            line = line[1:]
+        cmd, arg, line = self.parseline(line.strip())
+        if cmd in ("up", "down", "jump", "u", "d", "j"):
+            self.notify_spyder()
         return super(SpyderPdb, self).postcmd(stop, line)
 
     if PY2:

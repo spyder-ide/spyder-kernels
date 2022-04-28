@@ -311,11 +311,7 @@ class SpyderKernel(IPythonKernel):
         Publish Variable Explorer state and Pdb step through
         send_spyder_msg.
         """
-        state = dict(
-            namespace_view=self.get_namespace_view(),
-            var_properties=self.get_var_properties(),
-            step=step
-         )
+        state = dict(step=step)
         try:
             self.frontend_call(blocking=False).pdb_state(state)
         except (CommError, TimeoutError):
