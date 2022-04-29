@@ -88,12 +88,16 @@ class SpyderKernel(IPythonKernel):
             '_interrupt_eventloop': self._interrupt_eventloop,
             'enable_faulthandler': self.enable_faulthandler,
             "flush_std": self.flush_std,
+            "set_watchlist_expressions": self.set_watchlist_expressions,
+            "eval_watchlist_expressions": self.eval_watchlist_expressions,
             }
         for call_id in handlers:
             self.frontend_comm.register_call_handler(
                 call_id, handlers[call_id])
 
         self.namespace_view_settings = {}
+        self.watchlist_expressions = []
+        self.watchlist_debugger_only = True
         self._mpl_backend_error = None
         self._running_namespace = None
         self._pdb_input_line = None
@@ -551,6 +555,31 @@ class SpyderKernel(IPythonKernel):
     def set_autocall(self, autocall):
         """Enable/Disable autocall funtionality."""
         self._set_config_option('ZMQInteractiveShell.autocall', autocall)
+
+    # --- For external Watchlist plugin in Spyder
+    def set_watchlist_expressions(self, expressions, debugger_only=True):
+        self.watchlist_expressions = expressions
+        self.watchlist_debugger_only = debugger_only
+
+    def eval_watchlist_expressions(self):
+        if self.watchlist_debugger_only and not self.shell.is_debugging():
+            return None
+
+        ns = self._get_current_namespace()
+
+        data = []
+        for expr in self.watchlist_expressions:
+            # Strictly speaking we need NOT to send back 'expr'; see comment in
+            # displayData() in Watchlist plugin.
+            try:
+                value = str(eval(expr, ns))
+                if len(value) > 512:
+                    value = value[:512] + "…"
+                data.append((expr, value, None))
+            except Exception as e:
+                data.append((expr, str(e), e.__class__.__name__))
+
+        return data
 
     # --- Additional methods
     def set_cwd(self, dirname):
