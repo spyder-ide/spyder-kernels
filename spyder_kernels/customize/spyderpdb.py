@@ -210,7 +210,7 @@ class SpyderPdb(ipyPdb):
                     # Load locals if they have a valid name
                     # In comprehensions, locals could contain ".0" for example
                     code += [indent + "{k} = _spyderpdb_locals['{k}']".format(
-                        k=k) for k in locals if isidentifier(k)]
+                        k=k) for k in locals if k.isidentifier()]
 
 
                     # Update the locals
