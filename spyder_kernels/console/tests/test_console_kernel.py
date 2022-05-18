@@ -1077,7 +1077,6 @@ def test_locals_globals_in_pdb(kernel):
 
 @flaky(max_runs=3)
 @pytest.mark.parametrize("backend", [None, 'inline', 'tk', 'qt5'])
-@pytest.mark.skipif(PY2, reason="Doesn't work on Python 2")
 @pytest.mark.skipif(
     not sys.platform.startswith('linux'),
     reason="Doesn't work reliably on Windows and Mac")
