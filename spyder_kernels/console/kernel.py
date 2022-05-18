@@ -18,6 +18,7 @@ import sys
 import threading
 
 # Third-party imports
+import faulthandler
 import ipykernel
 from ipykernel.ipkernel import IPythonKernel
 from traitlets.config.loader import LazyConfigValue
