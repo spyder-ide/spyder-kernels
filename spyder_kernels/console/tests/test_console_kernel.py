@@ -504,7 +504,7 @@ if __name__ == '__main__':
         p.write(code)
 
         # Run code
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(str(p)))
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Verify that the `result` variable is defined
