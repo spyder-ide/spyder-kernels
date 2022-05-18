@@ -1123,7 +1123,7 @@ def test_global_message(tmpdir):
         msg = client.get_iopub_msg(timeout=TIMEOUT)
         while "text" not in msg["content"]:
             msg = client.get_iopub_msg(timeout=TIMEOUT)
-        assert "WARNING: This file contains a global statment" not in (
+        assert "WARNING: This file contains a global statement" not in (
             msg["content"]["text"])
 
         # Run code in empty namespace
@@ -1131,7 +1131,7 @@ def test_global_message(tmpdir):
         msg = client.get_iopub_msg(timeout=TIMEOUT)
         while "text" not in msg["content"]:
             msg = client.get_iopub_msg(timeout=TIMEOUT)
-        assert "WARNING: This file contains a global statment" in (
+        assert "WARNING: This file contains a global statement" in (
             msg["content"]["text"])
 
 

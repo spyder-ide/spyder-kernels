@@ -480,11 +480,13 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
                 isinstance(node, ast.Global) for node in ast.walk(ast_code))
             if has_global:
                 _print(
-                    "\nWARNING: This file contains a global statment, "
+                    "\nWARNING: This file contains a global statement, "
                     "but it is run in an empty namespace. "
                     "Consider using the "
                     "'Run in console's namespace instead of an empty one' "
-                    "option if you want to capture the namesapce.\n")
+                    "option, that you can find in the menu 'Run > "
+                    "Configuration per file', if you want to capture the "
+                    "namespace.\n")
                 SHOW_GLOBAL_MSG = False
 
         if code.rstrip()[-1] == ";":
