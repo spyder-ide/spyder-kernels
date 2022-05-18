@@ -36,13 +36,11 @@ def get_version(module='spyder_kernels'):
 
 
 REQUIREMENTS = [
-    'decorator<5; python_version<"3"',
-    'backports.functools-lru-cache; python_version<"3"',
     'cloudpickle',
-    'ipykernel>=6.0.0',
-    'ipython>=7.17.0',
-    'jupyter-client>=5.3.4',
-    'pyzmq>=17',
+    'ipykernel>=6.9.2',
+    'ipython>=7.31.1,<8',
+    'jupyter-client>=7.3.1',
+    'pyzmq>=22.1.0',
     'wurlitzer>=1.0.3;platform_system!="Windows"',
 ]
 
