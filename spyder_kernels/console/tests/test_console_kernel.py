@@ -96,7 +96,8 @@ def setup_kernel(cmd):
         finally:
             client.stop_channels()
     finally:
-        kernel.terminate()
+        if not PY2:
+            kernel.terminate()
 
 
 # =============================================================================
