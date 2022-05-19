@@ -18,11 +18,12 @@ jobs:
       CI: True
       PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
       RUNNER_OS: 'ubuntu'
+      USE_CONDA: 'true'
     strategy:
       fail-fast: false 
       matrix:
         PYTHON_VERSION: ['2.7', '3.7', '3.8', '3.9']
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout branch
         uses: actions/checkout@v1
