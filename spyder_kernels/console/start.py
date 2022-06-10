@@ -18,16 +18,11 @@ import sys
 import site
 
 from traitlets import DottedObjectName
-import ipykernel
 
 # Local imports
 from spyder_kernels.utils.misc import is_module_installed
 from spyder_kernels.utils.mpl import (
     MPL_BACKENDS_FROM_SPYDER, INLINE_FIGURE_FORMATS)
-
-
-PY2 = sys.version[0] == '2'
-IPYKERNEL_6 = ipykernel.__version__[0] >= '6'
 
 
 def import_spydercustomize():
@@ -98,10 +93,9 @@ def kernel_config():
     # Until we implement Issue 1052
     spy_cfg.InteractiveShell.xmode = 'Plain'
 
-    # Jedi completer. It's only available in Python 3
+    # Jedi completer.
     jedi_o = os.environ.get('SPY_JEDI_O') == 'True'
-    if not PY2:
-        spy_cfg.IPCompleter.use_jedi = jedi_o
+    spy_cfg.IPCompleter.use_jedi = jedi_o
 
     # Clear terminal arguments input.
     # This needs to be done before adding the exec_lines that come from
@@ -113,12 +107,11 @@ def kernel_config():
 
     # Set our runfile in builtins here to prevent other packages shadowing it.
     # This started to be a problem since IPykernel 6.3.0.
-    if not PY2:
-        spy_cfg.IPKernelApp.exec_lines.append(
-            "import builtins; "
-            "builtins.runfile = builtins.spyder_runfile; "
-            "del builtins.spyder_runfile; del builtins"
-        )
+    spy_cfg.IPKernelApp.exec_lines.append(
+        "import builtins; "
+        "builtins.runfile = builtins.spyder_runfile; "
+        "del builtins.spyder_runfile; del builtins"
+    )
 
     # Prevent other libraries to change the breakpoint builtin.
     # This started to be a problem since IPykernel 6.3.0.
@@ -233,7 +226,7 @@ def kernel_config():
     if autocall_o is not None:
         spy_cfg.ZMQInteractiveShell.autocall = int(autocall_o)
 
-    # To handle the banner by ourselves in IPython 3+
+    # To handle the banner by ourselves
     spy_cfg.ZMQInteractiveShell.banner1 = ''
 
     # Greedy completer
@@ -307,9 +300,8 @@ def main():
 
     class SpyderKernelApp(IPKernelApp):
 
-        if IPYKERNEL_6:
-            outstream_class = DottedObjectName(
-                'spyder_kernels.console.outstream.TTYOutStream')
+        outstream_class = DottedObjectName(
+            'spyder_kernels.console.outstream.TTYOutStream')
 
         def init_pdb(self):
             """
