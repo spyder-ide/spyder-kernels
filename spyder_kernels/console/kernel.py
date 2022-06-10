@@ -11,15 +11,13 @@ Spyder kernel for Jupyter.
 """
 
 # Standard library imports
-from distutils.version import LooseVersion
+import faulthandler
 import logging
 import os
 import sys
 import threading
 
 # Third-party imports
-import faulthandler
-import ipykernel
 from ipykernel.ipkernel import IPythonKernel
 from traitlets.config.loader import LazyConfigValue
 
@@ -503,11 +501,7 @@ class SpyderKernel(IPythonKernel):
 
     def set_mpl_inline_resolution(self, resolution):
         """Set inline figure resolution."""
-        if LooseVersion(ipykernel.__version__) < LooseVersion('4.5'):
-            option = 'savefig.dpi'
-        else:
-            option = 'figure.dpi'
-        self._set_mpl_inline_rc_config(option, resolution)
+        self._set_mpl_inline_rc_config('figure.dpi', resolution)
 
     def set_mpl_inline_figure_size(self, width, height):
         """Set inline figure size."""
