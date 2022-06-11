@@ -1140,7 +1140,7 @@ def test_global_message(tmpdir):
 
         # Run code in current namespace
         client.execute("runfile(r'{}', current_namespace=True)".format(
-            to_text_string(p)))
+            str(p)))
         msg = client.get_iopub_msg(timeout=TIMEOUT)
         while "text" not in msg["content"]:
             msg = client.get_iopub_msg(timeout=TIMEOUT)
@@ -1148,7 +1148,7 @@ def test_global_message(tmpdir):
             msg["content"]["text"])
 
         # Run code in empty namespace
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(str(p)))
         msg = client.get_iopub_msg(timeout=TIMEOUT)
         while "text" not in msg["content"]:
             msg = client.get_iopub_msg(timeout=TIMEOUT)
