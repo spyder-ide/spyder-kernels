@@ -23,7 +23,6 @@ from collections import namedtuple
 
 # Test imports
 import ipykernel
-import IPython
 import pytest
 from flaky import flaky
 from jupyter_core import paths
@@ -31,7 +30,6 @@ from jupyter_client import BlockingKernelClient
 import numpy as np
 
 # Local imports
-from spyder_kernels.py3compat import PY2, PY3, to_text_string
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.mpl import MPL_BACKENDS_FROM_SPYDER
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
@@ -57,7 +55,7 @@ def setup_kernel(cmd):
     """start an embedded kernel in a subprocess, and wait for it to be ready
 
     This function was taken from the ipykernel project.
-    We plan to remove it when dropping support for python 2.
+    We plan to remove it.
 
     Yields
     -------
@@ -78,8 +76,6 @@ def setup_kernel(cmd):
 
         if kernel.poll() is not None:
             o,e = kernel.communicate()
-            if not PY3 and isinstance(e, bytes):
-                e = e.decode()
             raise IOError("Kernel failed to start:\n%s" % e)
 
         if not os.path.exists(connection_file):
@@ -96,8 +92,7 @@ def setup_kernel(cmd):
         finally:
             client.stop_channels()
     finally:
-        if not PY2:
-            kernel.terminate()
+        kernel.terminate()
 
 
 # =============================================================================
@@ -200,11 +195,7 @@ def test_get_namespace_view(kernel):
     assert "'size': 1" in nsview
     assert "'view': '1'" in nsview
     assert "'numpy_type': 'Unknown'" in nsview
-
-    if PY3:
-        assert "'python_type': 'int'" in nsview
-    else:
-        assert "'python_type': u'int'" in nsview
+    assert "'python_type': 'int'" in nsview
 
 
 def test_get_var_properties(kernel):
@@ -389,7 +380,7 @@ def test_get_doc(kernel):
 def test_get_source(kernel):
     """Test to get object source."""
     objtxt = 'help'
-    assert 'class _Helper(object):' in kernel.get_source(objtxt)
+    assert 'class _Helper' in kernel.get_source(objtxt)
 
 
 # --- Other stuff
@@ -440,11 +431,9 @@ def test_cwd_in_sys_path():
 
 
 @flaky(max_runs=3)
-@pytest.mark.skipif(not PY3,
-                    reason="Only meant for Python 3")
 def test_multiprocessing(tmpdir):
     """
-    Test that multiprocessing works on Python 3.
+    Test that multiprocessing works.
     """
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
@@ -469,7 +458,7 @@ if __name__ == '__main__':
         p.write(code)
 
         # Run code
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(str(p)))
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Verify that the `result` variable is defined
@@ -482,11 +471,9 @@ if __name__ == '__main__':
 
 
 @flaky(max_runs=3)
-@pytest.mark.skipif(not PY3,
-                    reason="Only meant for Python 3")
 def test_multiprocessing_2(tmpdir):
     """
-    Test that multiprocessing works on Python 3.
+    Test that multiprocessing works.
     """
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
@@ -516,7 +503,7 @@ if __name__ == '__main__':
         p.write(code)
 
         # Run code
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(str(p)))
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Verify that the `result` variable is defined
@@ -530,11 +517,9 @@ if __name__ == '__main__':
 
 
 @flaky(max_runs=3)
-@pytest.mark.skipif(not PY3,
-                    reason="Only meant for Python 3")
 def test_dask_multiprocessing(tmpdir):
     """
-    Test that dask multiprocessing works on Python 3.
+    Test that dask multiprocessing works.
     """
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
@@ -558,10 +543,10 @@ if __name__=='__main__':
         p.write(code)
 
         # Run code two times
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(str(p)))
         client.get_shell_msg(timeout=TIMEOUT)
 
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(str(p)))
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Verify that the `x` variable is defined
@@ -587,12 +572,12 @@ def test_runfile(tmpdir):
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Write defined variable code to a file
-        code = u"result = 'hello world'; error # make an error"
+        code = "result = 'hello world'; error # make an error"
         d = tmpdir.join("defined-test.py")
         d.write(code)
 
         # Write undefined variable code to a file
-        code = dedent(u"""
+        code = dedent("""
         try:
             result3 = result
         except NameError:
@@ -603,7 +588,7 @@ def test_runfile(tmpdir):
 
         # Run code file `d` to define `result` even after an error
         client.execute("runfile(r'{}', current_namespace=False)"
-                       .format(to_text_string(d)))
+                       .format(str(d)))
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Verify that `result` is defined in the current namespace
@@ -616,7 +601,7 @@ def test_runfile(tmpdir):
 
         # Run code file `u` without current namespace
         client.execute("runfile(r'{}', current_namespace=False)"
-                       .format(to_text_string(u)))
+                       .format(str(u)))
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Verify that the variable `result2` is defined
@@ -629,7 +614,7 @@ def test_runfile(tmpdir):
 
         # Run code file `u` with current namespace
         client.execute("runfile(r'{}', current_namespace=True)"
-                       .format(to_text_string(u)))
+                       .format(str(u)))
         msg = client.get_shell_msg(timeout=TIMEOUT)
         content = msg['content']
 
@@ -764,7 +749,7 @@ turtle.bye()
         p.write(code)
 
         # Run code
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(str(p)))
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Verify that the `tess` variable is defined
@@ -782,7 +767,7 @@ turtle.bye()
         p.write(code)
 
         # Run code again
-        client.execute("runfile(r'{}')".format(to_text_string(p)))
+        client.execute("runfile(r'{}')".format(str(p)))
         client.get_shell_msg(timeout=TIMEOUT)
 
         # Verify that the `a` variable is defined
@@ -949,12 +934,6 @@ def test_namespaces_in_pdb(kernel):
     pdb_obj.default("globals()['test2'] = 0")
     assert pdb_obj.curframe.f_globals["test2"] == 0
 
-    if PY2:
-        # no error method in py2
-        pdb_obj.curframe = None
-        pdb_obj.curframe_locals = None
-        return
-
     # Create wrapper to check for errors
     old_error = pdb_obj.error
     pdb_obj._error_occured = False
@@ -1097,13 +1076,12 @@ def test_locals_globals_in_pdb(kernel):
 
 @flaky(max_runs=3)
 @pytest.mark.parametrize("backend", [None, 'inline', 'tk', 'qt5'])
-@pytest.mark.skipif(PY2, reason="Doesn't work on Python 2")
-@pytest.mark.skipif(
-    not sys.platform.startswith('linux'),
-    reason="Doesn't work reliably on Windows and Mac")
 @pytest.mark.skipif(
     not bool(os.environ.get('USE_CONDA')),
     reason="Doesn't work with pip packages")
+@pytest.mark.skipif(
+    sys.version_info[:2] < (3, 8),
+    reason="Too flaky in Python 3.7 and doesn't work in older versions")
 def test_get_interactive_backend(backend):
     """
     Test that we correctly get the interactive backend set in the kernel.
@@ -1114,6 +1092,8 @@ def test_get_interactive_backend(backend):
         # Set backend
         if backend is not None:
             client.execute("%matplotlib {}".format(backend))
+            client.get_shell_msg(timeout=TIMEOUT)
+            client.execute("import time; time.sleep(.1)")
             client.get_shell_msg(timeout=TIMEOUT)
 
         # Get backend
