@@ -401,7 +401,7 @@ class CommBase:
             comm_id=comm_id)
 
     def _get_call_return_value(self, call_dict, comm_id):
-        """_get_call_return_value
+        """
         Send a remote call and return the reply.
 
         If settings['blocking'] == True, this will wait for a reply and return

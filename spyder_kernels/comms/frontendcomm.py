@@ -155,7 +155,7 @@ class FrontendComm(CommBase):
         self._set_pickle_protocol(
             msg['content']['data']['pickle_highest_protocol'])
         self.remote_call()._set_pickle_protocol(pickle.HIGHEST_PROTOCOL)
-        # Handle cacahed messages
+        # Handle cached messages
         if comm.comm_id in self._cached_messages:
             for msg in self._cached_messages[comm.comm_id]:
                 comm.handle_msg(msg)
