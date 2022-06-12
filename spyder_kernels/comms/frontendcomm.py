@@ -76,21 +76,11 @@ class FrontendComm(CommBase):
         msg_type = msg['header']['msg_type']
 
         handler = self.kernel.control_handlers.get(msg_type, None)
+        if handler is None:
+            self.kernel.log.warning("Unknown message type: %r", msg_type)
+            return
         try:
-            if handler is None:
-                self.kernel.log.warning("Unknown message type: %r", msg_type)
-                return
-
-            if (getattr(asyncio, 'run', False) and
-                    asyncio.iscoroutinefunction(handler)):
-                # This is needed for ipykernel 6+
-                asyncio.run(handler(out_stream, ident, msg))
-            else:
-                # This is required for Python 3.6, which doesn't have
-                # asyncio.run or ipykernel versions less than 6. The
-                # nice thing is that ipykernel 6, which requires
-                # asyncio, doesn't support Python 3.6.
-                handler(out_stream, ident, msg)
+            asyncio.run(handler(out_stream, ident, msg))
         except Exception:
             self.kernel.log.error(
                 "Exception in message handler:", exc_info=True)
