@@ -67,7 +67,8 @@ class FrontendComm(CommBase):
             # use the regular shell stream.
             out_stream = self.kernel.shell_streams[0]
         try:
-            ident, msg = self.kernel.session.recv(self.kernel.parent.control_socket, 0)
+            ident, msg = self.kernel.session.recv(
+                self.kernel.parent.control_socket, 0)
         except zmq.error.ContextTerminated:
             return
         except Exception:

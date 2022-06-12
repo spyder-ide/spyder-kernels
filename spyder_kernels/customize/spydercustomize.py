@@ -366,7 +366,7 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
     global SHOW_INVALID_SYNTAX_MSG
 
     if exec_fun is None:
-         exec_fun = exec
+        exec_fun = exec
 
     ipython_shell = get_ipython()
     is_ipython = os.path.splitext(filename)[1] == '.ipy'
