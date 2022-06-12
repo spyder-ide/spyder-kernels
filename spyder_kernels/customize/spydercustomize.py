@@ -408,7 +408,8 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
                     "'Run in console's namespace instead of an empty one' "
                     "option, that you can find in the menu 'Run > "
                     "Configuration per file', if you want to capture the "
-                    "namespace.\n")
+                    "namespace.\n"
+                )
                 SHOW_GLOBAL_MSG = False
 
         if code.rstrip()[-1] == ";":

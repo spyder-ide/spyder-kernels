@@ -1126,14 +1126,14 @@ def test_global_message(tmpdir):
         client.execute("%reset -f")
         client.get_shell_msg(timeout=TIMEOUT)
 
-        # Write multiprocessing code to a file
+        # Write code with a global to a file
         code = (
             "def foo1():\n"
             "    global x\n"
             "    x = 2\n"
             "x = 1\n"
             "print(x)\n"
-            )
+        )
 
         p = tmpdir.join("test.py")
         p.write(code)
