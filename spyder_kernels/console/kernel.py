@@ -641,7 +641,10 @@ class SpyderKernel(IPythonKernel):
             if active:
                 sys.path.insert(0, path)
                 pythonpath.insert(0, path)
-        os.environ.update({'PYTHONPATH': os.pathsep.join(pythonpath)})
+        if pythonpath:
+            os.environ.update({'PYTHONPATH': os.pathsep.join(pythonpath)})
+        else:
+            os.environ.pop('PYTHONPATH', None)
 
     # -- Private API ---------------------------------------------------
     # --- For the Variable Explorer
