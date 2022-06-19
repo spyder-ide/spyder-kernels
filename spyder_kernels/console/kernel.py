@@ -306,21 +306,6 @@ class SpyderKernel(IPythonKernel):
             return self.shell.pdb_session.do_complete(code, cursor_pos)
         return self._do_complete(code, cursor_pos)
 
-    def publish_pdb_state(self, step):
-        """
-        Publish Variable Explorer state and Pdb step through
-        send_spyder_msg.
-        """
-        state = dict(
-            namespace_view=self.get_namespace_view(),
-            var_properties=self.get_var_properties(),
-            step=step
-         )
-        try:
-            self.frontend_call(blocking=False).pdb_state(state)
-        except (CommError, TimeoutError):
-            logger.debug("Could not send Pdb state to the frontend.")
-
     def set_spyder_breakpoints(self, breakpoints):
         """
         Handle a message from the frontend
