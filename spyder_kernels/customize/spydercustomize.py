@@ -822,9 +822,7 @@ builtins.cell_count = cell_count
 def set_spyder_pythonpath():
     pypath = os.environ.get('SPY_PYTHONPATH')
     if pypath:
-        pathlist = pypath.split(os.pathsep)
-        for path in reversed(pathlist):
-            sys.path.insert(0, path)
-        os.environ.update({'PYTHONPATH': os.environ.get('SPY_PYTHONPATH')})
+        sys.path.extend(pypath.split(os.pathsep))
+        os.environ.update({'PYTHONPATH': pypath})
 
 set_spyder_pythonpath()
