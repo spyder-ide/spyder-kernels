@@ -26,7 +26,7 @@ import warnings
 from IPython import __version__ as ipy_version
 from IPython.core.getipython import get_ipython
 
-from spyder_kernels.comms.frontendcomm import CommError, frontend_request
+from spyder_kernels.comms.frontendcomm import frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 from spyder_kernels.customize.spyderpdb import SpyderPdb, get_new_debugger
 from spyder_kernels.customize.umr import UserModuleReloader
@@ -541,7 +541,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
 
 def _exec_file(filename=None, args=None, wdir=None, namespace=None,
                post_mortem=False, current_namespace=False, stack_depth=0,
-               exec_fun=None, file_code=None):
+               exec_fun=None, canonic_filename=None):
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     ipython_shell = get_ipython()
@@ -549,11 +549,6 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
         filename = get_current_file_name()
         if filename is None:
             return
-    else:
-        # get_debugger replaces \\ by / so we must undo that here
-        # Otherwise code caching doesn't work
-        if os.name == 'nt':
-            filename = filename.replace('/', '\\')
 
     try:
         filename = filename.decode('utf-8')
@@ -568,21 +563,24 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
 
-    if file_code is None:
-        try:
-            file_code = get_file_code(filename, raise_exception=True)
-        except Exception:
-            # Show an error and return None
-            _print(
-                "This command failed to be executed because an error occurred"
-                " while trying to get the file code from Spyder's"
-                " editor. The error was:\n\n")
-            get_ipython().showtraceback(exception_only=True)
-            return
+    try:
+        file_code = get_file_code(filename, raise_exception=True)
+    except Exception:
+        # Show an error and return None
+        _print(
+            "This command failed to be executed because an error occurred"
+            " while trying to get the file code from Spyder's"
+            " editor. The error was:\n\n")
+        get_ipython().showtraceback(exception_only=True)
+        return
 
-    # Normalise the filename
-    filename = os.path.abspath(filename)
-    filename = os.path.normcase(filename)
+    # Here the remote filename has been used. It must now be valid locally.
+    if canonic_filename is not None:
+        filename = canonic_filename
+    else:
+        # Normalise the filename
+        filename = os.path.abspath(filename)
+        filename = os.path.normcase(filename)
 
     with NamespaceManager(filename, namespace, current_namespace,
                           file_code=file_code, stack_depth=stack_depth + 1
@@ -671,12 +669,13 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
     else:
         debugger = get_new_debugger(filename, True)
         _exec_file(
-            filename=debugger.canonic(filename),
-            args=args, wdir=wdir,
+            filename=filename,
+            canonic_filename=debugger.canonic(filename),
+            args=args,
+            wdir=wdir,
             current_namespace=current_namespace,
             exec_fun=debugger.run,
             stack_depth=1,
-            file_code=get_file_code(filename)  # original filename
         )
 
 
@@ -702,7 +701,7 @@ def runcell(cellname, filename=None, post_mortem=False):
 
 
 def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
-               exec_fun=None, file_code=None):
+               exec_fun=None, canonic_filename=None):
     """
     Execute a code cell with a given exec function.
     """
@@ -712,11 +711,6 @@ def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
         filename = get_current_file_name()
         if filename is None:
             return
-    else:
-        # get_debugger replaces \\ by / so we must undo that here
-        # Otherwise code caching doesn't work
-        if os.name == 'nt':
-            filename = filename.replace('/', '\\')
     try:
         filename = filename.decode('utf-8')
     except (UnicodeError, TypeError, AttributeError):
@@ -742,12 +736,15 @@ def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
     # Trigger `post_execute` to exit the additional pre-execution.
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
-    if file_code is None:
-        file_code = get_file_code(filename, save_all=False)
+    file_code = get_file_code(filename, save_all=False)
 
-    # Normalise the filename
-    filename = os.path.abspath(filename)
-    filename = os.path.normcase(filename)
+    # Here the remote filename has been used. It must now be valid locally.
+    if canonic_filename is not None:
+        filename = canonic_filename
+    else:
+        # Normalise the filename
+        filename = os.path.abspath(filename)
+        filename = os.path.normcase(filename)
 
     with NamespaceManager(filename, current_namespace=True,
                           file_code=file_code, stack_depth=stack_depth + 1
@@ -783,10 +780,10 @@ def debugcell(cellname, filename=None, post_mortem=False):
         debugger = get_new_debugger(filename, False)
         _exec_cell(
             cellname=cellname,
-            filename=debugger.canonic(filename),
+            filename=filename,
+            canonic_filename=debugger.canonic(filename),
             exec_fun=debugger.run,
-            stack_depth=1,
-            file_code=get_file_code(filename, save_all=False)
+            stack_depth=1
         )
 
 
