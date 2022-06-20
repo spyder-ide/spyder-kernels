@@ -505,11 +505,12 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
         __tracebackhide__ = "__pdb_exit__"
 
 
-def get_file_code(filename, raise_exception=False):
+def get_file_code(filename, save_all=True, raise_exception=False):
     """Retrive the content of a file."""
     # Get code from spyder
     try:
-        return frontend_request(blocking=True).get_file_code(filename)
+        return frontend_request(blocking=True).get_file_code(
+            filename, save_all=save_all)
     except Exception:
         # Maybe this is a local file
         try:
@@ -742,7 +743,7 @@ def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
     if file_code is None:
-        file_code = get_file_code(filename)
+        file_code = get_file_code(filename, save_all=False)
 
     # Normalise the filename
     filename = os.path.abspath(filename)
@@ -785,7 +786,7 @@ def debugcell(cellname, filename=None, post_mortem=False):
             filename=debugger.canonic(filename),
             exec_fun=debugger.run,
             stack_depth=1,
-            file_code=get_file_code(filename)
+            file_code=get_file_code(filename, save_all=False)
         )
 
 
