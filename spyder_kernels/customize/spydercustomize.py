@@ -32,8 +32,7 @@ from spyder_kernels.customize.spyderpdb import SpyderPdb, get_new_debugger
 from spyder_kernels.customize.umr import UserModuleReloader
 from spyder_kernels.py3compat import (
     TimeoutError, PY2, _print, encode, compat_exec, FileNotFoundError)
-from spyder_kernels.customize.utils import (
-    capture_last_Expr, normalise_filename)
+from spyder_kernels.customize.utils import capture_last_Expr
 
 if not PY2:
     from IPython.core.inputtransformer2 import (
@@ -658,7 +657,7 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
     if shell.is_debugging():
         # Recursive
         code = (
-            "runfile({}".format(repr(normalise_filename(filename))) +
+            "runfile({}".format(repr(filename)) +
             ", args=%r, wdir=%r, current_namespace=%r)" % (
                 args, wdir, current_namespace)
         )
@@ -771,7 +770,7 @@ def debugcell(cellname, filename=None, post_mortem=False):
         # Recursive
         code = (
             "runcell({}, ".format(repr(cellname)) +
-            "{})".format(repr(normalise_filename(filename)))
+            "{})".format(repr(filename))
         )
         shell.pdb_session.enter_recursive_debugger(
             code, filename, False,
