@@ -505,18 +505,22 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
         __tracebackhide__ = "__pdb_exit__"
 
 
-def get_file_code(filename, save_all=True):
+def get_file_code(filename, raise_exception=False):
     """Retrive the content of a file."""
     # Get code from spyder
     try:
-        file_code = frontend_request(blocking=True).get_file_code(
-            filename, save_all=save_all)
-    except (CommError, TimeoutError, RuntimeError, FileNotFoundError):
-        file_code = None
-    if file_code is None:
-        with open(filename, 'r') as f:
-            return f.read()
-    return file_code
+        return frontend_request(blocking=True).get_file_code(filename)
+    except Exception:
+        # Maybe this is a local file
+        try:
+            with open(filename, 'r') as f:
+                return f.read()
+        except FileNotFoundError:
+            pass
+        if raise_exception:
+            raise
+        # Else return None
+        return None
 
 
 def runfile(filename=None, args=None, wdir=None, namespace=None,
@@ -536,7 +540,7 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
 
 def _exec_file(filename=None, args=None, wdir=None, namespace=None,
                post_mortem=False, current_namespace=False, stack_depth=0,
-               exec_fun=None):
+               exec_fun=None, file_code=None):
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     ipython_shell = get_ipython()
@@ -562,18 +566,18 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
         __umr__.run()
     if args is not None and not isinstance(args, basestring):
         raise TypeError("expected a character buffer object")
-    try:
-        file_code = get_file_code(filename)
-    except Exception:
-        _print(
-            "This command failed to be executed because an error occurred"
-            " while trying to get the file code from Spyder's"
-            " editor. The error was:\n\n")
-        get_ipython().showtraceback(exception_only=True)
-        return
+
     if file_code is None:
-        _print("Could not get code from editor.\n")
-        return
+        try:
+            file_code = get_file_code(filename, raise_exception=True)
+        except Exception:
+            # Show an error and return None
+            _print(
+                "This command failed to be executed because an error occurred"
+                " while trying to get the file code from Spyder's"
+                " editor. The error was:\n\n")
+            get_ipython().showtraceback(exception_only=True)
+            return
 
     # Normalise the filename
     filename = os.path.abspath(filename)
@@ -670,7 +674,8 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
             args=args, wdir=wdir,
             current_namespace=current_namespace,
             exec_fun=debugger.run,
-            stack_depth=1
+            stack_depth=1,
+            file_code=get_file_code(filename)  # original filename
         )
 
 
@@ -696,7 +701,7 @@ def runcell(cellname, filename=None, post_mortem=False):
 
 
 def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
-               exec_fun=None):
+               exec_fun=None, file_code=None):
     """
     Execute a code cell with a given exec function.
     """
@@ -736,10 +741,8 @@ def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
     # Trigger `post_execute` to exit the additional pre-execution.
     # See Spyder PR #7310.
     ipython_shell.events.trigger('post_execute')
-    try:
-        file_code = get_file_code(filename, save_all=False)
-    except Exception:
-        file_code = None
+    if file_code is None:
+        file_code = get_file_code(filename)
 
     # Normalise the filename
     filename = os.path.abspath(filename)
@@ -781,7 +784,8 @@ def debugcell(cellname, filename=None, post_mortem=False):
             cellname=cellname,
             filename=debugger.canonic(filename),
             exec_fun=debugger.run,
-            stack_depth=1
+            stack_depth=1,
+            file_code=get_file_code(filename)
         )
 
 
