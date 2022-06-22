@@ -92,6 +92,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         super(SpyderPdb, self).__init__()
         self._pdb_breaking = False
         self._frontend_notified = False
+        self._wait_for_mainpyfile = True
 
         # content of tuple: (filename, line number)
         self._previous_step = None
@@ -99,6 +100,9 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         # Don't report hidden frames for IPython 7.24+. This attribute
         # has no effect in previous versions.
         self.report_skipped = False
+
+        # Keep track of remote filename
+        self.remote_filename = None
 
     # --- Methods overriden for code execution
     def print_exclamation_warning(self):
@@ -774,6 +778,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                 fname = unicode(fname, "utf-8")
             except TypeError:
                 pass
+        if fname == self.mainpyfile and self.remote_filename is not None:
+            fname = self.remote_filename
         lineno = frame.f_lineno
 
         if self._previous_step == (fname, lineno):
@@ -833,9 +839,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         debugger.use_rawinput = self.use_rawinput
         debugger.prompt = "(%s) " % self.prompt.strip()
 
-        filename = debugger.canonic(filename)
-        debugger._wait_for_mainpyfile = True
-        debugger.mainpyfile = filename
+        debugger.remote_filename = filename
+        debugger.mainpyfile = debugger.canonic(filename)
         debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
         debugger._user_requested_quit = False
 
@@ -857,9 +862,8 @@ def get_new_debugger(filename, continue_if_has_breakpoints):
     """Get a new debugger."""
     debugger = SpyderPdb()
 
-    filename = debugger.canonic(filename)
-    debugger._wait_for_mainpyfile = True
-    debugger.mainpyfile = filename
+    debugger.remote_filename = filename
+    debugger.mainpyfile = debugger.canonic(filename)
     debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
     debugger._user_requested_quit = False
     return debugger
