@@ -156,7 +156,7 @@ class SpyderKernel(IPythonKernel):
             self.parent.heartbeat,  # heartbeat
             self.parent.iopub_thread.thread,  # iopub
             gc.thread,  # ZMQ garbage collector thread
-            ]
+        ]
         if hasattr(self.parent, "control_thread"):
             ignore_threads.append(self.parent.control_thread)
         return [

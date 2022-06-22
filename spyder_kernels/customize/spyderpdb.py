@@ -705,7 +705,7 @@ class SpyderPdb(ipyPdb):
 
         get_ipython().kernel.publish_pdb_state(step)
 
-        # Publish Pdb state so we can update the Variable Explorer
+        # Publish Pdb stack so we can update the Variable Explorer
         # and the Editor on the Spyder side
         pdb_stack = traceback.StackSummary.extract(self.stack)
         pdb_index = self.curindex
