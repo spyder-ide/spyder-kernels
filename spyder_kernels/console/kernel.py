@@ -156,9 +156,8 @@ class SpyderKernel(IPythonKernel):
             self.parent.heartbeat,  # heartbeat
             self.parent.iopub_thread.thread,  # iopub
             gc.thread,  # ZMQ garbage collector thread
+            self.parent.control_thread,  # control
         ]
-        if hasattr(self.parent, "control_thread"):
-            ignore_threads.append(self.parent.control_thread)
         return [
             thread.ident for thread in ignore_threads if thread is not None]
 
@@ -191,7 +190,7 @@ class SpyderKernel(IPythonKernel):
         thread_names = {thread.ident: thread.name
                         for thread in threading.enumerate()}
 
-        for threadId, frame in sys._current_frames().items():
+        for thread_id, frame in sys._current_frames().items():
             stack = traceback.StackSummary.extract(
                 traceback.walk_stack(frame))
             if capture_locals:
@@ -199,14 +198,14 @@ class SpyderKernel(IPythonKernel):
                     f_summary.locals = self.get_namespace_view(frame=f[0])
             stack.reverse()
             if ignore_internal_threads:
-                if threadId in ignore_list:
+                if thread_id in ignore_list:
                     continue
-                stack = self.filter_stack(stack, main_id == threadId)
+                stack = self.filter_stack(stack, main_id == thread_id)
             if stack is not None:
-                if threadId in thread_names:
-                    thread_name = thread_names[threadId]
+                if thread_id in thread_names:
+                    thread_name = thread_names[thread_id]
                 else:
-                    thread_name = str(threadId)
+                    thread_name = str(thread_id)
                 frames[thread_name] = stack
         return frames
 
