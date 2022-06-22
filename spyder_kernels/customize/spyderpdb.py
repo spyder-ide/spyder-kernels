@@ -730,6 +730,26 @@ class SpyderPdb(ipyPdb):
         except (CommError, TimeoutError):
             logger.debug("Could not send Pdb state to the frontend.")
 
+        # Publish Pdb stack so we can update the Variable Explorer
+        # and the Editor on the Spyder side
+        pdb_stack = traceback.StackSummary.extract(self.stack)
+        pdb_index = self.curindex
+
+        skip_hidden = getattr(self, 'skip_hidden', False)
+
+        if skip_hidden:
+            # Filter out the hidden frames
+            hidden = self.hidden_frames(self.stack)
+            pdb_stack = [f for f, h in zip(pdb_stack, hidden) if not h]
+            # Adjust the index
+            pdb_index -= sum(hidden[:pdb_index])
+
+        try:
+            frontend_request(blocking=False).set_pdb_stack(
+                pdb_stack, pdb_index)
+        except (CommError, TimeoutError):
+            logger.debug("Could not send Pdb stack to the frontend.")
+
     def run(self, cmd, globals=None, locals=None):
         """Debug a statement executed via the exec() function.
 
