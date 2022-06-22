@@ -10,7 +10,6 @@
 import ast
 import bdb
 import logging
-import os
 import sys
 import traceback
 from collections import namedtuple
