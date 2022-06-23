@@ -537,6 +537,20 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
         post_mortem, current_namespace, stack_depth=1)
 
 
+def canonic(filename):
+    """
+    Return canonical form of filename.
+
+    This is a copy of bdb.canonic, so that the debugger will process 
+    filenames in the same way
+    """
+    if filename == "<" + filename[1:-1] + ">":
+        return filename
+    canonic = os.path.abspath(filename)
+    canonic = os.path.normcase(canonic)
+    return canonic
+
+
 def _exec_file(filename=None, args=None, wdir=None, namespace=None,
                post_mortem=False, current_namespace=False, stack_depth=0,
                exec_fun=None, canonic_filename=None):
@@ -576,9 +590,7 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
     if canonic_filename is not None:
         filename = canonic_filename
     else:
-        # Normalise the filename
-        filename = os.path.abspath(filename)
-        filename = os.path.normcase(filename)
+        filename = canonic(filename)
 
     with NamespaceManager(filename, namespace, current_namespace,
                           file_code=file_code, stack_depth=stack_depth + 1
@@ -741,8 +753,7 @@ def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
         filename = canonic_filename
     else:
         # Normalise the filename
-        filename = os.path.abspath(filename)
-        filename = os.path.normcase(filename)
+        filename = canonic(filename)
 
     with NamespaceManager(filename, current_namespace=True,
                           file_code=file_code, stack_depth=stack_depth + 1
