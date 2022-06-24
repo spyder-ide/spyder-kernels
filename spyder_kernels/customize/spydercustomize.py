@@ -31,7 +31,7 @@ from spyder_kernels.customize.spyderpdb import SpyderPdb, get_new_debugger
 from spyder_kernels.customize.umr import UserModuleReloader
 from spyder_kernels.py3compat import (
     PY2, _print, encode, compat_exec, FileNotFoundError)
-from spyder_kernels.customize.utils import capture_last_Expr
+from spyder_kernels.customize.utils import capture_last_Expr, canonic
 
 if not PY2:
     from IPython.core.inputtransformer2 import (
@@ -535,20 +535,6 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     return _exec_file(
         filename, args, wdir, namespace,
         post_mortem, current_namespace, stack_depth=1)
-
-
-def canonic(filename):
-    """
-    Return canonical form of filename.
-
-    This is a copy of bdb.canonic, so that the debugger will process 
-    filenames in the same way
-    """
-    if filename == "<" + filename[1:-1] + ">":
-        return filename
-    canonic = os.path.abspath(filename)
-    canonic = os.path.normcase(canonic)
-    return canonic
 
 
 def _exec_file(filename=None, args=None, wdir=None, namespace=None,

@@ -115,3 +115,17 @@ def capture_last_Expr(code_ast, out_varname):
         assign_node.col_offset = expr_node.col_offset
         code_ast.body[-1] = assign_node
     return code_ast, capture_last_expression
+
+
+def canonic(filename):
+    """
+    Return canonical form of filename.
+
+    This is a copy of bdb.canonic, so that the debugger will process 
+    filenames in the same way
+    """
+    if filename == "<" + filename[1:-1] + ">":
+        return filename
+    canonic = os.path.abspath(filename)
+    canonic = os.path.normcase(canonic)
+    return canonic
