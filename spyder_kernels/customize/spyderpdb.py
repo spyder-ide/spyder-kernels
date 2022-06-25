@@ -89,10 +89,8 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         self.pdb_stop_first_line = True
         self._disable_next_stack_entry = False
         super(SpyderPdb, self).__init__()
-        self._user_requested_quit = False
         self._pdb_breaking = False
         self._frontend_notified = False
-        self._wait_for_mainpyfile = True
 
         # content of tuple: (filename, line number)
         self._previous_step = None
@@ -839,9 +837,9 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         debugger.use_rawinput = self.use_rawinput
         debugger.prompt = "(%s) " % self.prompt.strip()
 
-        debugger.remote_filename = filename
-        debugger.mainpyfile = debugger.canonic(filename)
+        debugger.set_remote_filename(filename)
         debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
+        debugger._user_requested_quit = False
 
         # Enter recursive debugger
         sys.call_tracing(debugger.run, (code, globals, locals))
@@ -856,11 +854,17 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         # but the parent debugger (self) is not aware of this.
         self._previous_step = None
 
+    def set_remote_filename(self, filename):
+        """set remote filename to signal spyder on mainpyfile."""
+        self.remote_filename = filename
+        self.mainpyfile = self.canonic(filename)
+        self._wait_for_mainpyfile = True
+
 
 def get_new_debugger(filename, continue_if_has_breakpoints):
     """Get a new debugger."""
     debugger = SpyderPdb()
-    debugger.remote_filename = filename
-    debugger.mainpyfile = debugger.canonic(filename)
+    debugger.set_remote_filename(filename)
     debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
+    debugger._user_requested_quit = False
     return debugger
