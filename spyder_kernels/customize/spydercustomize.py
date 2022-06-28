@@ -504,7 +504,7 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
 
 
 def get_file_code(filename, save_all=True, raise_exception=False):
-    """Retrive the content of a file."""
+    """Retrieve the content of a file."""
     # Get code from spyder
     try:
         return frontend_request(blocking=True).get_file_code(

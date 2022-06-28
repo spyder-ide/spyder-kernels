@@ -855,7 +855,7 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         self._previous_step = None
 
     def set_remote_filename(self, filename):
-        """set remote filename to signal spyder on mainpyfile."""
+        """Set remote filename to signal Spyder on mainpyfile."""
         self.remote_filename = filename
         self.mainpyfile = self.canonic(filename)
         self._wait_for_mainpyfile = True
