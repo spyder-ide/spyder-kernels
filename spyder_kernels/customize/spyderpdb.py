@@ -101,13 +101,14 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
         # has no effect in previous versions.
         self.report_skipped = False
 
+
         # Keep track of remote filename
         self.remote_filename = None
 
         # State of the prompt
         self.prompt_waiting = False
 
-        # Line recieved from the frontend
+        # Line received from the frontend
         self._cmd_input_line = None
 
     # --- Methods overriden for code execution
@@ -641,13 +642,13 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
                        "For copying text while debugging, use Ctrl+Shift+C",
                        file=self.stdout)
 
+
     def cmdloop(self, intro=None):
-        """Repeatedly issue a prompt, accept input, parse an initial prefix
+        """
+        Repeatedly issue a prompt, accept input, parse an initial prefix
         off the received input, and dispatch to action methods, passing them
         the remainder of the line as argument.
-
         """
-
         self.preloop()
         if intro is not None:
             self.intro = intro
