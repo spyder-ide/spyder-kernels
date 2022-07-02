@@ -121,10 +121,6 @@ class SpyderPdb(ipyPdb, object):  # Inherits `object` to call super() in PY2
     def default(self, line):
         """
         Default way of running pdb statment.
-
-        The only difference with Pdb.default is that if line contains multiple
-        statments, the code will be compiled with 'exec'. It will not print the
-        result but will run without failing.
         """
         execute_events = self.pdb_execute_events
         if line[:1] == '!':
