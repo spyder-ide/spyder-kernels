@@ -664,12 +664,8 @@ class SpyderPdb(ipyPdb):
         kernel.frontend_call().pdb_input(prompt)
 
         # Allow GUI event loop to update
-        if PY3:
-            is_main_thread = (
-                threading.current_thread() is threading.main_thread())
-        else:
-            is_main_thread = isinstance(
-                threading.current_thread(), threading._MainThread)
+        is_main_thread = (
+            threading.current_thread() is threading.main_thread())
 
         # Get input by running eventloop
         if is_main_thread and kernel.eventloop:
