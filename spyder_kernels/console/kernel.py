@@ -98,6 +98,20 @@ class SpyderKernel(IPythonKernel):
         self._running_namespace = None
         self.faulthandler_handle = None
 
+    def register_frontend_fun(self, fun):
+        """
+        Register frontend function
+        """
+        self.frontend_comm.register_call_handler(
+            fun.__name__, fun)
+        return fun
+
+    def unregister_frontend_fun(self, fun_name):
+        """
+        Unregister frontend function
+        """
+        self.frontend_comm.register_call_handler(fun_name, None)
+
     # -- Public API -----------------------------------------------------------
     def do_shutdown(self, restart):
         """Disable faulthandler if enabled before proceeding."""
