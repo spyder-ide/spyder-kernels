@@ -36,27 +36,25 @@ class DebugWrapper:
     """
     def __init__(self, pdb_obj):
         self.pdb_obj = pdb_obj
+        self._cleanup = True
 
     def __enter__(self):
         """
         Debugging starts.
         """
-        self.pdb_obj._frontend_notified = True
-        try:
-            frontend_request(blocking=True).set_debug_state(True)
-        except (CommError, TimeoutError):
-            logger.debug("Could not send debugging state to the frontend.")
+        shell = get_ipython()
+        if shell.pdb_session == self.pdb_obj:
+            self._cleanup = False
+        else:
+            shell.add_pdb_session(self.pdb_obj)
+            self._cleanup = True
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Debugging ends.
         """
-        self.pdb_obj._frontend_notified = False
-        try:
-            frontend_request(blocking=True).set_debug_state(False)
-        except (CommError, TimeoutError):
-            logger.debug("Could not send debugging state to the frontend.")
-
+        if self._cleanup:
+            get_ipython().remove_pdb_session(self.pdb_obj)
 
 class SpyderPdb(ipyPdb):
     """
@@ -86,7 +84,6 @@ class SpyderPdb(ipyPdb):
         self._disable_next_stack_entry = False
         super(SpyderPdb, self).__init__()
         self._pdb_breaking = False
-        self._frontend_notified = False
 
         # content of tuple: (filename, line number)
         self._previous_step = None
@@ -284,6 +281,15 @@ class SpyderPdb(ipyPdb):
         self._pdb_breaking = True
         self.set_step()
         self.set_trace(sys._getframe())
+    def set_trace(self, frame=None):
+        """Register that debugger is tracing."""
+        get_ipython().add_pdb_session(self)
+        super(SpyderPdb, self).set_trace(frame)
+
+    def set_quit(self):
+        """Register that debugger is not tracing."""
+        get_ipython().remove_pdb_session(self)
+        super(SpyderPdb, self).set_quit()
 
     def interaction(self, frame, traceback):
         """
@@ -298,15 +304,10 @@ class SpyderPdb(ipyPdb):
             self._pdb_breaking = False
             if frame and frame.f_back:
                 return self.interaction(frame.f_back, traceback)
-
-        self.setup(frame, traceback)
-        self.print_stack_entry(self.stack[self.curindex])
-        if self._frontend_notified:
-            self._cmdloop()
-        else:
-            with DebugWrapper(self):
-                self._cmdloop()
-        self.forget()
+        with DebugWrapper(self):
+            # Wrapp in case the frontend was not notified, e.g. postmortem
+            return super(SpyderPdb, self).interaction(
+                frame, traceback)
 
     def print_stack_entry(self, frame_lineno, prompt_prefix='\n-> ',
                           context=None):
@@ -574,13 +575,6 @@ class SpyderPdb(ipyPdb):
         # Don't stop except at breakpoints or when finished
         self._set_stopinfo(self.botframe, None, -1)
 
-    def reset(self):
-        """
-        Register Pdb session after reset.
-        """
-        super(SpyderPdb, self).reset()
-        get_ipython().pdb_session = self
-
     def do_debug(self, arg):
         """
         Debug code
@@ -595,7 +589,6 @@ class SpyderPdb(ipyPdb):
             exc_info = sys.exc_info()[:2]
             self.error(
                 traceback.format_exception_only(*exc_info)[-1].strip())
-        get_ipython().pdb_session = self
 
     def user_return(self, frame, return_value):
         """This function is called when a return trap is set here."""
@@ -878,7 +871,6 @@ class SpyderPdb(ipyPdb):
         # Reset parent debugger
         sys.settrace(self.trace_dispatch)
         self.lastcmd = debugger.lastcmd
-        get_ipython().pdb_session = self
 
         # Reset _previous_step so that publish_pdb_state() called from within
         # postcmd() notifies Spyder about a changed debugger position. The reset

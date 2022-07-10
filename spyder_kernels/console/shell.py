@@ -19,6 +19,7 @@ import traceback
 from ipykernel.zmqshell import ZMQInteractiveShell
 
 # Local imports
+from spyder_kernels.comms.frontendcomm import CommError
 from spyder_kernels.utils.mpl import automatic_backend
 
 
@@ -26,8 +27,8 @@ class SpyderShell(ZMQInteractiveShell):
     """Spyder shell."""
 
     def __init__(self, *args, **kwargs):
-        # Create _pdb_obj before __init__
-        self._pdb_obj = None
+        # Create _pdb_obj_stack before __init__
+        self._pdb_obj_stack = []
         super(SpyderShell, self).__init__(*args, **kwargs)
 
     def _showtraceback(self, etype, evalue, stb):
@@ -59,7 +60,7 @@ class SpyderShell(ZMQInteractiveShell):
         frame = sys._getframe(stack_depth + 1)
         if self._pdb_frame is frame:
             # Avoid calling f_locals on _pdb_frame
-            return self._pdb_obj.curframe_locals
+            return self.pdb_session.curframe_locals
         else:
             return frame.f_locals
 
@@ -77,12 +78,31 @@ class SpyderShell(ZMQInteractiveShell):
     @property
     def pdb_session(self):
         """Get current pdb session."""
-        return self._pdb_obj
+        if len(self._pdb_obj_stack) > 0:
+            return self._pdb_obj_stack[-1]
+        return None
 
-    @pdb_session.setter
-    def pdb_session(self, pdb_obj):
-        """Register Pdb session to use it later"""
-        self._pdb_obj = pdb_obj
+    def add_pdb_session(self, pdb_obj):
+        """Add a pdb object to the stack."""
+        if self.pdb_session == pdb_obj:
+            # Already Added
+            return
+        self._pdb_obj_stack.append(pdb_obj)
+        try:
+            self.kernel.frontend_call(blocking=True).set_debug_state(True)
+        except (CommError, TimeoutError):
+            logger.debug("Could not send debugging state to the frontend.")
+
+    def remove_pdb_session(self, pdb_obj):
+        """Add a pdb object to the stack."""
+        if self.pdb_session != pdb_obj:
+            # Already removed
+            return
+        self._pdb_obj_stack.pop()
+        try:
+            self.kernel.frontend_call(blocking=True).set_debug_state(False)
+        except (CommError, TimeoutError):
+            logger.debug("Could not send debugging state to the frontend.")
 
     @property
     def _pdb_frame(self):
@@ -97,7 +117,7 @@ class SpyderShell(ZMQInteractiveShell):
         return an empty dictionary
         """
         if self._pdb_frame is not None:
-            return self._pdb_obj.curframe_locals
+            return self.pdb_session.curframe_locals
         else:
             return {}
 
