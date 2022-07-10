@@ -582,7 +582,7 @@ def test_runfile(tmpdir):
 
         # Run code file `d` to define `result` even after an error
         client.execute_interactive("runfile(r'{}', current_namespace=False)"
-                       .format(str(d)), timeout=TIMEOUT)
+                                  .format(str(d)), timeout=TIMEOUT)
 
         # Verify that `result` is defined in the current namespace
         client.inspect('result')
@@ -594,7 +594,7 @@ def test_runfile(tmpdir):
 
         # Run code file `u` without current namespace
         client.execute_interactive("runfile(r'{}', current_namespace=False)"
-                       .format(str(u)), timeout=TIMEOUT)
+                                  .format(str(u)), timeout=TIMEOUT)
 
         # Verify that the variable `result2` is defined
         client.inspect('result2')
@@ -606,7 +606,7 @@ def test_runfile(tmpdir):
 
         # Run code file `u` with current namespace
         msg = client.execute_interactive("runfile(r'{}', current_namespace=True)"
-                       .format(str(u)), timeout=TIMEOUT)
+                                        .format(str(u)), timeout=TIMEOUT)
         content = msg['content']
 
         # Verify that the variable `result3` is defined
