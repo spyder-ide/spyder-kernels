@@ -96,6 +96,7 @@ class SpyderPdb(ipyPdb):
         self.remote_filename = None
 
         # State of the prompt
+        # Needed to know which namespace to show (user or current frame)
         self.prompt_waiting = False
 
         # Line received from the frontend
