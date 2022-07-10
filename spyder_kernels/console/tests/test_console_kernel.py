@@ -1097,17 +1097,13 @@ def test_get_interactive_backend(backend):
     with setup_kernel(cmd) as client:
         # Set backend
         if backend is not None:
-            client.execute("%matplotlib {}".format(backend))
-            client.get_shell_msg(timeout=TIMEOUT)
-            client.execute("import time; time.sleep(.1)")
-            client.get_shell_msg(timeout=TIMEOUT)
+            client.execute_interactive("%matplotlib {}".format(backend))
+            client.execute_interactive("import time; time.sleep(.1)")
 
         # Get backend
         code = "backend = get_ipython().kernel.get_mpl_interactive_backend()"
-        client.execute(code, user_expressions={'output': 'backend'})
-        reply = client.get_shell_msg(timeout=TIMEOUT)
-        while 'user_expressions' not in reply['content']:
-            reply = client.get_shell_msg(timeout=TIMEOUT)
+        reply = client.execute_interactive(
+            code, user_expressions={'output': 'backend'})
 
         # Get value obtained through user_expressions
         user_expressions = reply['content']['user_expressions']
