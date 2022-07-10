@@ -1071,8 +1071,8 @@ def test_locals_globals_in_pdb(kernel):
     not bool(os.environ.get('USE_CONDA')),
     reason="Doesn't work with pip packages")
 @pytest.mark.skipif(
-    sys.version_info[:2] < (3, 8),
-    reason="Too flaky in Python 3.7 and doesn't work in older versions")
+    sys.version_info[:2] < (3, 9),
+    reason="Too flaky in Python 3.7/8 and doesn't work in older versions")
 def test_get_interactive_backend(backend):
     """
     Test that we correctly get the interactive backend set in the kernel.
@@ -1125,23 +1125,27 @@ def test_global_message(tmpdir):
 
         p = tmpdir.join("test.py")
         p.write(code)
+        global found
+        found = False
+
+        def check_found(msg):
+            if "text" in msg["content"]:
+                if ("WARNING: This file contains a global statement"  in
+                        msg["content"]["text"]):
+                    global found
+                    found = True
 
         # Run code in current namespace
-        msg = client.execute_interactive(
-            "runfile(r'{}', current_namespace=True)".format(
-            str(p)), timeout=TIMEOUT)
-        while "text" not in msg["content"]:
-            msg = client.get_iopub_msg(timeout=TIMEOUT)
-        assert "WARNING: This file contains a global statement" not in (
-            msg["content"]["text"])
+        client.execute_interactive("runfile(r'{}', current_namespace=True)".format(
+            str(p)), timeout=TIMEOUT, output_hook=check_found)
+        assert not found
 
         # Run code in empty namespace
-        msg = client.execute_interactive(
-            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
-        while "text" not in msg["content"]:
-            msg = client.get_iopub_msg(timeout=TIMEOUT)
-        assert "WARNING: This file contains a global statement" in (
-            msg["content"]["text"])
+        client.execute_interactive(
+            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT,
+            output_hook=check_found)
+
+        assert found
 
 
 if __name__ == "__main__":
