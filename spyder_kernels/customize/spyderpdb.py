@@ -11,6 +11,7 @@ import ast
 import bdb
 import builtins
 import logging
+import os
 import sys
 import traceback
 import threading
@@ -21,6 +22,7 @@ from IPython.core.debugger import Pdb as ipyPdb
 from IPython.core.getipython import get_ipython
 from IPython.core.inputtransformer2 import TransformerManager
 
+import spyder_kernels
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.utils import path_is_library, capture_last_Expr
 
@@ -331,6 +333,9 @@ class SpyderPdb(ipyPdb):
             # This is not a file
             return True
         if self.pdb_ignore_lib and path_is_library(filename):
+            return False
+        if os.path.dirname(spyder_kernels.__file__) in filename:
+            # This is spyder-kernels internals
             return False
         return True
 
