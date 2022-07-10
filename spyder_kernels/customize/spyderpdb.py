@@ -83,7 +83,6 @@ class SpyderPdb(ipyPdb):
         self.pdb_stop_first_line = True
         self._disable_next_stack_entry = False
         super(SpyderPdb, self).__init__()
-        self._pdb_breaking = False
 
         # content of tuple: (filename, line number)
         self._previous_step = None
@@ -101,6 +100,12 @@ class SpyderPdb(ipyPdb):
 
         # Line received from the frontend
         self._cmd_input_line = None
+
+        # Disable sigint so we can do it ourself
+        self.nosigint = True
+
+        # Keep track of interrupting state to avoid several interruptions
+        self.interrupting = False
 
     # --- Methods overriden for code execution
     def print_exclamation_warning(self):
@@ -269,18 +274,12 @@ class SpyderPdb(ipyPdb):
                 traceback.format_exception_only(*exc_info)[-1].strip())
 
     # --- Methods overriden for signal handling
-    def sigint_handler(self, signum, frame):
-        """
-        Handle a sigint signal. Break on the frame above this one.
-        """
-        if self.allow_kbdint:
-            raise KeyboardInterrupt
+    def interrupt(self):
+        """Stop debugger on next instruction."""
+        self.interrupting = True
         self.message("\nProgram interrupted. (Use 'cont' to resume).")
-        # avoid stopping in set_trace
-        sys.settrace(None)
-        self._pdb_breaking = True
         self.set_step()
-        self.set_trace(sys._getframe())
+
     def set_trace(self, frame=None):
         """Register that debugger is tracing."""
         get_ipython().add_pdb_session(self)
@@ -294,16 +293,7 @@ class SpyderPdb(ipyPdb):
     def interaction(self, frame, traceback):
         """
         Called when a user interaction is required.
-
-        If this is from sigint, break on the upper frame.
-        If the frame is in spydercustomize.py, quit.
-        Notifies spyder and print current code.
-
         """
-        if self._pdb_breaking:
-            self._pdb_breaking = False
-            if frame and frame.f_back:
-                return self.interaction(frame.f_back, traceback)
         with DebugWrapper(self):
             # Wrapp in case the frontend was not notified, e.g. postmortem
             return super(SpyderPdb, self).interaction(
@@ -603,6 +593,7 @@ class SpyderPdb(ipyPdb):
 
     def _cmdloop(self):
         """Modifies the error text."""
+        self.interrupting = False
         while True:
             try:
                 # keyboard interrupts allow for an easy way to cancel

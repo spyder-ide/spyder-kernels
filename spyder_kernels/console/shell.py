@@ -12,15 +12,23 @@ Spyder shell for Jupyter kernels.
 
 # Standard library imports
 import bdb
+import logging
+import os
+import signal
 import sys
 import traceback
+from _thread import interrupt_main
 
 # Third-party imports
 from ipykernel.zmqshell import ZMQInteractiveShell
 
 # Local imports
+from spyder_kernels.customize.spyderpdb import SpyderPdb
 from spyder_kernels.comms.frontendcomm import CommError
 from spyder_kernels.utils.mpl import automatic_backend
+
+
+logger = logging.getLogger(__name__)
 
 
 class SpyderShell(ZMQInteractiveShell):
@@ -29,7 +37,9 @@ class SpyderShell(ZMQInteractiveShell):
     def __init__(self, *args, **kwargs):
         # Create _pdb_obj_stack before __init__
         self._pdb_obj_stack = []
+        self._request_pdb_stop = False
         super(SpyderShell, self).__init__(*args, **kwargs)
+        self.register_debugger_sigint()
 
     def _showtraceback(self, etype, evalue, stb):
         """
@@ -152,3 +162,63 @@ class SpyderShell(ZMQInteractiveShell):
                     etype, value, stack)
             except Exception:
                 return
+
+    def register_debugger_sigint(self):
+        """Register sigint handler."""
+        signal.signal(signal.SIGINT, self.spyderkernel_sigint_handler)
+
+    def raise_interrupt_signal(self):
+        """Raise interrupt signal."""
+        if os.name == "nt":
+            # check if signal handler is callable
+            # to avoid 'int not callable' error (Python issue #23395)
+            if callable(signal.getsignal(signal.SIGINT)):
+                interrupt_main()
+            else:
+                self.kernel.log.error(
+                    "Interrupt message not supported on Windows")
+        else:
+            self.kernel._send_interupt_children()
+
+    def request_pdb_stop(self):
+        """Request pdb to stop at next possible position."""
+        pdb_session = self.pdb_session
+        if pdb_session:
+            if pdb_session.interrupting:
+                # interrupt already requested, wait
+                return
+            # trace_dispatch is active, stop at the next possible position
+            pdb_session.interrupt()
+
+        elif (self.spyderkernel_sigint_handler
+              == signal.getsignal(signal.SIGINT)):
+            # Use spyderkernel_sigint_handler
+            self._request_pdb_stop = True
+            self.raise_interrupt_signal()
+
+        else:
+            logger.debug(
+                "Can not signal main thread to stop as SIGINT"
+                " handler was replaced and the debugger is not active. "
+                "The current handler is: " +
+                repr(signal.getsignal(signal.SIGINT)))
+
+    def spyderkernel_sigint_handler(self, signum, frame):
+        """Enter a debugger."""
+        pdb_session = self.pdb_session
+        if self._request_pdb_stop:
+            # SIGINT called from request_pdb_stop
+            self._request_pdb_stop = False
+            debugger = SpyderPdb()
+            debugger.interrupt()
+            debugger.set_trace(frame)
+        elif pdb_session:
+            # SIGINT called while debugging
+            if pdb_session.allow_kbdint:
+                raise KeyboardInterrupt
+            if pdb_session.interrupting:
+                # second call to interrupt, raise
+                raise KeyboardInterrupt
+            pdb_session.interrupt()
+        else:
+            signal.default_int_handler(signum, frame)
