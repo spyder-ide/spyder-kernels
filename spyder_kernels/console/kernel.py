@@ -948,4 +948,5 @@ class SpyderKernel(IPythonKernel):
         self.shell.register_debugger_sigint()
         # Install a global tracing function so that pdb.set_trace can work
         # This is a low overhead function that disables itself immediately
+        # See https://docs.python.org/3/library/sys.html#sys.settrace
         sys.settrace(lambda frame, event, arg: None)
