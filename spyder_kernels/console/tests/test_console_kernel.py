@@ -1299,5 +1299,45 @@ def test_interrupt():
         assert time.time() - t0 < 5
 
 
+def test_enter_debug():
+    """
+    Test that using `global` triggers a warning.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+    import pickle
+    with setup_kernel(cmd) as client:
+        kernel_comm = CommBase()
+
+        # Create new comm and send the highest protocol
+        comm = Comm(kernel_comm._comm_name, client)
+        comm.open(data={'pickle_highest_protocol': pickle.HIGHEST_PROTOCOL})
+        comm._send_channel = client.control_channel
+        kernel_comm._register_comm(comm)
+
+        client.execute_interactive("import time", timeout=TIMEOUT)
+
+        # Try interrupting loop
+        t0 = time.time()
+        msg_id = client.execute("for i in range(100): time.sleep(.1)")
+        time.sleep(.2)
+        # Raise interrupt on control_channel
+        kernel_comm.remote_call().request_pdb_stop()
+        # Wait for debug message
+        while True:
+            assert time.time() - t0 < 5
+            msg = client.get_iopub_msg(timeout=TIMEOUT)
+            if msg["parent_header"].get("msg_id") != msg_id:
+                # not from my request
+                continue
+            if msg.get('msg_type') == 'comm_msg':
+                if msg["content"].get("data", {}).get("content", {}).get('call_name') =='get_pdb_settings':
+                    # pdb entered
+                    break
+                comm.handle_msg(msg)
+
+        assert time.time() - t0 < 5
+
+
 if __name__ == "__main__":
     pytest.main()
