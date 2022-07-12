@@ -19,6 +19,7 @@ import time
 from subprocess import Popen, PIPE
 import sys
 import inspect
+import uuid
 from collections import namedtuple
 
 # Test imports
@@ -34,6 +35,7 @@ from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.mpl import MPL_BACKENDS_FROM_SPYDER
 from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 from spyder_kernels.customize.spyderpdb import SpyderPdb
+from spyder_kernels.comms.commbase import CommBase
 
 # For ipykernel 6
 try:
@@ -93,6 +95,86 @@ def setup_kernel(cmd):
             client.stop_channels()
     finally:
         kernel.terminate()
+
+
+class Comm():
+    """
+    Comm base class, copied from qtconsole without the qt stuff
+    """
+
+    def __init__(self, target_name, kernel_client,
+                 msg_callback=None, close_callback=None):
+        """
+        Create a new comm. Must call open to use.
+        """
+        self.target_name = target_name
+        self.kernel_client = kernel_client
+        self.comm_id =  uuid.uuid1().hex
+        self._msg_callback = msg_callback
+        self._close_callback = close_callback
+        self._send_channel = self.kernel_client.shell_channel
+
+    def _send_msg(self, msg_type, content, data, metadata, buffers):
+        """
+        Send a message on the shell channel.
+        """
+        if data is None:
+            data = {}
+        if content is None:
+            content = {}
+        content['comm_id'] = self.comm_id
+        content['data'] = data
+        msg = self.kernel_client.session.msg(
+            msg_type, content, metadata=metadata)
+        if buffers:
+            msg['buffers'] = buffers
+        return self._send_channel.send(msg)
+
+    # methods for sending messages
+    def open(self, data=None, metadata=None, buffers=None):
+        """Open the kernel-side version of this comm"""
+        return self._send_msg(
+            'comm_open', {'target_name': self.target_name},
+            data, metadata, buffers)
+
+    def send(self, data=None, metadata=None, buffers=None):
+        """Send a message to the kernel-side version of this comm"""
+        return self._send_msg(
+            'comm_msg', {}, data, metadata, buffers)
+
+    def close(self, data=None, metadata=None, buffers=None):
+        """Close the kernel-side version of this comm"""
+        return self._send_msg(
+            'comm_close', {}, data, metadata, buffers)
+
+    def on_msg(self, callback):
+        """Register a callback for comm_msg
+
+        Will be called with the `data` of any comm_msg messages.
+
+        Call `on_msg(None)` to disable an existing callback.
+        """
+        self._msg_callback = callback
+
+    def on_close(self, callback):
+        """Register a callback for comm_close
+
+        Will be called with the `data` of the close message.
+
+        Call `on_close(None)` to disable an existing callback.
+        """
+        self._close_callback = callback
+
+    # methods for handling incoming messages
+    def handle_msg(self, msg):
+        """Handle a comm_msg message"""
+        if self._msg_callback:
+            return self._msg_callback(msg)
+
+    def handle_close(self, msg):
+        """Handle a comm_close message"""
+        if self._close_callback:
+            return self._close_callback(msg)
 
 
 # =============================================================================
@@ -1160,6 +1242,55 @@ def test_global_message(tmpdir):
             msg = client.get_iopub_msg(timeout=TIMEOUT)
         assert "WARNING: This file contains a global statement" in (
             msg["content"]["text"])
+
+
+def test_interrupt():
+    """
+    Test that using `global` triggers a warning.
+    """
+    # Command to start the kernel
+    cmd = "from spyder_kernels.console import start; start.main()"
+    import pickle
+    with setup_kernel(cmd) as client:
+        kernel_comm = CommBase()
+
+        # Create new comm and send the highest protocol
+        comm = Comm(kernel_comm._comm_name, client)
+        comm.open(data={'pickle_highest_protocol': pickle.HIGHEST_PROTOCOL})
+        comm._send_channel = client.control_channel
+        kernel_comm._register_comm(comm)
+
+        client.execute_interactive("import time", timeout=TIMEOUT)
+
+        # Try interrupting loop
+        t0 = time.time()
+        msg_id = client.execute("for i in range(100): time.sleep(.1)")
+        time.sleep(.2)
+        kernel_comm.remote_call().raise_interrupt_signal()
+        # Wait for shell message
+        while True:
+            assert time.time() - t0 < 5
+            msg = client.get_shell_msg(timeout=TIMEOUT)
+            if msg["parent_header"].get("msg_id") != msg_id:
+                # not from my request
+                continue
+            break
+        assert time.time() - t0 < 5
+
+        # Try interrupting sleep
+        t0 = time.time()
+        msg_id = client.execute("time.sleep(10)")
+        time.sleep(.2)
+        kernel_comm.remote_call().raise_interrupt_signal()
+        # Wait for shell message
+        while True:
+            assert time.time() - t0 < 5
+            msg = client.get_shell_msg(timeout=TIMEOUT)
+            if msg["parent_header"].get("msg_id") != msg_id:
+                # not from my request
+                continue
+            break
+        assert time.time() - t0 < 5
 
 
 if __name__ == "__main__":
