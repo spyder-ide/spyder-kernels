@@ -946,3 +946,6 @@ class SpyderKernel(IPythonKernel):
         """Hook to execute after calling message handler"""
         # keep ipykernel behavior of resetting sigint every call
         self.shell.register_debugger_sigint()
+        # Install a global tracing function so that pdb.set_trace can work
+        # This is a low overhead function that disables itself immediately
+        sys.settrace(lambda frame, event, arg: None)
