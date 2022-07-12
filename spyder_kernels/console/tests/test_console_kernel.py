@@ -1335,6 +1335,8 @@ def test_enter_debug():
                     # pdb entered
                     break
                 comm.handle_msg(msg)
+            if msg.get('msg_type') == 'stream':
+                print(msg["content"].get("text"))
 
         assert time.time() - t0 < 5
 
