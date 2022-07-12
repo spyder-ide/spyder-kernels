@@ -1266,6 +1266,7 @@ def test_interrupt():
         t0 = time.time()
         msg_id = client.execute("for i in range(100): time.sleep(.1)")
         time.sleep(.2)
+        # Raise interrupt on control_channel
         kernel_comm.remote_call().raise_interrupt_signal()
         # Wait for shell message
         while True:
@@ -1277,10 +1278,15 @@ def test_interrupt():
             break
         assert time.time() - t0 < 5
 
+        if os.name == 'nt':
+            # Windows doesn't do "interrupting sleep"
+            return
+
         # Try interrupting sleep
         t0 = time.time()
         msg_id = client.execute("time.sleep(10)")
         time.sleep(.2)
+        # Raise interrupt on control_channel
         kernel_comm.remote_call().raise_interrupt_signal()
         # Wait for shell message
         while True:
