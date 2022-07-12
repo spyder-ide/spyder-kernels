@@ -1327,6 +1327,8 @@ def test_enter_debug():
         while True:
             assert time.time() - t0 < 5
             msg = client.get_iopub_msg(timeout=TIMEOUT)
+            if msg.get('msg_type') == 'stream':
+                print(msg["content"].get("text"))
             if msg["parent_header"].get("msg_id") != msg_id:
                 # not from my request
                 continue
@@ -1335,8 +1337,6 @@ def test_enter_debug():
                     # pdb entered
                     break
                 comm.handle_msg(msg)
-            if msg.get('msg_type') == 'stream':
-                print(msg["content"].get("text"))
 
         assert time.time() - t0 < 5
 
