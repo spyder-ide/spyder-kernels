@@ -86,7 +86,16 @@ def setup_kernel(cmd):
             raise IOError("Connection file %r never arrived" % connection_file)
 
         client = BlockingKernelClient(connection_file=connection_file)
-        client.load_connection_file()
+        tic = time.time()
+        while True:
+            try:
+                client.load_connection_file()
+                break
+            except ValueError:
+                # The file is not written yet
+                if time.time() > tic + SETUP_TIMEOUT:
+                    # Give up after 5s
+                    raise IOError("Kernel failed to write connection file")
         client.start_channels()
         client.wait_for_ready()
         try:
