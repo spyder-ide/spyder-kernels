@@ -118,7 +118,7 @@ class Comm():
         """
         self.target_name = target_name
         self.kernel_client = kernel_client
-        self.comm_id =  uuid.uuid1().hex
+        self.comm_id = uuid.uuid1().hex
         self._msg_callback = msg_callback
         self._close_callback = close_callback
         self._send_channel = self.kernel_client.shell_channel
@@ -1328,7 +1328,8 @@ def test_enter_debug():
                 # not from my request
                 continue
             if msg.get('msg_type') == 'comm_msg':
-                if msg["content"].get("data", {}).get("content", {}).get('call_name') =='get_pdb_settings':
+                if msg["content"].get("data", {}).get("content", {}).get(
+                        'call_name') == 'get_pdb_settings':
                     # pdb entered
                     break
                 comm.handle_msg(msg)
