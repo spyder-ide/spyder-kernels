@@ -99,7 +99,8 @@ class SpyderShell(ZMQInteractiveShell):
             return
         self._pdb_obj_stack.append(pdb_obj)
         try:
-            self.kernel.frontend_call(blocking=True).set_debug_state(True)
+            self.kernel.frontend_call(blocking=True).set_debug_state(
+                len(self._pdb_obj_stack))
         except (CommError, TimeoutError):
             logger.debug("Could not send debugging state to the frontend.")
 
@@ -110,7 +111,8 @@ class SpyderShell(ZMQInteractiveShell):
             return
         self._pdb_obj_stack.pop()
         try:
-            self.kernel.frontend_call(blocking=True).set_debug_state(False)
+            self.kernel.frontend_call(blocking=True).set_debug_state(
+                len(self._pdb_obj_stack))
         except (CommError, TimeoutError):
             logger.debug("Could not send debugging state to the frontend.")
 
