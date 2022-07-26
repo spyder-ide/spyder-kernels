@@ -1241,7 +1241,7 @@ def test_global_message(tmpdir):
 
 def test_interrupt():
     """
-    Test that using `global` triggers a warning.
+    Test that the kernel can be interrupted by calling a comm handler.
     """
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
@@ -1294,9 +1294,10 @@ def test_interrupt():
         assert time.time() - t0 < 5
 
 
-def test_enter_debug():
+def test_enter_debug_after_interruption():
     """
-    Test that using `global` triggers a warning.
+    Test that we can enter the debugger after interrupting the current
+    execution.
     """
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
@@ -1316,7 +1317,7 @@ def test_enter_debug():
         t0 = time.time()
         msg_id = client.execute("for i in range(100): time.sleep(.1)")
         time.sleep(.2)
-        # Raise interrupt on control_channel
+        # Request to enter the debugger
         kernel_comm.remote_call().request_pdb_stop()
         # Wait for debug message
         while True:

@@ -105,7 +105,7 @@ class SpyderShell(ZMQInteractiveShell):
             logger.debug("Could not send debugging state to the frontend.")
 
     def remove_pdb_session(self, pdb_obj):
-        """Add a pdb object to the stack."""
+        """Remove a pdb object to the stack."""
         if self.pdb_session != pdb_obj:
             # Already removed
             return
@@ -172,8 +172,8 @@ class SpyderShell(ZMQInteractiveShell):
     def raise_interrupt_signal(self):
         """Raise interrupt signal."""
         if os.name == "nt":
-            # check if signal handler is callable
-            # to avoid 'int not callable' error (Python issue #23395)
+            # Check if signal handler is callable to avoid
+            # 'int not callable' error (Python issue #23395)
             if callable(signal.getsignal(signal.SIGINT)):
                 interrupt_main()
             else:
@@ -183,7 +183,7 @@ class SpyderShell(ZMQInteractiveShell):
             self.kernel._send_interupt_children()
 
     def request_pdb_stop(self):
-        """Request pdb to stop at next possible position."""
+        """Request pdb to stop at the next possible position."""
         pdb_session = self.pdb_session
         if pdb_session:
             if pdb_session.interrupting:
@@ -191,22 +191,21 @@ class SpyderShell(ZMQInteractiveShell):
                 return
             # trace_dispatch is active, stop at the next possible position
             pdb_session.interrupt()
-
         elif (self.spyderkernel_sigint_handler
               == signal.getsignal(signal.SIGINT)):
             # Use spyderkernel_sigint_handler
             self._request_pdb_stop = True
             self.raise_interrupt_signal()
-
         else:
             logger.debug(
-                "Can not signal main thread to stop as SIGINT"
-                " handler was replaced and the debugger is not active. "
+                "Can not signal main thread to stop as SIGINT "
+                "handler was replaced and the debugger is not active. "
                 "The current handler is: " +
-                repr(signal.getsignal(signal.SIGINT)))
+                repr(signal.getsignal(signal.SIGINT))
+            )
 
     def spyderkernel_sigint_handler(self, signum, frame):
-        """Enter a debugger."""
+        """SIGINT handler."""
         pdb_session = self.pdb_session
         if self._request_pdb_stop:
             # SIGINT called from request_pdb_stop

@@ -102,7 +102,7 @@ class SpyderPdb(ipyPdb):
         # Line received from the frontend
         self._cmd_input_line = None
 
-        # Disable sigint so we can do it ourself
+        # Disable sigint so we can do it ourselves
         self.nosigint = True
 
         # Keep track of interrupting state to avoid several interruptions
