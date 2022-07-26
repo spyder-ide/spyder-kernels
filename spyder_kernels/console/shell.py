@@ -95,7 +95,7 @@ class SpyderShell(ZMQInteractiveShell):
     def add_pdb_session(self, pdb_obj):
         """Add a pdb object to the stack."""
         if self.pdb_session == pdb_obj:
-            # Already Added
+            # Already added
             return
         self._pdb_obj_stack.append(pdb_obj)
         try:
