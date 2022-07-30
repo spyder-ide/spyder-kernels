@@ -1138,6 +1138,9 @@ def test_get_interactive_backend(backend):
 
 
 @flaky(max_runs=3)
+@pytest.mark.skipif(
+    sys.version_info[0] < 3,
+    reason="Fails with python 2")
 def test_debug_namespace(tmpdir):
     """
     Test that the kernel uses the proper namespace while debugging.
