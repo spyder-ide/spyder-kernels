@@ -25,15 +25,15 @@ class UserModuleReloader:
             namelist = []
         else:
             try:
-                namelist = namelist.split(',')
+                namelist = namelist.split(",")
             except Exception:
                 namelist = []
 
         # Spyder modules
-        spy_modules = ['spyder_kernels']
+        spy_modules = ["spyder_kernels"]
 
         # Matplotlib modules
-        mpl_modules = ['matplotlib', 'tkinter', 'Tkinter']
+        mpl_modules = ["matplotlib", "tkinter", "Tkinter"]
 
         # Add other, necessary modules to the UMR blacklist
         # astropy: See spyder-ide/spyder#6962
@@ -41,7 +41,7 @@ class UserModuleReloader:
         # fastmat: See spyder-ide/spyder#7190
         # pythoncom: See spyder-ide/spyder#7190
         # tensorflow: See spyder-ide/spyder#8697
-        other_modules = ['pytorch', 'pythoncom', 'tensorflow']
+        other_modules = ["pytorch", "pythoncom", "tensorflow"]
         self.namelist = namelist + spy_modules + mpl_modules + other_modules
 
         self.pathlist = pathlist
@@ -70,16 +70,16 @@ class UserModuleReloader:
             # Don't return cached inline compiled .PYX files
             return False
         else:
-            if (path_is_library(getattr(module, '__file__', None),
-                                self.pathlist) or
-                    self.is_module_in_namelist(modname)):
+            if path_is_library(
+                getattr(module, "__file__", None), self.pathlist
+            ) or self.is_module_in_namelist(modname):
                 return False
             else:
                 return True
 
     def is_module_in_namelist(self, modname):
         """Decide if a module can be reloaded or not according to its name."""
-        return set(modname.split('.')) & set(self.namelist)
+        return set(modname.split(".")) & set(self.namelist)
 
     def activate_cython(self):
         """
@@ -92,7 +92,7 @@ class UserModuleReloader:
 
         if run_cython:
             try:
-                __import__('Cython')
+                __import__("Cython")
                 self.has_cython = True
             except Exception:
                 pass
@@ -101,18 +101,19 @@ class UserModuleReloader:
                 # Import pyximport to enable Cython files support for
                 # import statement
                 import pyximport
+
                 pyx_setup_args = {}
 
                 # Add Numpy include dir to pyximport/distutils
                 try:
                     import numpy
-                    pyx_setup_args['include_dirs'] = numpy.get_include()
+
+                    pyx_setup_args["include_dirs"] = numpy.get_include()
                 except Exception:
                     pass
 
                 # Setup pyximport and enable Cython files reload
-                pyximport.install(setup_args=pyx_setup_args,
-                                  reload_support=True)
+                pyximport.install(setup_args=pyx_setup_args, reload_support=True)
 
     def run(self):
         """
@@ -135,5 +136,7 @@ class UserModuleReloader:
         # Report reloaded modules
         if self.verbose and self.modnames_to_reload:
             modnames = self.modnames_to_reload
-            print("\x1b[4;33m%s\x1b[24m%s\x1b[0m"
-                  % ("Reloaded modules", ": "+", ".join(modnames)))
+            print(
+                "\x1b[4;33m%s\x1b[24m%s\x1b[0m"
+                % ("Reloaded modules", ": " + ", ".join(modnames))
+            )

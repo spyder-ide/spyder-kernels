@@ -17,16 +17,34 @@ import inspect
 import re
 
 from spyder_kernels.utils.lazymodules import (
-    bs4, FakeObject, numpy as np, pandas as pd, PIL)
+    bs4,
+    FakeObject,
+    numpy as np,
+    pandas as pd,
+    PIL,
+)
 
 
-#==============================================================================
+# ==============================================================================
 # Numpy support
-#==============================================================================
+# ==============================================================================
 def get_numeric_numpy_types():
-    return (np.int64, np.int32, np.int16, np.int8, np.uint64, np.uint32,
-            np.uint16, np.uint8, np.float64, np.float32, np.float16,
-            np.complex64, np.complex128, np.bool_)
+    return (
+        np.int64,
+        np.int32,
+        np.int16,
+        np.int8,
+        np.uint64,
+        np.uint32,
+        np.uint16,
+        np.uint8,
+        np.float64,
+        np.float32,
+        np.float16,
+        np.complex64,
+        np.complex128,
+        np.bool_,
+    )
 
 
 def get_numpy_dtype(obj):
@@ -36,10 +54,10 @@ def get_numpy_dtype(obj):
     if np.ndarray is not FakeObject:
         # NumPy is available
         if isinstance(obj, np.generic) or isinstance(obj, np.ndarray):
-        # Numpy scalars all inherit from np.generic.
-        # Numpy arrays all inherit from np.ndarray.
-        # If we check that we are certain we have one of these
-        # types then we are less likely to generate an exception below.
+            # Numpy scalars all inherit from np.generic.
+            # Numpy arrays all inherit from np.ndarray.
+            # If we check that we are certain we have one of these
+            # types then we are less likely to generate an exception below.
             try:
                 return obj.dtype.type
             except (AttributeError, RuntimeError):
@@ -51,21 +69,23 @@ def get_numpy_dtype(obj):
 def get_numpy_type_string(value):
     """Get the type of a Numpy object as a string."""
     np_dtype = get_numpy_dtype(value)
-    if np_dtype is None or not hasattr(value, 'size'):
-        return 'Unknown'
+    if np_dtype is None or not hasattr(value, "size"):
+        return "Unknown"
     elif value.size == 1:
-        return 'Scalar'
+        return "Scalar"
     else:
-        return 'Array'
+        return "Array"
 
 
-#==============================================================================
+# ==============================================================================
 # Misc.
-#==============================================================================
+# ==============================================================================
 def address(obj):
     """Return object address as a string: '<classname @ address>'"""
-    return "<%s @ %s>" % (obj.__class__.__name__,
-                          hex(id(obj)).upper().replace('X', 'x'))
+    return "<%s @ %s>" % (
+        obj.__class__.__name__,
+        hex(id(obj)).upper().replace("X", "x"),
+    )
 
 
 def try_to_eval(value):
@@ -80,18 +100,17 @@ def get_size(item):
     """Return shape/size/len of an item of arbitrary type"""
     try:
         if (
-            hasattr(item, 'size') and hasattr(item.size, 'compute') or
-            hasattr(item, 'shape') and hasattr(item.shape, 'compute')
+            hasattr(item, "size")
+            and hasattr(item.size, "compute")
+            or hasattr(item, "shape")
+            and hasattr(item.shape, "compute")
         ):
             # This is necessary to avoid an error when trying to
             # get the size/shape of dask objects. We don't compute the
             # size/shape since such operation could be expensive.
             # Fixes spyder-ide/spyder#16844
             return 1
-        elif (
-            hasattr(item, 'shape') and
-            isinstance(item.shape, (tuple, np.integer))
-        ):
+        elif hasattr(item, "shape") and isinstance(item.shape, (tuple, np.integer)):
             try:
                 if item.shape:
                     # This is needed since values could return as
@@ -108,13 +127,12 @@ def get_size(item):
                 # get the shape of these objects.
                 # Fixes spyder-ide/spyder-kernels#217
                 return (-1, -1)
-        elif (hasattr(item, 'size') and
-                isinstance(item.size, (tuple, np.integer))):
+        elif hasattr(item, "size") and isinstance(item.size, (tuple, np.integer)):
             try:
                 return item.size
             except RecursionError:
                 return (-1, -1)
-        elif hasattr(item, '__len__'):
+        elif hasattr(item, "__len__"):
             return len(item)
         else:
             return 1
@@ -129,27 +147,28 @@ def get_object_attrs(obj):
 
     This filters protected attributes
     """
-    attrs = [k for k in dir(obj) if not k.startswith('__')]
+    attrs = [k for k in dir(obj) if not k.startswith("__")]
     if not attrs:
         attrs = dir(obj)
     return attrs
 
 
-#==============================================================================
+# ==============================================================================
 # Date and datetime objects support
-#==============================================================================
+# ==============================================================================
 import datetime
 
 try:
     from dateutil.parser import parse as dateparse
 except:
+
     def dateparse(datestr):  # analysis:ignore
         """Just for 'year, month, day' strings"""
-        return datetime.datetime( *list(map(int, datestr.split(','))) )
+        return datetime.datetime(*list(map(int, datestr.split(","))))
 
 
 def datestr_to_datetime(value):
-    rp = value.rfind('(')+1
+    rp = value.rfind("(") + 1
     v = dateparse(value[rp:-1])
     print(value, "-->", v)  # spyder: test-skip
     return v
@@ -173,19 +192,16 @@ def str_to_timedelta(value):
         ValueError for strings not matching the above criterion.
 
     """
-    m = re.match(r'^(?:(?:datetime\.)?timedelta)?'
-                 r'\(?'
-                 r'([^)]*)'
-                 r'\)?$', value)
+    m = re.match(r"^(?:(?:datetime\.)?timedelta)?" r"\(?" r"([^)]*)" r"\)?$", value)
     if not m:
-        raise ValueError('Invalid string for datetime.timedelta')
-    args = [int(a.strip()) for a in m.group(1).split(',')]
+        raise ValueError("Invalid string for datetime.timedelta")
+    args = [int(a.strip()) for a in m.group(1).split(",")]
     return datetime.timedelta(*args)
 
 
-#==============================================================================
+# ==============================================================================
 # Supported types
-#==============================================================================
+# ==============================================================================
 def is_editable_type(value):
     """
     Return True if data type is editable with a standard GUI-based editor,
@@ -195,28 +211,44 @@ def is_editable_type(value):
         return False
     else:
         supported_types = [
-            'bool', 'int', 'long', 'float', 'complex', 'list', 'set', 'dict',
-            'tuple', 'str', 'unicode', 'NDArray', 'MaskedArray', 'Matrix',
-            'DataFrame', 'Series', 'PIL.Image.Image', 'datetime.date',
-            'datetime.timedelta'
+            "bool",
+            "int",
+            "long",
+            "float",
+            "complex",
+            "list",
+            "set",
+            "dict",
+            "tuple",
+            "str",
+            "unicode",
+            "NDArray",
+            "MaskedArray",
+            "Matrix",
+            "DataFrame",
+            "Series",
+            "PIL.Image.Image",
+            "datetime.date",
+            "datetime.timedelta",
         ]
 
-        if (get_type_string(value) not in supported_types and
-                not isinstance(value, pd.Index)):
+        if get_type_string(value) not in supported_types and not isinstance(
+            value, pd.Index
+        ):
             np_dtype = get_numpy_dtype(value)
-            if np_dtype is None or not hasattr(value, 'size'):
+            if np_dtype is None or not hasattr(value, "size"):
                 return False
         return True
 
 
-#==============================================================================
+# ==============================================================================
 # Sorting
-#==============================================================================
+# ==============================================================================
 def sort_against(list1, list2, reverse=False, sort_key=None):
     """
     Arrange items of list1 in the same order as sorted(list2).
 
-    In other words, apply to list1 the permutation which takes list2 
+    In other words, apply to list1 the permutation which takes list2
     to sorted(list2, reverse).
     """
     if sort_key is None:
@@ -224,8 +256,7 @@ def sort_against(list1, list2, reverse=False, sort_key=None):
     else:
         key = lambda x: sort_key(x[0])
     try:
-        return [item for _, item in 
-                sorted(zip(list2, list1), key=key, reverse=reverse)]
+        return [item for _, item in sorted(zip(list2, list1), key=key, reverse=reverse)]
     except:
         return list1
 
@@ -235,9 +266,9 @@ def unsorted_unique(lista):
     return list(set(lista))
 
 
-#==============================================================================
+# ==============================================================================
 # Display <--> Value
-#==============================================================================
+# ==============================================================================
 def default_display(value, with_module=True):
     """Default display for unknown objects."""
     object_type = type(value)
@@ -246,15 +277,15 @@ def default_display(value, with_module=True):
         module = object_type.__module__
 
         # Classes correspond to new types
-        if name == 'type':
-            name = 'class'
+        if name == "type":
+            name = "class"
 
         if with_module:
-            if name == 'module':
-                return value.__name__ + ' module'
-            if module == 'builtins':
-                return name + ' object'
-            return name + ' object of ' + module + ' module'
+            if name == "module":
+                return value.__name__ + " module"
+            if module == "builtins":
+                return name + " object"
+            return name + " object of " + module + " module"
         return name
     except Exception:
         type_str = str(object_type)
@@ -284,27 +315,29 @@ def collections_display(value, level):
     # Get display of each element
     if level <= 2:
         if is_dict:
-            displays = [value_to_display(k, level=level) + ':' +
-                        value_to_display(v, level=level)
-                        for (k, v) in list(elements)]
+            displays = [
+                value_to_display(k, level=level)
+                + ":"
+                + value_to_display(v, level=level)
+                for (k, v) in list(elements)
+            ]
         else:
-            displays = [value_to_display(e, level=level)
-                        for e in elements]
+            displays = [value_to_display(e, level=level) for e in elements]
         if truncate:
-            displays.append('...')
-        display = ', '.join(displays)
+            displays.append("...")
+        display = ", ".join(displays)
     else:
-        display = '...'
+        display = "..."
 
     # Return display
     if is_dict:
-        display = '{' + display + '}'
+        display = "{" + display + "}"
     elif isinstance(value, list):
-        display = '[' + display + ']'
+        display = "[" + display + "]"
     elif isinstance(value, set):
-        display = '{' + display + '}'
+        display = "{" + display + "}"
     else:
-        display = '(' + display + ')'
+        display = "(" + display + ")"
 
     return display
 
@@ -325,16 +358,16 @@ def value_to_display(value, minmax=False, level=0):
         if isinstance(value, np.recarray):
             if level == 0:
                 fields = value.names
-                display = 'Field names: ' + ', '.join(fields)
+                display = "Field names: " + ", ".join(fields)
             else:
-                display = 'Recarray'
+                display = "Recarray"
         elif isinstance(value, np.ma.MaskedArray):
-            display = 'Masked array'
+            display = "Masked array"
         elif isinstance(value, np.ndarray):
             if level == 0:
                 if minmax:
                     try:
-                        display = 'Min: %r\nMax: %r' % (value.min(), value.max())
+                        display = "Min: %r\nMax: %r" % (value.min(), value.max())
                     except (TypeError, ValueError):
                         if value.dtype.type in numeric_numpy_types:
                             display = str(value)
@@ -345,21 +378,21 @@ def value_to_display(value, minmax=False, level=0):
                 else:
                     display = default_display(value)
             else:
-                display = 'Numpy array'
+                display = "Numpy array"
         elif any([type(value) == t for t in [list, set, tuple, dict]]):
-            display = collections_display(value, level+1)
+            display = collections_display(value, level + 1)
         elif isinstance(value, PIL.Image.Image):
             if level == 0:
-                display = '%s  Mode: %s' % (address(value), value.mode)
+                display = "%s  Mode: %s" % (address(value), value.mode)
             else:
-                display = 'Image'
+                display = "Image"
         elif isinstance(value, pd.DataFrame):
             if level == 0:
                 cols = value.columns
                 cols = [str(c) for c in cols]
-                display = 'Column names: ' + ', '.join(list(cols))
+                display = "Column names: " + ", ".join(list(cols))
             else:
-                display = 'Dataframe'
+                display = "Dataframe"
         elif isinstance(value, bs4.element.NavigableString):
             # Fixes Issue 2448
             display = str(value)
@@ -372,13 +405,13 @@ def value_to_display(value, minmax=False, level=0):
                 except AttributeError:
                     display = value.summary()
             else:
-                display = 'Index'
+                display = "Index"
         elif isinstance(value, bytes):
             # We don't apply this to classes that extend string types
             # See issue 5636
             if type(value) in [str, bytes]:
                 try:
-                    display = str(value, 'utf8')
+                    display = str(value, "utf8")
                     if level > 0:
                         display = "'" + display + "'"
                 except:
@@ -397,12 +430,13 @@ def value_to_display(value, minmax=False, level=0):
             else:
                 display = default_display(value)
 
-        elif (isinstance(value, datetime.date) or
-              isinstance(value, datetime.timedelta)):
+        elif isinstance(value, datetime.date) or isinstance(value, datetime.timedelta):
             display = str(value)
-        elif (isinstance(value, (int, float, complex)) or
-              isinstance(value, bool) or
-              isinstance(value, numeric_numpy_types)):
+        elif (
+            isinstance(value, (int, float, complex))
+            or isinstance(value, bool)
+            or isinstance(value, numeric_numpy_types)
+        ):
             display = repr(value)
         else:
             if level == 0:
@@ -416,9 +450,9 @@ def value_to_display(value, minmax=False, level=0):
     # because of large displays
     if len(display) > 70:
         if isinstance(display, bytes):
-            ellipses = b' ...'
+            ellipses = b" ..."
         else:
-            ellipses = ' ...'
+            ellipses = " ..."
         display = display[:70].rstrip() + ellipses
 
     # Restore Numpy printoptions
@@ -431,6 +465,7 @@ def value_to_display(value, minmax=False, level=0):
 def display_to_value(value, default_value, ignore_errors=True):
     """Convert back to value"""
     from qtpy.compat import from_qvariant
+
     value = from_qvariant(value, str)
     try:
         np_dtype = get_numpy_dtype(default_value)
@@ -442,12 +477,12 @@ def display_to_value(value, default_value, ignore_errors=True):
             except ValueError:
                 value = value.lower() == "true"
         elif np_dtype is not None:
-            if 'complex' in str(type(default_value)):
+            if "complex" in str(type(default_value)):
                 value = np_dtype(complex(value))
             else:
                 value = np_dtype(value)
         elif isinstance(default_value, bytes):
-            value = bytes(value, 'utf-8')
+            value = bytes(value, "utf-8")
         elif isinstance(default_value, str):
             value = str(value)
         elif isinstance(default_value, complex):
@@ -498,38 +533,36 @@ def get_type_string(item):
     if isinstance(item, pd.Series):
         return "Series"
 
-    found = re.findall(r"<(?:type|class) '(\S*)'>",
-                       str(type(item)))
+    found = re.findall(r"<(?:type|class) '(\S*)'>", str(type(item)))
     if found:
-        if found[0] == 'type':
-            return 'class'
+        if found[0] == "type":
+            return "class"
         return found[0]
     else:
-        return 'Unknown'
+        return "Unknown"
 
 
 def is_known_type(item):
     """Return True if object has a known type"""
     # Unfortunately, the masked array case is specific
-    return (isinstance(item, np.ma.MaskedArray) or
-            get_type_string(item) != 'Unknown')
+    return isinstance(item, np.ma.MaskedArray) or get_type_string(item) != "Unknown"
 
 
 def get_human_readable_type(item):
     """Return human-readable type string of an item"""
     if isinstance(item, (np.ndarray, np.ma.MaskedArray)):
-        return u'Array of ' + item.dtype.name
+        return "Array of " + item.dtype.name
     elif isinstance(item, PIL.Image.Image):
         return "Image"
     else:
         text = get_type_string(item)
-        return text[text.find('.')+1:]
+        return text[text.find(".") + 1 :]
 
 
-#==============================================================================
+# ==============================================================================
 # Globals filter: filter namespace dictionaries (to be edited in
 # CollectionsEditor)
-#==============================================================================
+# ==============================================================================
 def is_supported(value, check_all=False, filters=None, iterate=False):
     """Return True if value is supported, False otherwise."""
     assert filters is not None
@@ -552,9 +585,9 @@ def is_supported(value, check_all=False, filters=None, iterate=False):
             return valid_count > 0
         elif isinstance(value, dict):
             for key, val in list(value.items()):
-                if not is_supported(key, filters=filters, iterate=check_all) \
-                   or not is_supported(val, filters=filters,
-                                       iterate=check_all):
+                if not is_supported(
+                    key, filters=filters, iterate=check_all
+                ) or not is_supported(val, filters=filters, iterate=check_all):
                     return False
                 if not check_all:
                     break
@@ -570,35 +603,56 @@ def is_callable_or_module(value):
     return callable_or_module
 
 
-def globalsfilter(input_dict, check_all=False, filters=None,
-                  exclude_private=None, exclude_capitalized=None,
-                  exclude_uppercase=None, exclude_unsupported=None,
-                  excluded_names=None, exclude_callables_and_modules=None):
+def globalsfilter(
+    input_dict,
+    check_all=False,
+    filters=None,
+    exclude_private=None,
+    exclude_capitalized=None,
+    exclude_uppercase=None,
+    exclude_unsupported=None,
+    excluded_names=None,
+    exclude_callables_and_modules=None,
+):
     """Keep objects in namespace view according to different criteria."""
     output_dict = {}
     for key, value in list(input_dict.items()):
         excluded = (
-            (exclude_private and key.startswith('_')) or
-            (exclude_capitalized and key[0].isupper()) or
-            (exclude_uppercase and key.isupper() and
-             len(key) > 1 and not key[1:].isdigit()) or
-            (key in excluded_names) or
-            (exclude_callables_and_modules and is_callable_or_module(value)) or
-            (exclude_unsupported and
-             not is_supported(value, check_all=check_all, filters=filters))
+            (exclude_private and key.startswith("_"))
+            or (exclude_capitalized and key[0].isupper())
+            or (
+                exclude_uppercase
+                and key.isupper()
+                and len(key) > 1
+                and not key[1:].isdigit()
+            )
+            or (key in excluded_names)
+            or (exclude_callables_and_modules and is_callable_or_module(value))
+            or (
+                exclude_unsupported
+                and not is_supported(value, check_all=check_all, filters=filters)
+            )
         )
         if not excluded:
             output_dict[key] = value
     return output_dict
 
 
-#==============================================================================
+# ==============================================================================
 # Create view to be displayed by NamespaceBrowser
-#==============================================================================
-REMOTE_SETTINGS = ('check_all', 'exclude_private', 'exclude_uppercase',
-                   'exclude_capitalized', 'exclude_unsupported',
-                   'excluded_names', 'minmax', 'show_callable_attributes',
-                   'show_special_attributes', 'exclude_callables_and_modules')
+# ==============================================================================
+REMOTE_SETTINGS = (
+    "check_all",
+    "exclude_private",
+    "exclude_uppercase",
+    "exclude_capitalized",
+    "exclude_unsupported",
+    "excluded_names",
+    "minmax",
+    "show_callable_attributes",
+    "show_special_attributes",
+    "exclude_callables_and_modules",
+)
 
 
 def get_supported_types():
@@ -611,21 +665,24 @@ def get_supported_types():
     in spyder-docs
     """
     from datetime import date, timedelta
-    editable_types = [int, float, complex, list, set, dict, tuple, date,
-                      timedelta, str]
+
+    editable_types = [int, float, complex, list, set, dict, tuple, date, timedelta, str]
     try:
         from numpy import ndarray, matrix, generic
+
         editable_types += [ndarray, matrix, generic]
     except:
         pass
     try:
         from pandas import DataFrame, Series, Index
+
         editable_types += [DataFrame, Series, Index]
     except:
         pass
     picklable_types = editable_types[:]
     try:
         from PIL import Image
+
         editable_types.append(Image.Image)
     except:
         pass
@@ -642,19 +699,20 @@ def get_remote_data(data, settings, mode, more_excluded_names=None):
     """
     supported_types = get_supported_types()
     assert mode in list(supported_types.keys())
-    excluded_names = list(settings['excluded_names'])
+    excluded_names = list(settings["excluded_names"])
     if more_excluded_names is not None:
         excluded_names += more_excluded_names
     return globalsfilter(
         data,
-        check_all=settings['check_all'],
+        check_all=settings["check_all"],
         filters=tuple(supported_types[mode]),
-        exclude_private=settings['exclude_private'],
-        exclude_uppercase=settings['exclude_uppercase'],
-        exclude_capitalized=settings['exclude_capitalized'],
-        exclude_unsupported=settings['exclude_unsupported'],
-        exclude_callables_and_modules=settings['exclude_callables_and_modules'],
-        excluded_names=excluded_names)
+        exclude_private=settings["exclude_private"],
+        exclude_uppercase=settings["exclude_uppercase"],
+        exclude_capitalized=settings["exclude_capitalized"],
+        exclude_unsupported=settings["exclude_unsupported"],
+        exclude_callables_and_modules=settings["exclude_callables_and_modules"],
+        excluded_names=excluded_names,
+    )
 
 
 def make_remote_view(data, settings, more_excluded_names=None):
@@ -662,17 +720,18 @@ def make_remote_view(data, settings, more_excluded_names=None):
     Make a remote view of dictionary *data*
     -> globals explorer
     """
-    data = get_remote_data(data, settings, mode='editable',
-                           more_excluded_names=more_excluded_names)
+    data = get_remote_data(
+        data, settings, mode="editable", more_excluded_names=more_excluded_names
+    )
     remote = {}
     for key, value in list(data.items()):
-        view = value_to_display(value, minmax=settings['minmax'])
+        view = value_to_display(value, minmax=settings["minmax"])
         remote[key] = {
-            'type':  get_human_readable_type(value),
-            'size':  get_size(value),
-            'view':  view,
-            'python_type': get_type_string(value),
-            'numpy_type': get_numpy_type_string(value)
+            "type": get_human_readable_type(value),
+            "size": get_size(value),
+            "view": view,
+            "python_type": get_type_string(value),
+            "numpy_type": get_numpy_type_string(value),
         }
 
     return remote

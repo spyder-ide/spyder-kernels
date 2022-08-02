@@ -19,10 +19,12 @@ def create_pathlist():
     # Get standard installation paths
     try:
         paths = sysconfig.get_paths()
-        standard_paths = [paths['stdlib'],
-                          paths['purelib'],
-                          paths['scripts'],
-                          paths['data']]
+        standard_paths = [
+            paths["stdlib"],
+            paths["purelib"],
+            paths["scripts"],
+            paths["data"],
+        ]
     except Exception:
         standard_paths = []
 
@@ -30,11 +32,12 @@ def create_pathlist():
     # See spyder-ide/spyder#8776
     try:
         import site
-        if getattr(site, 'getusersitepackages', False):
+
+        if getattr(site, "getusersitepackages", False):
             # Virtualenvs don't have this function but
             # conda envs do
             user_path = [site.getusersitepackages()]
-        elif getattr(site, 'USER_SITE', False):
+        elif getattr(site, "USER_SITE", False):
             # However, it seems virtualenvs have this
             # constant
             user_path = [site.USER_SITE]
@@ -50,7 +53,7 @@ def path_is_library(path, initial_pathlist=None):
     """Decide if a path is in user code or a library according to its path."""
     # Compute DEFAULT_PATHLIST only once and make it global to reuse it
     # in any future call of this function.
-    if 'DEFAULT_PATHLIST' not in globals():
+    if "DEFAULT_PATHLIST" not in globals():
         global DEFAULT_PATHLIST
         DEFAULT_PATHLIST = create_pathlist()
 
@@ -68,23 +71,23 @@ def path_is_library(path, initial_pathlist=None):
         # We don't want to consider paths that belong to the standard
         # library or installed to site-packages.
         return True
-    elif os.name == 'nt':
-        if re.search(r'.*\\pkgs\\.*', path):
+    elif os.name == "nt":
+        if re.search(r".*\\pkgs\\.*", path):
             return True
         else:
             return False
-    elif not os.name == 'nt':
+    elif not os.name == "nt":
         # Paths containing the strings below can be part of the default
         # Linux installation, Homebrew or the user site-packages in a
         # virtualenv.
         patterns = [
-            r'^/usr/lib.*',
-            r'^/usr/local/lib.*',
-            r'^/usr/.*/dist-packages/.*',
-            r'^/home/.*/.local/lib.*',
-            r'^/Library/.*',
-            r'^/Users/.*/Library/.*',
-            r'^/Users/.*/.local/.*',
+            r"^/usr/lib.*",
+            r"^/usr/local/lib.*",
+            r"^/usr/.*/dist-packages/.*",
+            r"^/home/.*/.local/lib.*",
+            r"^/Library/.*",
+            r"^/Users/.*/Library/.*",
+            r"^/Users/.*/.local/.*",
         ]
 
         if [p for p in patterns if re.search(p, path)]:
@@ -99,15 +102,13 @@ def capture_last_Expr(code_ast, out_varname):
     """Parse line and modify code to capture in globals the last expression."""
     # Modify ast code to capture the last expression
     capture_last_expression = False
-    if (
-        len(code_ast.body)
-        and isinstance(code_ast.body[-1], ast.Expr)
-    ):
+    if len(code_ast.body) and isinstance(code_ast.body[-1], ast.Expr):
         capture_last_expression = True
         expr_node = code_ast.body[-1]
         # Create new assign node
-        assign_node = ast.parse(
-            'globals()[{}] = None'.format(repr(out_varname))).body[0]
+        assign_node = ast.parse("globals()[{}] = None".format(repr(out_varname))).body[
+            0
+        ]
         # Replace None by the value
         assign_node.value = expr_node.value
         # Fix line number and column offset
@@ -121,7 +122,7 @@ def canonic(filename):
     """
     Return canonical form of filename.
 
-    This is a copy of bdb.canonic, so that the debugger will process 
+    This is a copy of bdb.canonic, so that the debugger will process
     filenames in the same way
     """
     if filename == "<" + filename[1:-1] + ">":

@@ -25,7 +25,10 @@ import warnings
 
 from IPython.core.getipython import get_ipython
 from IPython.core.inputtransformer2 import (
-    TransformerManager, leading_indent, leading_empty_lines)
+    TransformerManager,
+    leading_indent,
+    leading_empty_lines,
+)
 
 from spyder_kernels.comms.frontendcomm import frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
@@ -42,15 +45,15 @@ logger = logging.getLogger(__name__)
 # Fixes Issue 1473 and other crazy crashes with IPython 0.13 trying to
 # access it.
 # =============================================================================
-if not hasattr(sys, 'argv'):
-    sys.argv = ['']
+if not hasattr(sys, "argv"):
+    sys.argv = [""]
 
 
 # =============================================================================
 # Main constants
 # =============================================================================
-IS_EXT_INTERPRETER = os.environ.get('SPY_EXTERNAL_INTERPRETER') == "True"
-HIDE_CMD_WINDOWS = os.environ.get('SPY_HIDE_CMD') == "True"
+IS_EXT_INTERPRETER = os.environ.get("SPY_EXTERNAL_INTERPRETER") == "True"
+HIDE_CMD_WINDOWS = os.environ.get("SPY_HIDE_CMD") == "True"
 SHOW_INVALID_SYNTAX_MSG = True
 SHOW_GLOBAL_MSG = True
 
@@ -59,13 +62,14 @@ SHOW_GLOBAL_MSG = True
 # Prevent subprocess.Popen calls to create visible console windows on Windows.
 # See issue #4932
 # =============================================================================
-if os.name == 'nt' and HIDE_CMD_WINDOWS:
+if os.name == "nt" and HIDE_CMD_WINDOWS:
     import subprocess
+
     creation_flag = 0x08000000  # CREATE_NO_WINDOW
 
     class SubprocessPopen(subprocess.Popen):
         def __init__(self, *args, **kwargs):
-            kwargs['creationflags'] = creation_flag
+            kwargs["creationflags"] = creation_flag
             super(SubprocessPopen, self).__init__(*args, **kwargs)
 
     subprocess.Popen = SubprocessPopen
@@ -75,7 +79,7 @@ if os.name == 'nt' and HIDE_CMD_WINDOWS:
 # Importing user's sitecustomize
 # =============================================================================
 try:
-    import sitecustomize  #analysis:ignore
+    import sitecustomize  # analysis:ignore
 except Exception:
     pass
 
@@ -83,17 +87,25 @@ except Exception:
 # =============================================================================
 # Set PyQt API to #2
 # =============================================================================
-if os.environ.get("QT_API") == 'pyqt':
+if os.environ.get("QT_API") == "pyqt":
     try:
         import sip
-        for qtype in ('QString', 'QVariant', 'QDate', 'QDateTime',
-                      'QTextStream', 'QTime', 'QUrl'):
+
+        for qtype in (
+            "QString",
+            "QVariant",
+            "QDate",
+            "QDateTime",
+            "QTextStream",
+            "QTime",
+            "QUrl",
+        ):
             sip.setapi(qtype, 2)
     except Exception:
         pass
 else:
     try:
-        os.environ.pop('QT_API')
+        os.environ.pop("QT_API")
     except KeyError:
         pass
 
@@ -146,19 +158,22 @@ except Exception:
 import unittest
 from unittest import TestProgram
 
+
 class IPyTesProgram(TestProgram):
     def __init__(self, *args, **kwargs):
         test_runner = unittest.TextTestRunner(stream=sys.stderr)
-        kwargs['testRunner'] = kwargs.pop('testRunner', test_runner)
-        kwargs['exit'] = False
+        kwargs["testRunner"] = kwargs.pop("testRunner", test_runner)
+        kwargs["exit"] = False
         TestProgram.__init__(self, *args, **kwargs)
+
 
 unittest.main = IPyTesProgram
 
 # Ignore some IPython/ipykernel warnings
 try:
-    warnings.filterwarnings(action='ignore', category=DeprecationWarning,
-                            module='ipykernel.ipkernel')
+    warnings.filterwarnings(
+        action="ignore", category=DeprecationWarning, module="ipykernel.ipkernel"
+    )
 except Exception:
     pass
 
@@ -179,6 +194,7 @@ try:
             turtle.TurtleScreen._RUNNING = True
         except Terminator:
             pass
+
     turtle.bye = spyder_bye
 except Exception:
     pass
@@ -191,7 +207,7 @@ try:
     import pandas as pd
 
     # Set Pandas output encoding
-    pd.options.display.encoding = 'utf-8'
+    pd.options.display.encoding = "utf-8"
 
     # Filter warning that appears for DataFrames with np.nan values
     # Example:
@@ -199,13 +215,19 @@ try:
     # >>> pd.Series([np.nan,np.nan,np.nan],index=[1,2,3])
     # Fixes Issue 2991
     # For 0.18-
-    warnings.filterwarnings(action='ignore', category=RuntimeWarning,
-                            module='pandas.core.format',
-                            message=".*invalid value encountered in.*")
+    warnings.filterwarnings(
+        action="ignore",
+        category=RuntimeWarning,
+        module="pandas.core.format",
+        message=".*invalid value encountered in.*",
+    )
     # For 0.18.1+
-    warnings.filterwarnings(action='ignore', category=RuntimeWarning,
-                            module='pandas.formats.format',
-                            message=".*invalid value encountered in.*")
+    warnings.filterwarnings(
+        action="ignore",
+        category=RuntimeWarning,
+        module="pandas.formats.format",
+        message=".*invalid value encountered in.*",
+    )
 except Exception:
     pass
 
@@ -218,9 +240,12 @@ try:
     # turned on and Numpy arrays contain a nan value.
     # Fixes Issue 7063
     # Note: It only happens in Numpy 1.14+
-    warnings.filterwarnings(action='ignore', category=RuntimeWarning,
-                            module='numpy.core._methods',
-                            message=".*invalid value encountered in.*")
+    warnings.filterwarnings(
+        action="ignore",
+        category=RuntimeWarning,
+        module="numpy.core._methods",
+        message=".*invalid value encountered in.*",
+    )
 except Exception:
     pass
 
@@ -232,6 +257,7 @@ except Exception:
 # with a try/except
 try:
     import multiprocessing.spawn
+
     _old_preparation_data = multiprocessing.spawn.get_preparation_data
 
     def _patched_preparation_data(name):
@@ -242,20 +268,25 @@ try:
         try:
             d = _old_preparation_data(name)
         except AttributeError:
-            main_module = sys.modules['__main__']
+            main_module = sys.modules["__main__"]
             # Any string for __spec__ does the job
-            main_module.__spec__ = ''
+            main_module.__spec__ = ""
             d = _old_preparation_data(name)
         # On windows, there is no fork, so we need to save the main file
         # and import it
-        if (os.name == 'nt' and 'init_main_from_path' in d
-                and not os.path.exists(d['init_main_from_path'])):
+        if (
+            os.name == "nt"
+            and "init_main_from_path" in d
+            and not os.path.exists(d["init_main_from_path"])
+        ):
             print(
                 "Warning: multiprocessing may need the main file to exist. "
-                "Please save {}".format(d['init_main_from_path']))
+                "Please save {}".format(d["init_main_from_path"])
+            )
             # Remove path as the subprocess can't do anything with it
-            del d['init_main_from_path']
+            del d["init_main_from_path"]
         return d
+
     multiprocessing.spawn.get_preparation_data = _patched_preparation_data
 except Exception:
     pass
@@ -267,6 +298,7 @@ except Exception:
 # This is necessary to have better support for Rich and Colorama.
 def _patched_get_terminal_size(fd=None):
     return os.terminal_size((80, 30))
+
 
 os.get_terminal_size = _patched_get_terminal_size
 
@@ -297,9 +329,9 @@ def post_mortem_excepthook(type, value, tb):
     if not type == SyntaxError:
         # wait for stderr to print (stderr.flush does not work in this case)
         time.sleep(0.1)
-        print('*' * 40)
-        print('Entering post mortem debugging...')
-        print('*' * 40)
+        print("*" * 40)
+        print("Entering post mortem debugging...")
+        print("*" * 40)
         #  add ability to move between frames
         p.send_initial_notification = False
         p.reset()
@@ -317,9 +349,11 @@ def get_current_file_name():
     try:
         return frontend_request(blocking=True).current_filename()
     except Exception:
-        print("This command failed to be executed because an error occurred"
-              " while trying to get the current file name from Spyder's"
-              " editor. The error was:\n\n")
+        print(
+            "This command failed to be executed because an error occurred"
+            " while trying to get the current file name from Spyder's"
+            " editor. The error was:\n\n"
+        )
         get_ipython().showtraceback(exception_only=True)
         return None
 
@@ -339,20 +373,27 @@ def transform_cell(code, indent_only=False):
     """Transform IPython code to Python code."""
     number_empty_lines = count_leading_empty_lines(code)
     if indent_only:
-        if not code.endswith('\n'):
-            code += '\n'  # Ensure the cell has a trailing newline
+        if not code.endswith("\n"):
+            code += "\n"  # Ensure the cell has a trailing newline
         lines = code.splitlines(keepends=True)
         lines = leading_indent(leading_empty_lines(lines))
-        code = ''.join(lines)
+        code = "".join(lines)
     else:
         tm = TransformerManager()
         code = tm.transform_cell(code)
-    return '\n' * number_empty_lines + code
+    return "\n" * number_empty_lines + code
 
 
-def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
-              exec_fun=None, capture_last_expression=False,
-              global_warning=False):
+def exec_code(
+    code,
+    filename,
+    ns_globals,
+    ns_locals=None,
+    post_mortem=False,
+    exec_fun=None,
+    capture_last_expression=False,
+    global_warning=False,
+):
     """Execute code and display any exception."""
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
@@ -363,7 +404,7 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
         exec_fun = exec
 
     ipython_shell = get_ipython()
-    is_ipython = os.path.splitext(filename)[1] == '.ipy'
+    is_ipython = os.path.splitext(filename)[1] == ".ipy"
     try:
         if not is_ipython:
             # TODO: remove the try-except and let the SyntaxError raise
@@ -382,7 +423,8 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
                             "If you want to use IPython magics, "
                             "flexible indentation, and prompt removal, "
                             "we recommend that you save this file with the "
-                            ".ipy extension.\n")
+                            ".ipy extension.\n"
+                        )
                         SHOW_INVALID_SYNTAX_MSG = False
         else:
             ast_code = ast.parse(transform_cell(code))
@@ -390,7 +432,8 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
         # Print warning for global
         if global_warning and SHOW_GLOBAL_MSG:
             has_global = any(
-                isinstance(node, ast.Global) for node in ast.walk(ast_code))
+                isinstance(node, ast.Global) for node in ast.walk(ast_code)
+            )
             if has_global:
                 print(
                     "\nWARNING: This file contains a global statement, "
@@ -409,9 +452,10 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
 
         if capture_last_expression:
             ast_code, capture_last_expression = capture_last_Expr(
-                ast_code, "_spyder_out")
+                ast_code, "_spyder_out"
+            )
 
-        exec_fun(compile(ast_code, filename, 'exec'), ns_globals, ns_locals)
+        exec_fun(compile(ast_code, filename, "exec"), ns_globals, ns_locals)
 
         if capture_last_expression:
             out = ns_globals.pop("_spyder_out", None)
@@ -423,8 +467,7 @@ def exec_code(code, filename, ns_globals, ns_locals=None, post_mortem=False,
         if status.code:
             ipython_shell.showtraceback(exception_only=True)
     except BaseException as error:
-        if (isinstance(error, bdb.BdbQuit)
-                and ipython_shell.pdb_session):
+        if isinstance(error, bdb.BdbQuit) and ipython_shell.pdb_session:
             # Ignore BdbQuit if we are debugging, as it is expected.
             ipython_shell.pdb_session = None
         elif post_mortem and isinstance(error, Exception):
@@ -442,11 +485,12 @@ def get_file_code(filename, save_all=True, raise_exception=False):
     # Get code from spyder
     try:
         return frontend_request(blocking=True).get_file_code(
-            filename, save_all=save_all)
+            filename, save_all=save_all
+        )
     except Exception:
         # Maybe this is a local file
         try:
-            with open(filename, 'r') as f:
+            with open(filename, "r") as f:
                 return f.read()
         except FileNotFoundError:
             pass
@@ -456,8 +500,14 @@ def get_file_code(filename, save_all=True, raise_exception=False):
         return None
 
 
-def runfile(filename=None, args=None, wdir=None, namespace=None,
-            post_mortem=False, current_namespace=False):
+def runfile(
+    filename=None,
+    args=None,
+    wdir=None,
+    namespace=None,
+    post_mortem=False,
+    current_namespace=False,
+):
     """
     Run filename
     args: command line arguments (string)
@@ -467,13 +517,21 @@ def runfile(filename=None, args=None, wdir=None, namespace=None,
     current_namespace: if true, run the file in the current namespace
     """
     return _exec_file(
-        filename, args, wdir, namespace,
-        post_mortem, current_namespace, stack_depth=1)
+        filename, args, wdir, namespace, post_mortem, current_namespace, stack_depth=1
+    )
 
 
-def _exec_file(filename=None, args=None, wdir=None, namespace=None,
-               post_mortem=False, current_namespace=False, stack_depth=0,
-               exec_fun=None, canonic_filename=None):
+def _exec_file(
+    filename=None,
+    args=None,
+    wdir=None,
+    namespace=None,
+    post_mortem=False,
+    current_namespace=False,
+    stack_depth=0,
+    exec_fun=None,
+    canonic_filename=None,
+):
     # Tell IPython to hide this frame (>7.16)
     __tracebackhide__ = True
     ipython_shell = get_ipython()
@@ -493,7 +551,8 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
         print(
             "This command failed to be executed because an error occurred"
             " while trying to get the file code from Spyder's"
-            " editor. The error was:\n\n")
+            " editor. The error was:\n\n"
+        )
         get_ipython().showtraceback(exception_only=True)
         return
 
@@ -503,9 +562,13 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
     else:
         filename = canonic(filename)
 
-    with NamespaceManager(filename, namespace, current_namespace,
-                          file_code=file_code, stack_depth=stack_depth + 1
-                          ) as (ns_globals, ns_locals):
+    with NamespaceManager(
+        filename,
+        namespace,
+        current_namespace,
+        file_code=file_code,
+        stack_depth=stack_depth + 1,
+    ) as (ns_globals, ns_locals):
         sys.argv = [filename]
         if args is not None:
             for arg in shlex.split(args):
@@ -514,7 +577,7 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
         if "multiprocessing" in sys.modules:
             # See https://github.com/spyder-ide/spyder/issues/16696
             try:
-                sys.modules['__mp_main__'] = sys.modules['__main__']
+                sys.modules["__mp_main__"] = sys.modules["__main__"]
             except Exception:
                 pass
 
@@ -525,8 +588,8 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
                 if "multiprocessing.process" in sys.modules:
                     try:
                         import multiprocessing.process
-                        multiprocessing.process.ORIGINAL_DIR = os.path.abspath(
-                            wdir)
+
+                        multiprocessing.process.ORIGINAL_DIR = os.path.abspath(wdir)
                     except Exception:
                         pass
             else:
@@ -535,15 +598,21 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
         try:
             if __umr__.has_cython:
                 # Cython files
-                with io.open(filename, encoding='utf-8') as f:
-                    ipython_shell.run_cell_magic('cython', '', f.read())
+                with io.open(filename, encoding="utf-8") as f:
+                    ipython_shell.run_cell_magic("cython", "", f.read())
             else:
-                exec_code(file_code, filename, ns_globals, ns_locals,
-                          post_mortem=post_mortem, exec_fun=exec_fun,
-                          capture_last_expression=False,
-                          global_warning=not current_namespace)
+                exec_code(
+                    file_code,
+                    filename,
+                    ns_globals,
+                    ns_locals,
+                    post_mortem=post_mortem,
+                    exec_fun=exec_fun,
+                    capture_last_expression=False,
+                    global_warning=not current_namespace,
+                )
         finally:
-            sys.argv = ['']
+            sys.argv = [""]
 
 
 # IPykernel 6.3.0+ shadows our runfile because it depends on the Pydev
@@ -552,8 +621,9 @@ def _exec_file(filename=None, args=None, wdir=None, namespace=None,
 builtins.spyder_runfile = runfile
 
 
-def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
-              current_namespace=False):
+def debugfile(
+    filename=None, args=None, wdir=None, post_mortem=False, current_namespace=False
+):
     """
     Debug filename
     args: command line arguments (string)
@@ -570,14 +640,18 @@ def debugfile(filename=None, args=None, wdir=None, post_mortem=False,
     shell = get_ipython()
     if shell.is_debugging():
         # Recursive
-        code = (
-            "runfile({}".format(repr(filename)) +
-            ", args=%r, wdir=%r, current_namespace=%r)" % (
-                args, wdir, current_namespace)
+        code = "runfile({}".format(
+            repr(filename)
+        ) + ", args=%r, wdir=%r, current_namespace=%r)" % (
+            args,
+            wdir,
+            current_namespace,
         )
 
         shell.pdb_session.enter_recursive_debugger(
-            code, filename, True,
+            code,
+            filename,
+            True,
         )
     else:
         debugger = get_new_debugger(filename, True)
@@ -613,8 +687,14 @@ def runcell(cellname, filename=None, post_mortem=False):
     return _exec_cell(cellname, filename, post_mortem, stack_depth=1)
 
 
-def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
-               exec_fun=None, canonic_filename=None):
+def _exec_cell(
+    cellname,
+    filename=None,
+    post_mortem=False,
+    stack_depth=0,
+    exec_fun=None,
+    canonic_filename=None,
+):
     """
     Execute a code cell with a given exec function.
     """
@@ -627,22 +707,23 @@ def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
     ipython_shell = get_ipython()
     try:
         # Get code from spyder
-        cell_code = frontend_request(
-            blocking=True).run_cell(cellname, filename)
+        cell_code = frontend_request(blocking=True).run_cell(cellname, filename)
     except Exception:
-        print("This command failed to be executed because an error occurred"
-              " while trying to get the cell code from Spyder's"
-              " editor. The error was:\n\n")
+        print(
+            "This command failed to be executed because an error occurred"
+            " while trying to get the cell code from Spyder's"
+            " editor. The error was:\n\n"
+        )
         get_ipython().showtraceback(exception_only=True)
         return
 
-    if not cell_code or cell_code.strip() == '':
+    if not cell_code or cell_code.strip() == "":
         print("Nothing to execute, this cell is empty.\n")
         return
 
     # Trigger `post_execute` to exit the additional pre-execution.
     # See Spyder PR #7310.
-    ipython_shell.events.trigger('post_execute')
+    ipython_shell.events.trigger("post_execute")
     file_code = get_file_code(filename, save_all=False)
 
     # Here the remote filename has been used. It must now be valid locally.
@@ -652,12 +733,21 @@ def _exec_cell(cellname, filename=None, post_mortem=False, stack_depth=0,
         # Normalise the filename
         filename = canonic(filename)
 
-    with NamespaceManager(filename, current_namespace=True,
-                          file_code=file_code, stack_depth=stack_depth + 1
-                          ) as (ns_globals, ns_locals):
-        return exec_code(cell_code, filename, ns_globals, ns_locals,
-                         post_mortem=post_mortem, exec_fun=exec_fun,
-                         capture_last_expression=True)
+    with NamespaceManager(
+        filename,
+        current_namespace=True,
+        file_code=file_code,
+        stack_depth=stack_depth + 1,
+    ) as (ns_globals, ns_locals):
+        return exec_code(
+            cell_code,
+            filename,
+            ns_globals,
+            ns_locals,
+            post_mortem=post_mortem,
+            exec_fun=exec_fun,
+            capture_last_expression=True,
+        )
 
 
 builtins.runcell = runcell
@@ -675,12 +765,11 @@ def debugcell(cellname, filename=None, post_mortem=False):
     shell = get_ipython()
     if shell.is_debugging():
         # Recursive
-        code = (
-            "runcell({}, ".format(repr(cellname)) +
-            "{})".format(repr(filename))
-        )
+        code = "runcell({}, ".format(repr(cellname)) + "{})".format(repr(filename))
         shell.pdb_session.enter_recursive_debugger(
-            code, filename, False,
+            code,
+            filename,
+            False,
         )
     else:
         debugger = get_new_debugger(filename, False)
@@ -689,7 +778,7 @@ def debugcell(cellname, filename=None, post_mortem=False):
             filename=filename,
             canonic_filename=debugger.canonic(filename),
             exec_fun=debugger.run,
-            stack_depth=1
+            stack_depth=1,
         )
 
 
@@ -708,7 +797,7 @@ def cell_count(filename=None):
     if filename is None:
         filename = get_current_file_name()
         if filename is None:
-            raise RuntimeError('Could not get cell count from frontend.')
+            raise RuntimeError("Could not get cell count from frontend.")
     try:
         # Get code from spyder
         cell_count = frontend_request(blocking=True).cell_count(filename)
@@ -728,9 +817,10 @@ builtins.cell_count = cell_count
 # This allows the kernel to start without crashing if modules in PYTHONPATH
 # shadow standard library modules.
 def set_spyder_pythonpath():
-    pypath = os.environ.get('SPY_PYTHONPATH')
+    pypath = os.environ.get("SPY_PYTHONPATH")
     if pypath:
         sys.path.extend(pypath.split(os.pathsep))
-        os.environ.update({'PYTHONPATH': pypath})
+        os.environ.update({"PYTHONPATH": pypath})
+
 
 set_spyder_pythonpath()

@@ -20,6 +20,7 @@ from spyder_kernels.utils.misc import is_module_installed
 # =============================================================================
 class FakeObject:
     """Fake class used in replacement of missing objects"""
+
     pass
 
 
@@ -58,12 +59,12 @@ class LazyModule:
 # =============================================================================
 # Lazy modules
 # =============================================================================
-numpy = LazyModule('numpy', ['MaskedArray'])
+numpy = LazyModule("numpy", ["MaskedArray"])
 
-pandas = LazyModule('pandas')
+pandas = LazyModule("pandas")
 
-PIL = LazyModule('PIL.Image', ['Image'])
+PIL = LazyModule("PIL.Image", ["Image"])
 
-bs4 = LazyModule('bs4', ['NavigableString'])
+bs4 = LazyModule("bs4", ["NavigableString"])
 
-scipy = LazyModule('scipy.io')
+scipy = LazyModule("scipy.io")

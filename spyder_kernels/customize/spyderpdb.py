@@ -32,6 +32,7 @@ class DebugWrapper:
     """
     Notifies the frontend when debugging starts/stops
     """
+
     def __init__(self, pdb_obj):
         self.pdb_obj = pdb_obj
 
@@ -70,8 +71,9 @@ class SpyderPdb(ipyPdb):
     send_initial_notification = True
     starting = True
 
-    def __init__(self, completekey='tab', stdin=None, stdout=None,
-                 skip=None, nosigint=False):
+    def __init__(
+        self, completekey="tab", stdin=None, stdout=None, skip=None, nosigint=False
+    ):
         """Init Pdb."""
         self.curframe_locals = None
         # Only set to true when calling debugfile
@@ -93,7 +95,6 @@ class SpyderPdb(ipyPdb):
         # has no effect in previous versions.
         self.report_skipped = False
 
-
         # Keep track of remote filename
         self.remote_filename = None
 
@@ -107,8 +108,10 @@ class SpyderPdb(ipyPdb):
     def print_exclamation_warning(self):
         """Print pdb warning for exclamation mark."""
         if not self._exclamation_warning_printed:
-            print("Warning: The exclamation mark option is enabled. "
-                  "Please use '!' as a prefix for Pdb commands.")
+            print(
+                "Warning: The exclamation mark option is enabled. "
+                "Please use '!' as a prefix for Pdb commands."
+            )
             self._exclamation_warning_printed = True
 
     def default(self, line):
@@ -116,7 +119,7 @@ class SpyderPdb(ipyPdb):
         Default way of running pdb statment.
         """
         execute_events = self.pdb_execute_events
-        if line[:1] == '!':
+        if line[:1] == "!":
             line = line[1:]
         elif self.pdb_use_exclamation_mark:
             self.print_exclamation_warning()
@@ -124,9 +127,11 @@ class SpyderPdb(ipyPdb):
             return
         # Disallow the use of %debug magic in the debugger
         if line.startswith("%debug"):
-            self.error("Please don't use '%debug' in the debugger.\n"
-                       "For a recursive debugger, use the pdb 'debug'"
-                       " command instead")
+            self.error(
+                "Please don't use '%debug' in the debugger.\n"
+                "For a recursive debugger, use the pdb 'debug'"
+                " command instead"
+            )
             return
         locals = self.curframe_locals
         globals = self.curframe.f_globals
@@ -136,17 +141,14 @@ class SpyderPdb(ipyPdb):
             cmd, arg, line = self.parseline(line)
             if cmd:
                 cmd_in_namespace = (
-                    cmd in globals
-                    or cmd in locals
-                    or cmd in builtins.__dict__
+                    cmd in globals or cmd in locals or cmd in builtins.__dict__
                 )
                 # Special case for quit and exit
                 if cmd in ("quit", "exit"):
-                    if cmd in globals and isinstance(
-                            globals[cmd], ZMQExitAutocall):
+                    if cmd in globals and isinstance(globals[cmd], ZMQExitAutocall):
                         # Use the pdb call
                         cmd_in_namespace = False
-                cmd_func = getattr(self, 'do_' + cmd, None)
+                cmd_func = getattr(self, "do_" + cmd, None)
                 is_pdb_cmd = cmd_func is not None
                 # Look for assignment
                 is_assignment = False
@@ -176,7 +178,7 @@ class SpyderPdb(ipyPdb):
                 sys.stdout = self.stdout
                 sys.displayhook = self.displayhook
                 if execute_events:
-                     get_ipython().events.trigger('pre_execute')
+                    get_ipython().events.trigger("pre_execute")
 
                 code_ast = ast.parse(line)
 
@@ -185,7 +187,8 @@ class SpyderPdb(ipyPdb):
                     capture_last_expression = False
                 else:
                     code_ast, capture_last_expression = capture_last_Expr(
-                        code_ast, "_spyderpdb_out")
+                        code_ast, "_spyderpdb_out"
+                    )
 
                 if locals is not globals:
                     # Mitigates a behaviour of CPython that makes it difficult
@@ -219,13 +222,17 @@ class SpyderPdb(ipyPdb):
 
                     # Load locals if they have a valid name
                     # In comprehensions, locals could contain ".0" for example
-                    code += [indent + "{k} = _spyderpdb_locals['{k}']".format(
-                        k=k) for k in locals if k.isidentifier()]
-
+                    code += [
+                        indent + "{k} = _spyderpdb_locals['{k}']".format(k=k)
+                        for k in locals
+                        if k.isidentifier()
+                    ]
 
                     # Update the locals
-                    code += [indent + "_spyderpdb_locals.update("
-                             "_spyderpdb_builtins_locals())"]
+                    code += [
+                        indent + "_spyderpdb_locals.update("
+                        "_spyderpdb_builtins_locals())"
+                    ]
 
                     # Run the function
                     code += ["_spyderpdb_code()"]
@@ -234,11 +241,11 @@ class SpyderPdb(ipyPdb):
                     code += [
                         "del _spyderpdb_code",
                         "del _spyderpdb_locals",
-                        "del _spyderpdb_builtins_locals"
+                        "del _spyderpdb_builtins_locals",
                     ]
 
                     # Parse the function
-                    fun_ast = ast.parse('\n'.join(code) + '\n')
+                    fun_ast = ast.parse("\n".join(code) + "\n")
 
                     # Inject code_ast in the function before the locals update
                     fun_ast.body[0].body = (
@@ -255,19 +262,17 @@ class SpyderPdb(ipyPdb):
                     if out is not None:
                         sys.stdout.flush()
                         sys.stderr.flush()
-                        frontend_request(blocking=False).show_pdb_output(
-                            repr(out))
+                        frontend_request(blocking=False).show_pdb_output(repr(out))
 
             finally:
                 if execute_events:
-                     get_ipython().events.trigger('post_execute')
+                    get_ipython().events.trigger("post_execute")
                 sys.stdout = save_stdout
                 sys.stdin = save_stdin
                 sys.displayhook = save_displayhook
         except BaseException:
             exc_info = sys.exc_info()[:2]
-            self.error(
-                traceback.format_exception_only(*exc_info)[-1].strip())
+            self.error(traceback.format_exception_only(*exc_info)[-1].strip())
 
     # --- Methods overriden for signal handling
     def sigint_handler(self, signum, frame):
@@ -306,28 +311,30 @@ class SpyderPdb(ipyPdb):
                 self._cmdloop()
         self.forget()
 
-    def print_stack_entry(self, frame_lineno, prompt_prefix='\n-> ',
-                          context=None):
+    def print_stack_entry(self, frame_lineno, prompt_prefix="\n-> ", context=None):
         """Disable printing stack entry if requested."""
         if self._disable_next_stack_entry:
             self._disable_next_stack_entry = False
             return
         return super(SpyderPdb, self).print_stack_entry(
-            frame_lineno, prompt_prefix, context)
+            frame_lineno, prompt_prefix, context
+        )
 
     # --- Methods overriden for skipping libraries
     def stop_here(self, frame):
         """Check if pdb should stop here."""
-        if (frame is not None
-                and "__tracebackhide__" in frame.f_locals
-                and frame.f_locals["__tracebackhide__"] == "__pdb_exit__"):
-            self.onecmd('exit')
+        if (
+            frame is not None
+            and "__tracebackhide__" in frame.f_locals
+            and frame.f_locals["__tracebackhide__"] == "__pdb_exit__"
+        ):
+            self.onecmd("exit")
             return False
 
         if not super(SpyderPdb, self).stop_here(frame):
             return False
         filename = frame.f_code.co_filename
-        if filename.startswith('<'):
+        if filename.startswith("<"):
             # This is not a file
             return True
         if self.pdb_ignore_lib and path_is_library(filename):
@@ -367,7 +374,7 @@ class SpyderPdb(ipyPdb):
             cursor_pos = len(code)
 
         # Get text to complete
-        text = code[:cursor_pos].split(' ')[-1]
+        text = code[:cursor_pos].split(" ")[-1]
         # Choose Pdb function to complete, based on cmd.py
         origline = code
         line = origline.lstrip()
@@ -383,23 +390,23 @@ class SpyderPdb(ipyPdb):
         if begidx > 0:
             # This could be after a Pdb command
             cmd, args, _ = self.parseline(line)
-            if cmd != '':
+            if cmd != "":
                 try:
                     # Function to complete Pdb command arguments
-                    compfunc = getattr(self, 'complete_' + cmd)
+                    compfunc = getattr(self, "complete_" + cmd)
                     # Don't call ipython do_complete for commands
                     ipython_do_complete = False
                 except AttributeError:
                     pass
-        elif line[0] != '!':
+        elif line[0] != "!":
             # This could be a Pdb command
             compfunc = self.completenames
 
         def is_name_or_composed(text):
-            if not text or text[0] == '.':
+            if not text or text[0] == ".":
                 return False
             # We want to keep value.subvalue
-            return text.replace('.', '').isidentifier()
+            return text.replace(".", "").isidentifier()
 
         while text and not is_name_or_composed(text):
             text = text[1:]
@@ -417,8 +424,7 @@ class SpyderPdb(ipyPdb):
             if self.curframe:
                 if self.curframe_locals:
                     Frame = namedtuple("Frame", ["f_locals", "f_globals"])
-                    frame = Frame(self.curframe_locals,
-                                  self.curframe.f_globals)
+                    frame = Frame(self.curframe_locals, self.curframe.f_globals)
                 else:
                     frame = self.curframe
                 kernel.shell.set_completer_frame(frame)
@@ -429,26 +435,28 @@ class SpyderPdb(ipyPdb):
             if not compfunc:
                 return result
 
-            ipy_matches = result['matches']
+            ipy_matches = result["matches"]
             # Make sure both match lists start at the same place
-            if cursor_start < result['cursor_start']:
+            if cursor_start < result["cursor_start"]:
                 # Fill IPython matches
-                missing_txt = code[cursor_start:result['cursor_start']]
+                missing_txt = code[cursor_start : result["cursor_start"]]
                 ipy_matches = [missing_txt + m for m in ipy_matches]
-            elif result['cursor_start'] < cursor_start:
+            elif result["cursor_start"] < cursor_start:
                 # Fill Pdb matches
-                missing_txt = code[result['cursor_start']:cursor_start]
+                missing_txt = code[result["cursor_start"] : cursor_start]
                 matches = [missing_txt + m for m in matches]
-                cursor_start = result['cursor_start']
+                cursor_start = result["cursor_start"]
 
             # Add Pdb-specific matches
             matches += [match for match in ipy_matches if match not in matches]
 
-        return {'matches': matches,
-                'cursor_end': cursor_pos,
-                'cursor_start': cursor_start,
-                'metadata': {},
-                'status': 'ok'}
+        return {
+            "matches": matches,
+            "cursor_end": cursor_pos,
+            "cursor_start": cursor_start,
+            "metadata": {},
+            "status": "ok",
+        }
 
     def _complete_exclamation(self, code, cursor_pos):
         """
@@ -458,14 +466,14 @@ class SpyderPdb(ipyPdb):
             cursor_pos = len(code)
 
         # Get text to complete
-        text = code[:cursor_pos].split(' ')[-1]
+        text = code[:cursor_pos].split(" ")[-1]
         # Choose Pdb function to complete, based on cmd.py
         origline = code
         line = origline.lstrip()
         if not line:
             # Nothing to complete
             return
-        is_pdb_command = line[0] == '!'
+        is_pdb_command = line[0] == "!"
         is_pdb_command_name = False
 
         stripped = len(origline) - len(line)
@@ -485,10 +493,10 @@ class SpyderPdb(ipyPdb):
                 compfunc = self.completenames
             else:
                 cmd, args, _ = self.parseline(line)
-                if cmd != '':
+                if cmd != "":
                     try:
                         # Function to complete Pdb command arguments
-                        compfunc = getattr(self, 'complete_' + cmd)
+                        compfunc = getattr(self, "complete_" + cmd)
                     except AttributeError:
                         # This command doesn't exist, nothing to complete
                         return
@@ -499,10 +507,10 @@ class SpyderPdb(ipyPdb):
         if not is_pdb_command_name:
             # Remove eg. leading opening parenthesis
             def is_name_or_composed(text):
-                if not text or text[0] == '.':
+                if not text or text[0] == ".":
                     return False
                 # We want to keep value.subvalue
-                return text.replace('.', '').isidentifier()
+                return text.replace(".", "").isidentifier()
 
             while text and not is_name_or_composed(text):
                 text = text[1:]
@@ -513,20 +521,19 @@ class SpyderPdb(ipyPdb):
         if is_pdb_command:
             matches = compfunc(text, line, begidx, endidx)
             return {
-                'matches': matches,
-                'cursor_end': cursor_pos,
-                'cursor_start': cursor_start,
-                'metadata': {},
-                'status': 'ok'
-                }
+                "matches": matches,
+                "cursor_end": cursor_pos,
+                "cursor_start": cursor_start,
+                "metadata": {},
+                "status": "ok",
+            }
 
         kernel = get_ipython().kernel
         # Make complete call with current frame
         if self.curframe:
             if self.curframe_locals:
                 Frame = namedtuple("Frame", ["f_locals", "f_globals"])
-                frame = Frame(self.curframe_locals,
-                              self.curframe.f_globals)
+                frame = Frame(self.curframe_locals, self.curframe.f_globals)
             else:
                 frame = self.curframe
             kernel.shell.set_completer_frame(frame)
@@ -546,13 +553,12 @@ class SpyderPdb(ipyPdb):
         """Ask Spyder for breakpoints before the first prompt is created."""
         try:
             pdb_settings = frontend_request(blocking=True).get_pdb_settings()
-            self.pdb_ignore_lib = pdb_settings['pdb_ignore_lib']
-            self.pdb_execute_events = pdb_settings['pdb_execute_events']
-            self.pdb_use_exclamation_mark = pdb_settings[
-                'pdb_use_exclamation_mark']
-            self.pdb_stop_first_line = pdb_settings['pdb_stop_first_line']
+            self.pdb_ignore_lib = pdb_settings["pdb_ignore_lib"]
+            self.pdb_execute_events = pdb_settings["pdb_execute_events"]
+            self.pdb_use_exclamation_mark = pdb_settings["pdb_use_exclamation_mark"]
+            self.pdb_stop_first_line = pdb_settings["pdb_stop_first_line"]
             if self.starting:
-                self.set_spyder_breakpoints(pdb_settings['breakpoints'])
+                self.set_spyder_breakpoints(pdb_settings["breakpoints"])
             if self.send_initial_notification:
                 self.publish_pdb_state()
         except (CommError, TimeoutError):
@@ -588,8 +594,7 @@ class SpyderPdb(ipyPdb):
             super(SpyderPdb, self).do_debug(arg)
         except Exception:
             exc_info = sys.exc_info()[:2]
-            self.error(
-                traceback.format_exception_only(*exc_info)[-1].strip())
+            self.error(traceback.format_exception_only(*exc_info)[-1].strip())
         get_ipython().pdb_session = self
 
     def user_return(self, frame, return_value):
@@ -597,8 +602,10 @@ class SpyderPdb(ipyPdb):
         # This is useful when debugging in an active interpreter (otherwise,
         # the debugger will stop before reaching the target file)
         if self._wait_for_mainpyfile:
-            if (self.mainpyfile != self.canonic(frame.f_code.co_filename)
-                    or frame.f_lineno <= 0):
+            if (
+                self.mainpyfile != self.canonic(frame.f_code.co_filename)
+                or frame.f_lineno <= 0
+            ):
                 return
             self._wait_for_mainpyfile = False
         super(SpyderPdb, self).user_return(frame, return_value)
@@ -614,10 +621,11 @@ class SpyderPdb(ipyPdb):
                 self.allow_kbdint = False
                 break
             except KeyboardInterrupt:
-                print("--KeyboardInterrupt--\n"
-                      "For copying text while debugging, use Ctrl+Shift+C",
-                      file=self.stdout)
-
+                print(
+                    "--KeyboardInterrupt--\n"
+                    "For copying text while debugging, use Ctrl+Shift+C",
+                    file=self.stdout,
+                )
 
     def cmdloop(self, intro=None):
         """
@@ -629,7 +637,7 @@ class SpyderPdb(ipyPdb):
         if intro is not None:
             self.intro = intro
         if self.intro:
-            self.stdout.write(str(self.intro)+"\n")
+            self.stdout.write(str(self.intro) + "\n")
         stop = None
         while not stop:
             if self.cmdqueue:
@@ -639,14 +647,14 @@ class SpyderPdb(ipyPdb):
                     self.prompt_waiting = True
                     line = self.cmd_input(self.prompt)
                 except EOFError:
-                    line = 'EOF'
+                    line = "EOF"
             self.prompt_waiting = False
             line = self.precmd(line)
             stop = self.onecmd(line)
             stop = self.postcmd(stop, line)
         self.postloop()
 
-    def cmd_input(self, prompt=''):
+    def cmd_input(self, prompt=""):
         """
         Get input from frontend. Blocks until return
         """
@@ -664,8 +672,7 @@ class SpyderPdb(ipyPdb):
         kernel.frontend_call().pdb_input(prompt)
 
         # Allow GUI event loop to update
-        is_main_thread = (
-            threading.current_thread() is threading.main_thread())
+        is_main_thread = threading.current_thread() is threading.main_thread()
 
         # Get input by running eventloop
         if is_main_thread and kernel.eventloop:
@@ -678,8 +685,7 @@ class SpyderPdb(ipyPdb):
 
         # Get input by blocking
         if self._cmd_input_line is None:
-            kernel.frontend_comm.wait_until(
-                lambda: self._cmd_input_line is not None)
+            kernel.frontend_comm.wait_until(lambda: self._cmd_input_line is not None)
 
         return self._cmd_input_line
 
@@ -694,10 +700,10 @@ class SpyderPdb(ipyPdb):
             return line
         if not line:
             return line
-        if line[0] == '!':
+        if line[0] == "!":
             line = line[1:]
         else:
-            line = '!' + line
+            line = "!" + line
         return line
 
     def postcmd(self, stop, line):
@@ -724,8 +730,7 @@ class SpyderPdb(ipyPdb):
         for fname, data in list(breakpoints.items()):
             for linenumber, condition in data:
                 try:
-                    self.set_break(self.canonic(fname), linenumber,
-                                   cond=condition)
+                    self.set_break(self.canonic(fname), linenumber, cond=condition)
                 except ValueError:
                     # Fixes spyder/issues/15546
                     # The file is not readable
@@ -750,25 +755,23 @@ class SpyderPdb(ipyPdb):
             # Fixes issue 4681
             if self.pdb_stop_first_line:
                 do_continue = (
-                    self.continue_if_has_breakpoints
-                    and breaks
-                    and lineno < breaks[0])
+                    self.continue_if_has_breakpoints and breaks and lineno < breaks[0]
+                )
             else:
                 # The breakpoint could be in another file.
-                do_continue = (
-                    self.continue_if_has_breakpoints
-                    and not (breaks and lineno >= breaks[0]))
+                do_continue = self.continue_if_has_breakpoints and not (
+                    breaks and lineno >= breaks[0]
+                )
 
             if do_continue:
                 try:
                     if self.pdb_use_exclamation_mark:
-                        cont_cmd = '!continue'
+                        cont_cmd = "!continue"
                     else:
-                        cont_cmd = 'continue'
+                        cont_cmd = "continue"
                     frontend_request(blocking=False).pdb_execute(cont_cmd)
                 except (CommError, TimeoutError):
-                    logger.debug(
-                        "Could not send a Pdb continue call to the frontend.")
+                    logger.debug("Could not send a Pdb continue call to the frontend.")
 
     def publish_pdb_state(self):
         """
@@ -808,7 +811,7 @@ class SpyderPdb(ipyPdb):
         pdb_stack = traceback.StackSummary.extract(self.stack)
         pdb_index = self.curindex
 
-        skip_hidden = getattr(self, 'skip_hidden', False)
+        skip_hidden = getattr(self, "skip_hidden", False)
 
         if skip_hidden:
             # Filter out the hidden frames
@@ -818,8 +821,7 @@ class SpyderPdb(ipyPdb):
             pdb_index -= sum(hidden[:pdb_index])
 
         try:
-            frontend_request(blocking=False).set_pdb_stack(
-                pdb_stack, pdb_index)
+            frontend_request(blocking=False).set_pdb_stack(pdb_stack, pdb_index)
         except (CommError, TimeoutError):
             logger.debug("Could not send Pdb stack to the frontend.")
 
@@ -850,8 +852,7 @@ class SpyderPdb(ipyPdb):
         with DebugWrapper(self):
             super(SpyderPdb, self).runcall(*args, **kwds)
 
-    def enter_recursive_debugger(self, code, filename,
-                                 continue_if_has_breakpoints):
+    def enter_recursive_debugger(self, code, filename, continue_if_has_breakpoints):
         """
         Enter debugger recursively.
         """
@@ -860,8 +861,8 @@ class SpyderPdb(ipyPdb):
         locals = self.curframe_locals
         # Create child debugger
         debugger = SpyderPdb(
-            completekey=self.completekey,
-            stdin=self.stdin, stdout=self.stdout)
+            completekey=self.completekey, stdin=self.stdin, stdout=self.stdout
+        )
         debugger.use_rawinput = self.use_rawinput
         debugger.prompt = "(%s) " % self.prompt.strip()
 

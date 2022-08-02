@@ -19,14 +19,12 @@ def new_main_mod(filename, modname):
     """
     filename = os.path.abspath(filename)
 
-    main_mod = types.ModuleType(
-        modname,
-        doc="Module created for script run in IPython")
+    main_mod = types.ModuleType(modname, doc="Module created for script run in IPython")
 
     main_mod.__file__ = filename
     # It seems pydoc (and perhaps others) needs any module instance to
     # implement a __nonzero__ method
-    main_mod.__nonzero__ = lambda : True
+    main_mod.__nonzero__ = lambda: True
 
     return main_mod
 
@@ -39,8 +37,14 @@ class NamespaceManager:
     current_namespace is True, or a new namespace.
     """
 
-    def __init__(self, filename, namespace=None, current_namespace=False,
-                 file_code=None, stack_depth=1):
+    def __init__(
+        self,
+        filename,
+        namespace=None,
+        current_namespace=False,
+        file_code=None,
+        stack_depth=1,
+    ):
         self.filename = filename
         self.ns_globals = namespace
         self.ns_locals = None
@@ -64,27 +68,24 @@ class NamespaceManager:
             if self.current_namespace:
                 self.ns_globals = self.context_globals
                 self.ns_locals = self.context_locals
-                if '__file__' in self.ns_globals:
-                    self._previous_filename = self.ns_globals['__file__']
-                self.ns_globals['__file__'] = self.filename
+                if "__file__" in self.ns_globals:
+                    self._previous_filename = self.ns_globals["__file__"]
+                self.ns_globals["__file__"] = self.filename
             else:
-                main_mod = new_main_mod(self.filename, '__main__')
+                main_mod = new_main_mod(self.filename, "__main__")
                 self.ns_globals = main_mod.__dict__
                 self.ns_locals = None
                 # Needed to allow pickle to reference main
-                if '__main__' in sys.modules:
-                    self._previous_main = sys.modules['__main__']
-                sys.modules['__main__'] = main_mod
+                if "__main__" in sys.modules:
+                    self._previous_main = sys.modules["__main__"]
+                sys.modules["__main__"] = main_mod
                 self._reset_main = True
 
         # Save current namespace for access by variable explorer
-        self._previous_running_namespace = (
-            ipython_shell.kernel._running_namespace)
-        ipython_shell.kernel._running_namespace = (
-            self.ns_globals, self.ns_locals)
+        self._previous_running_namespace = ipython_shell.kernel._running_namespace
+        ipython_shell.kernel._running_namespace = (self.ns_globals, self.ns_locals)
 
-        if (self._file_code is not None
-                and isinstance(self._file_code, bytes)):
+        if self._file_code is not None and isinstance(self._file_code, bytes):
             try:
                 self._file_code = self._file_code.decode()
             except UnicodeDecodeError:
@@ -94,9 +95,11 @@ class NamespaceManager:
             # '\n' is used instead of the native line endings. (see linecache)
             # mtime is set to None to avoid a cache update.
             linecache.cache[self.filename] = (
-                len(self._file_code), None,
-                [line + '\n' for line in self._file_code.splitlines()],
-                self.filename)
+                len(self._file_code),
+                None,
+                [line + "\n" for line in self._file_code.splitlines()],
+                self.filename,
+            )
         return self.ns_globals, self.ns_locals
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -104,12 +107,11 @@ class NamespaceManager:
         Reset the namespace.
         """
         ipython_shell = get_ipython()
-        ipython_shell.kernel._running_namespace = (
-            self._previous_running_namespace)
+        ipython_shell.kernel._running_namespace = self._previous_running_namespace
         if self._previous_filename:
-            self.ns_globals['__file__'] = self._previous_filename
-        elif '__file__' in self.ns_globals:
-            self.ns_globals.pop('__file__')
+            self.ns_globals["__file__"] = self._previous_filename
+        elif "__file__" in self.ns_globals:
+            self.ns_globals.pop("__file__")
 
         if not self.current_namespace:
             self.context_globals.update(self.ns_globals)
@@ -117,8 +119,8 @@ class NamespaceManager:
                 self.context_locals.update(self.ns_locals)
 
         if self._previous_main:
-            sys.modules['__main__'] = self._previous_main
-        elif '__main__' in sys.modules and self._reset_main:
-            del sys.modules['__main__']
+            sys.modules["__main__"] = self._previous_main
+        elif "__main__" in sys.modules and self._reset_main:
+            del sys.modules["__main__"]
         if self.filename in linecache.cache and os.path.exists(self.filename):
             linecache.cache.pop(self.filename)

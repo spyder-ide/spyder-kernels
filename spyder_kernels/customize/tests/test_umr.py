@@ -26,15 +26,15 @@ def user_module(tmpdir):
         sys.path.append(str(tmpdir))
 
     def create_module(modname):
-        modfile = tmpdir.mkdir(modname).join('bar.py')
+        modfile = tmpdir.mkdir(modname).join("bar.py")
         code = """
 def square(x):
     return x**2
         """
         modfile.write(code)
 
-        init_file = tmpdir.join(modname).join('__init__.py')
-        init_file.write('#')
+        init_file = tmpdir.join(modname).join("__init__.py")
+        init_file.write("#")
 
     return create_module
 
@@ -45,76 +45,82 @@ def test_umr_skip_cython(user_module):
     support is active.
     """
     # Create user module
-    user_module('foo')
+    user_module("foo")
 
     # Activate Cython support
-    os.environ['SPY_RUN_CYTHON'] = 'True'
+    os.environ["SPY_RUN_CYTHON"] = "True"
 
     # Create UMR
     umr = UserModuleReloader()
 
     import foo
-    assert umr.is_module_reloadable(foo, 'foo') == False
+
+    assert umr.is_module_reloadable(foo, "foo") == False
 
     # Deactivate Cython support
-    os.environ['SPY_RUN_CYTHON'] = 'False'
+    os.environ["SPY_RUN_CYTHON"] = "False"
 
 
 def test_umr_run(user_module):
     """Test that UMR's run method is working correctly."""
     # Create user module
-    user_module('foo1')
+    user_module("foo1")
 
     # Activate verbose mode in the UMR
-    os.environ['SPY_UMR_VERBOSE'] = 'True'
+    os.environ["SPY_UMR_VERBOSE"] = "True"
 
     # Create UMR
     umr = UserModuleReloader()
 
     from foo1.bar import square
+
     umr.run()
-    umr.modnames_to_reload == ['foo', 'foo.bar']
+    umr.modnames_to_reload == ["foo", "foo.bar"]
 
 
 def test_umr_previous_modules(user_module):
     """Test that UMR's previos_modules is working as expected."""
     # Create user module
-    user_module('foo2')
+    user_module("foo2")
 
     # Create UMR
     umr = UserModuleReloader()
 
     import foo2
-    assert 'IPython' in umr.previous_modules
-    assert 'foo2' not in umr.previous_modules
+
+    assert "IPython" in umr.previous_modules
+    assert "foo2" not in umr.previous_modules
 
 
 def test_umr_namelist():
     """Test that the UMR skips modules according to its name."""
     umr = UserModuleReloader()
 
-    assert umr.is_module_in_namelist('tensorflow')
-    assert umr.is_module_in_namelist('pytorch')
-    assert umr.is_module_in_namelist('spyder_kernels')
-    assert not umr.is_module_in_namelist('foo')
+    assert umr.is_module_in_namelist("tensorflow")
+    assert umr.is_module_in_namelist("pytorch")
+    assert umr.is_module_in_namelist("spyder_kernels")
+    assert not umr.is_module_in_namelist("foo")
 
 
 def test_umr_reload_modules(user_module):
     """Test that the UMR only tries to reload user modules."""
     # Create user module
-    user_module('foo3')
+    user_module("foo3")
 
     # Create UMR
     umr = UserModuleReloader()
 
     # Don't reload stdlib modules
     import xml
-    assert not umr.is_module_reloadable(xml, 'xml')
+
+    assert not umr.is_module_reloadable(xml, "xml")
 
     # Don't reload third-party modules
     import numpy
-    assert not umr.is_module_reloadable(numpy, 'numpy')
+
+    assert not umr.is_module_reloadable(numpy, "numpy")
 
     # Reload user modules
     import foo3
-    assert umr.is_module_reloadable(foo3, 'foo3')
+
+    assert umr.is_module_reloadable(foo3, "foo3")

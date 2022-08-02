@@ -14,11 +14,11 @@ from spyder_kernels.customize.utils import create_pathlist
 
 def test_user_sitepackages_in_pathlist():
     """Test that we include user site-packages in pathlist."""
-    if sys.platform.startswith('linux'):
-        user_path = 'local'
-    elif sys.platform == 'darwin':
-        user_path = os.path.expanduser('~/.local')
+    if sys.platform.startswith("linux"):
+        user_path = "local"
+    elif sys.platform == "darwin":
+        user_path = os.path.expanduser("~/.local")
     else:
-        user_path = 'Roaming'
+        user_path = "Roaming"
 
     assert any([user_path in path for path in create_pathlist()])

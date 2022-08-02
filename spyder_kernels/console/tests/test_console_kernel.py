@@ -45,7 +45,7 @@ except ImportError:
 # Constants
 # =============================================================================
 FILES_PATH = os.path.dirname(os.path.realpath(__file__))
-IPYKERNEL_6 = ipykernel.__version__[0] >= '6'
+IPYKERNEL_6 = ipykernel.__version__[0] >= "6"
 TIMEOUT = 15
 SETUP_TIMEOUT = 60
 
@@ -61,21 +61,23 @@ def setup_kernel(cmd):
     -------
     client: jupyter_client.BlockingKernelClient connected to the kernel
     """
-    kernel = Popen([sys.executable, '-c', cmd], stdout=PIPE, stderr=PIPE)
+    kernel = Popen([sys.executable, "-c", cmd], stdout=PIPE, stderr=PIPE)
     try:
         connection_file = os.path.join(
             paths.jupyter_runtime_dir(),
-            'kernel-%i.json' % kernel.pid,
+            "kernel-%i.json" % kernel.pid,
         )
         # wait for connection file to exist, timeout after 5s
         tic = time.time()
-        while not os.path.exists(connection_file) \
-            and kernel.poll() is None \
-            and time.time() < tic + SETUP_TIMEOUT:
+        while (
+            not os.path.exists(connection_file)
+            and kernel.poll() is None
+            and time.time() < tic + SETUP_TIMEOUT
+        ):
             time.sleep(0.1)
 
         if kernel.poll() is not None:
-            o,e = kernel.communicate()
+            o, e = kernel.communicate()
             raise IOError("Kernel failed to start:\n%s" % e)
 
         if not os.path.exists(connection_file):
@@ -113,42 +115,43 @@ def kernel(request):
     # Get kernel instance
     kernel = get_kernel()
     kernel.namespace_view_settings = {
-        'check_all': False,
-        'exclude_private': True,
-        'exclude_uppercase': True,
-        'exclude_capitalized': False,
-        'exclude_unsupported': False,
-        'exclude_callables_and_modules': True,
-        'excluded_names': [
-            'nan',
-            'inf',
-            'infty',
-            'little_endian',
-            'colorbar_doc',
-            'typecodes',
-            '__builtins__',
-            '__main__',
-            '__doc__',
-            'NaN',
-            'Inf',
-            'Infinity',
-            'sctypes',
-            'rcParams',
-            'rcParamsDefault',
-            'sctypeNA',
-            'typeNA',
-            'False_',
-            'True_'
+        "check_all": False,
+        "exclude_private": True,
+        "exclude_uppercase": True,
+        "exclude_capitalized": False,
+        "exclude_unsupported": False,
+        "exclude_callables_and_modules": True,
+        "excluded_names": [
+            "nan",
+            "inf",
+            "infty",
+            "little_endian",
+            "colorbar_doc",
+            "typecodes",
+            "__builtins__",
+            "__main__",
+            "__doc__",
+            "NaN",
+            "Inf",
+            "Infinity",
+            "sctypes",
+            "rcParams",
+            "rcParamsDefault",
+            "sctypeNA",
+            "typeNA",
+            "False_",
+            "True_",
         ],
-        'minmax': False
+        "minmax": False,
     }
 
     # Teardown
     def reset_kernel():
         if IPYKERNEL_6:
-            asyncio.run(kernel.do_execute('reset -f', True))
+            asyncio.run(kernel.do_execute("reset -f", True))
         else:
-            kernel.do_execute('reset -f', True)
+            kernel.do_execute("reset -f", True)
+
     request.addfinalizer(reset_kernel)
 
     return kernel
@@ -159,32 +162,125 @@ def kernel(request):
 # =============================================================================
 def test_magics(kernel):
     """Check available magics in the kernel."""
-    line_magics = kernel.shell.magics_manager.magics['line']
-    cell_magics = kernel.shell.magics_manager.magics['cell']
-    for magic in ['alias', 'alias_magic', 'autocall', 'automagic', 'autosave',
-                  'bookmark', 'cd', 'clear', 'colors',
-                  'config', 'connect_info', 'debug',
-                  'dhist', 'dirs', 'doctest_mode', 'ed', 'edit', 'env',
-                  'gui', 'hist', 'history', 'killbgscripts', 'ldir', 'less',
-                  'load', 'load_ext', 'loadpy', 'logoff', 'logon', 'logstart',
-                  'logstate', 'logstop', 'ls', 'lsmagic', 'macro', 'magic',
-                  'matplotlib', 'mkdir', 'more', 'notebook', 'page',
-                  'pastebin', 'pdb', 'pdef', 'pdoc', 'pfile', 'pinfo',
-                  'pinfo2', 'popd', 'pprint', 'precision', 'prun',
-                  'psearch', 'psource', 'pushd', 'pwd', 'pycat', 'pylab',
-                  'qtconsole', 'quickref', 'recall', 'rehashx', 'reload_ext',
-                  'rep', 'rerun', 'reset', 'reset_selective', 'rmdir',
-                  'run', 'save', 'sc', 'set_env', 'sx', 'system',
-                  'tb', 'time', 'timeit', 'unalias', 'unload_ext',
-                  'who', 'who_ls', 'whos', 'xdel', 'xmode']:
+    line_magics = kernel.shell.magics_manager.magics["line"]
+    cell_magics = kernel.shell.magics_manager.magics["cell"]
+    for magic in [
+        "alias",
+        "alias_magic",
+        "autocall",
+        "automagic",
+        "autosave",
+        "bookmark",
+        "cd",
+        "clear",
+        "colors",
+        "config",
+        "connect_info",
+        "debug",
+        "dhist",
+        "dirs",
+        "doctest_mode",
+        "ed",
+        "edit",
+        "env",
+        "gui",
+        "hist",
+        "history",
+        "killbgscripts",
+        "ldir",
+        "less",
+        "load",
+        "load_ext",
+        "loadpy",
+        "logoff",
+        "logon",
+        "logstart",
+        "logstate",
+        "logstop",
+        "ls",
+        "lsmagic",
+        "macro",
+        "magic",
+        "matplotlib",
+        "mkdir",
+        "more",
+        "notebook",
+        "page",
+        "pastebin",
+        "pdb",
+        "pdef",
+        "pdoc",
+        "pfile",
+        "pinfo",
+        "pinfo2",
+        "popd",
+        "pprint",
+        "precision",
+        "prun",
+        "psearch",
+        "psource",
+        "pushd",
+        "pwd",
+        "pycat",
+        "pylab",
+        "qtconsole",
+        "quickref",
+        "recall",
+        "rehashx",
+        "reload_ext",
+        "rep",
+        "rerun",
+        "reset",
+        "reset_selective",
+        "rmdir",
+        "run",
+        "save",
+        "sc",
+        "set_env",
+        "sx",
+        "system",
+        "tb",
+        "time",
+        "timeit",
+        "unalias",
+        "unload_ext",
+        "who",
+        "who_ls",
+        "whos",
+        "xdel",
+        "xmode",
+    ]:
         msg = "magic '%s' is not in line_magics" % magic
         assert magic in line_magics, msg
 
-    for magic in ['!', 'HTML', 'SVG', 'bash', 'capture', 'debug',
-                  'file', 'html', 'javascript', 'js', 'latex', 'perl',
-                  'prun', 'pypy', 'python', 'python2', 'python3',
-                  'ruby', 'script', 'sh', 'svg', 'sx', 'system', 'time',
-                  'timeit', 'writefile']:
+    for magic in [
+        "!",
+        "HTML",
+        "SVG",
+        "bash",
+        "capture",
+        "debug",
+        "file",
+        "html",
+        "javascript",
+        "js",
+        "latex",
+        "perl",
+        "prun",
+        "pypy",
+        "python",
+        "python2",
+        "python3",
+        "ruby",
+        "script",
+        "sh",
+        "svg",
+        "sx",
+        "system",
+        "time",
+        "timeit",
+        "writefile",
+    ]:
         assert magic in cell_magics
 
 
@@ -194,9 +290,9 @@ def test_get_namespace_view(kernel):
     Test the namespace view of the kernel.
     """
     if IPYKERNEL_6:
-        execute = asyncio.run(kernel.do_execute('a = 1', True))
+        execute = asyncio.run(kernel.do_execute("a = 1", True))
     else:
-        execute = kernel.do_execute('a = 1', True)
+        execute = kernel.do_execute("a = 1", True)
 
     nsview = repr(kernel.get_namespace_view())
     assert "'a':" in nsview
@@ -212,9 +308,9 @@ def test_get_var_properties(kernel):
     Test the properties fo the variables in the namespace.
     """
     if IPYKERNEL_6:
-        asyncio.run(kernel.do_execute('a = 1', True))
+        asyncio.run(kernel.do_execute("a = 1", True))
     else:
-        kernel.do_execute('a = 1', True)
+        kernel.do_execute("a = 1", True)
 
     var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
@@ -231,7 +327,7 @@ def test_get_var_properties(kernel):
 
 def test_get_value(kernel):
     """Test getting the value of a variable."""
-    name = 'a'
+    name = "a"
     if IPYKERNEL_6:
         asyncio.run(kernel.do_execute("a = 124", True))
     else:
@@ -243,11 +339,11 @@ def test_get_value(kernel):
 
 def test_set_value(kernel):
     """Test setting the value of a variable."""
-    name = 'a'
+    name = "a"
     if IPYKERNEL_6:
-         asyncio.run(kernel.do_execute('a = 0', True))
+        asyncio.run(kernel.do_execute("a = 0", True))
     else:
-        kernel.do_execute('a = 0', True)
+        kernel.do_execute("a = 0", True)
     value = 10
     kernel.set_value(name, value)
     log_text = get_log_text(kernel)
@@ -260,11 +356,11 @@ def test_set_value(kernel):
 
 def test_remove_value(kernel):
     """Test the removal of a variable."""
-    name = 'a'
+    name = "a"
     if IPYKERNEL_6:
-        asyncio.run(kernel.do_execute('a = 1', True))
+        asyncio.run(kernel.do_execute("a = 1", True))
     else:
-        kernel.do_execute('a = 1', True)
+        kernel.do_execute("a = 1", True)
 
     var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
@@ -279,17 +375,17 @@ def test_remove_value(kernel):
     assert "'array_ndim': None" in var_properties
     kernel.remove_value(name)
     var_properties = repr(kernel.get_var_properties())
-    assert var_properties == '{}'
+    assert var_properties == "{}"
 
 
 def test_copy_value(kernel):
     """Test the copy of a variable."""
-    orig_name = 'a'
-    new_name = 'b'
+    orig_name = "a"
+    new_name = "b"
     if IPYKERNEL_6:
-         asyncio.run(kernel.do_execute('a = 1', True))
+        asyncio.run(kernel.do_execute("a = 1", True))
     else:
-        kernel.do_execute('a = 1', True)
+        kernel.do_execute("a = 1", True)
 
     var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
@@ -318,12 +414,16 @@ def test_copy_value(kernel):
 
 
 @pytest.mark.parametrize(
-    "load", [(True, "val1 = 0", {"val1": np.array(1)}),
-             (False, "val1 = 0", {"val1": 0, "val1_000": np.array(1)})])
+    "load",
+    [
+        (True, "val1 = 0", {"val1": np.array(1)}),
+        (False, "val1 = 0", {"val1": 0, "val1_000": np.array(1)}),
+    ],
+)
 def test_load_npz_data(kernel, load):
     """Test loading data from npz filename."""
-    namespace_file = osp.join(FILES_PATH, 'load_data.npz')
-    extention = '.npz'
+    namespace_file = osp.join(FILES_PATH, "load_data.npz")
+    extention = ".npz"
     overwrite, execute, variables = load
 
     if IPYKERNEL_6:
@@ -338,8 +438,8 @@ def test_load_npz_data(kernel, load):
 
 def test_load_data(kernel):
     """Test loading data from filename."""
-    namespace_file = osp.join(FILES_PATH, 'load_data.spydata')
-    extention = '.spydata'
+    namespace_file = osp.join(FILES_PATH, "load_data.spydata")
+    extention = ".spydata"
     kernel.load_data(namespace_file, extention)
     var_properties = repr(kernel.get_var_properties())
     assert "'a'" in var_properties
@@ -356,18 +456,18 @@ def test_load_data(kernel):
 
 def test_save_namespace(kernel):
     """Test saving the namespace into filename."""
-    namespace_file = osp.join(FILES_PATH, 'save_data.spydata')
+    namespace_file = osp.join(FILES_PATH, "save_data.spydata")
 
     if IPYKERNEL_6:
-        asyncio.run(kernel.do_execute('b = 1', True))
+        asyncio.run(kernel.do_execute("b = 1", True))
     else:
-        kernel.do_execute('b = 1', True)
+        kernel.do_execute("b = 1", True)
 
     kernel.save_namespace(namespace_file)
     assert osp.isfile(namespace_file)
-    load_func = iofunctions.load_funcs['.spydata']
+    load_func = iofunctions.load_funcs[".spydata"]
     data, error_message = load_func(namespace_file)
-    assert data == {'b': 1}
+    assert data == {"b": 1}
     assert not error_message
     os.remove(namespace_file)
     assert not osp.isfile(namespace_file)
@@ -382,18 +482,21 @@ def test_is_defined(kernel):
 
 def test_get_doc(kernel):
     """Test to get object documentation dictionary."""
-    objtxt = 'help'
-    assert ("Define the builtin 'help'" in kernel.get_doc(objtxt)['docstring'] or
-            "Define the built-in 'help'" in kernel.get_doc(objtxt)['docstring'])
+    objtxt = "help"
+    assert (
+        "Define the builtin 'help'" in kernel.get_doc(objtxt)["docstring"]
+        or "Define the built-in 'help'" in kernel.get_doc(objtxt)["docstring"]
+    )
+
 
 def test_get_source(kernel):
     """Test to get object source."""
-    objtxt = 'help'
-    assert 'class _Helper' in kernel.get_source(objtxt)
+    objtxt = "help"
+    assert "class _Helper" in kernel.get_source(objtxt)
 
 
 # --- Other stuff
-@pytest.mark.skipif(os.name == 'nt', reason="Doesn't work on Windows")
+@pytest.mark.skipif(os.name == "nt", reason="Doesn't work on Windows")
 def test_output_from_c_libraries(kernel, capsys):
     """Test that the wurlitzer extension is working."""
     # This code was taken from the Wurlitzer demo
@@ -426,15 +529,17 @@ def test_cwd_in_sys_path():
     with setup_kernel(cmd) as client:
         reply = client.execute_interactive(
             "import sys; sys_path = sys.path",
-            user_expressions={'output':'sys_path'}, timeout=TIMEOUT)
+            user_expressions={"output": "sys_path"},
+            timeout=TIMEOUT,
+        )
 
         # Transform value obtained through user_expressions
-        user_expressions = reply['content']['user_expressions']
-        str_value = user_expressions['output']['data']['text/plain']
+        user_expressions = reply["content"]["user_expressions"]
+        str_value = user_expressions["output"]["data"]["text/plain"]
         value = ast.literal_eval(str_value)
 
         # Assert the first value of sys_path is an empty string
-        assert '' in value
+        assert "" in value
 
 
 @flaky(max_runs=3)
@@ -464,16 +569,15 @@ if __name__ == '__main__':
         p.write(code)
 
         # Run code
-        client.execute_interactive(
-            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
+        client.execute_interactive("runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
 
         # Verify that the `result` variable is defined
-        client.inspect('result')
+        client.inspect("result")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
+        content = msg["content"]
+        assert content["found"]
 
 
 @flaky(max_runs=3)
@@ -508,17 +612,16 @@ if __name__ == '__main__':
         p.write(code)
 
         # Run code
-        client.execute_interactive(
-            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
+        client.execute_interactive("runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
 
         # Verify that the `result` variable is defined
-        client.inspect('result')
+        client.inspect("result")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
-        assert "[11, 12, 13]" in content['data']['text/plain']
+        content = msg["content"]
+        assert content["found"]
+        assert "[11, 12, 13]" in content["data"]["text/plain"]
 
 
 @flaky(max_runs=3)
@@ -547,19 +650,17 @@ if __name__=='__main__':
         p.write(code)
 
         # Run code two times
-        client.execute_interactive(
-            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
+        client.execute_interactive("runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
 
-        client.execute_interactive(
-            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
+        client.execute_interactive("runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
 
         # Verify that the `x` variable is defined
-        client.inspect('x')
+        client.inspect("x")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
+        content = msg["content"]
+        assert content["found"]
 
 
 @flaky(max_runs=3)
@@ -580,59 +681,64 @@ def test_runfile(tmpdir):
         d.write(code)
 
         # Write undefined variable code to a file
-        code = dedent("""
+        code = dedent(
+            """
         try:
             result3 = result
         except NameError:
             result2 = 'hello world'
-        """)
+        """
+        )
         u = tmpdir.join("undefined-test.py")
         u.write(code)
 
         # Run code file `d` to define `result` even after an error
-        client.execute_interactive("runfile(r'{}', current_namespace=False)"
-                                  .format(str(d)), timeout=TIMEOUT)
+        client.execute_interactive(
+            "runfile(r'{}', current_namespace=False)".format(str(d)), timeout=TIMEOUT
+        )
 
         # Verify that `result` is defined in the current namespace
-        client.inspect('result')
+        client.inspect("result")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
+        content = msg["content"]
+        assert content["found"]
 
         # Run code file `u` without current namespace
-        client.execute_interactive("runfile(r'{}', current_namespace=False)"
-                                  .format(str(u)), timeout=TIMEOUT)
+        client.execute_interactive(
+            "runfile(r'{}', current_namespace=False)".format(str(u)), timeout=TIMEOUT
+        )
 
         # Verify that the variable `result2` is defined
-        client.inspect('result2')
+        client.inspect("result2")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
+        content = msg["content"]
+        assert content["found"]
 
         # Run code file `u` with current namespace
-        msg = client.execute_interactive("runfile(r'{}', current_namespace=True)"
-                                        .format(str(u)), timeout=TIMEOUT)
-        content = msg['content']
+        msg = client.execute_interactive(
+            "runfile(r'{}', current_namespace=True)".format(str(u)), timeout=TIMEOUT
+        )
+        content = msg["content"]
 
         # Verify that the variable `result3` is defined
-        client.inspect('result3')
+        client.inspect("result3")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
+        content = msg["content"]
+        assert content["found"]
 
         # Verify that the variable `__file__` is undefined
-        client.inspect('__file__')
+        client.inspect("__file__")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert not content['found']
+        content = msg["content"]
+        assert not content["found"]
 
 
 @flaky(max_runs=3)
@@ -644,58 +750,67 @@ def test_np_threshold(kernel):
     with setup_kernel(cmd) as client:
 
         # Set Numpy threshold, suppress and formatter
-        client.execute_interactive("""
+        client.execute_interactive(
+            """
 import numpy as np;
 np.set_printoptions(
     threshold=np.inf,
     suppress=True,
     formatter={'float_kind':'{:0.2f}'.format})
-    """, timeout=TIMEOUT)
+    """,
+            timeout=TIMEOUT,
+        )
 
         # Create a big Numpy array and an array to check decimal format
-        client.execute_interactive("""
+        client.execute_interactive(
+            """
 x = np.random.rand(75000,5);
 a = np.array([123412341234.123412341234])
-""", timeout=TIMEOUT)
+""",
+            timeout=TIMEOUT,
+        )
 
         # Assert that NumPy threshold, suppress and formatter
         # are the same as the ones set by the user
-        client.execute_interactive("""
+        client.execute_interactive(
+            """
 t = np.get_printoptions()['threshold'];
 s = np.get_printoptions()['suppress'];
 f = np.get_printoptions()['formatter']
-""", timeout=TIMEOUT)
+""",
+            timeout=TIMEOUT,
+        )
 
         # Check correct decimal format
-        client.inspect('a')
+        client.inspect("a")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "data" not in msg['content']:
+        while "data" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']['data']['text/plain']
+        content = msg["content"]["data"]["text/plain"]
         assert "123412341234.12" in content
 
         # Check threshold value
-        client.inspect('t')
+        client.inspect("t")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "data" not in msg['content']:
+        while "data" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']['data']['text/plain']
+        content = msg["content"]["data"]["text/plain"]
         assert "inf" in content
 
         # Check suppress value
-        client.inspect('s')
+        client.inspect("s")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "data" not in msg['content']:
+        while "data" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']['data']['text/plain']
+        content = msg["content"]["data"]["text/plain"]
         assert "True" in content
 
         # Check formatter
-        client.inspect('f')
+        client.inspect("f")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "data" not in msg['content']:
+        while "data" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']['data']['text/plain']
+        content = msg["content"]["data"]["text/plain"]
         assert "{'float_kind': <built-in method format of str object" in content
 
 
@@ -705,15 +820,19 @@ f = np.get_printoptions()['formatter']
 TURTLE_ACTIVE = False
 try:
     import turtle
+
     turtle.Screen()
     turtle.bye()
     TURTLE_ACTIVE = True
 except:
     pass
 
+
 @flaky(max_runs=3)
-@pytest.mark.skipif(not TURTLE_ACTIVE,
-                    reason="Doesn't work on non-interactive settings or Python installations without Tk")
+@pytest.mark.skipif(
+    not TURTLE_ACTIVE,
+    reason="Doesn't work on non-interactive settings or Python installations without Tk",
+)
 def test_turtle_launch(tmpdir):
     """Test turtle scripts running in the same kernel."""
     # Command to start the kernel
@@ -745,16 +864,15 @@ turtle.bye()
         p.write(code)
 
         # Run code
-        client.execute_interactive(
-            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
+        client.execute_interactive("runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
 
         # Verify that the `tess` variable is defined
-        client.inspect('tess')
+        client.inspect("tess")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
+        content = msg["content"]
+        assert content["found"]
 
         # Write turtle code to a file
         code = code + "a = 10"
@@ -763,16 +881,15 @@ turtle.bye()
         p.write(code)
 
         # Run code again
-        client.execute_interactive(
-            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
+        client.execute_interactive("runfile(r'{}')".format(str(p)), timeout=TIMEOUT)
 
         # Verify that the `a` variable is defined
-        client.inspect('a')
+        client.inspect("a")
         msg = client.get_shell_msg(timeout=TIMEOUT)
-        while "found" not in msg['content']:
+        while "found" not in msg["content"]:
             msg = client.get_shell_msg(timeout=TIMEOUT)
-        content = msg['content']
-        assert content['found']
+        content = msg["content"]
+        assert content["found"]
 
 
 @flaky(max_runs=3)
@@ -785,15 +902,16 @@ def test_matplotlib_inline(kernel):
         # Get current backend
         code = "import matplotlib; backend = matplotlib.get_backend()"
         reply = client.execute_interactive(
-            code, user_expressions={'output': 'backend'}, timeout=TIMEOUT)
+            code, user_expressions={"output": "backend"}, timeout=TIMEOUT
+        )
 
         # Transform value obtained through user_expressions
-        user_expressions = reply['content']['user_expressions']
-        str_value = user_expressions['output']['data']['text/plain']
+        user_expressions = reply["content"]["user_expressions"]
+        str_value = user_expressions["output"]["data"]["text/plain"]
         value = ast.literal_eval(str_value)
 
         # Assert backend is inline
-        assert 'inline' in value
+        assert "inline" in value
 
 
 def test_do_complete(kernel):
@@ -801,62 +919,63 @@ def test_do_complete(kernel):
     Check do complete works in normal and debugging mode.
     """
     if IPYKERNEL_6:
-        asyncio.run(kernel.do_execute('abba = 1', True))
+        asyncio.run(kernel.do_execute("abba = 1", True))
     else:
-        kernel.do_execute('abba = 1', True)
-    assert kernel.get_value('abba') == 1
-    match = kernel.do_complete('ab', 2)
-    assert 'abba' in match['matches']
+        kernel.do_execute("abba = 1", True)
+    assert kernel.get_value("abba") == 1
+    match = kernel.do_complete("ab", 2)
+    assert "abba" in match["matches"]
 
     # test pdb
     pdb_obj = SpyderPdb()
     pdb_obj.curframe = inspect.currentframe()
     pdb_obj.prompt_waiting = True
-    pdb_obj.completenames = lambda *ignore: ['baba']
+    pdb_obj.completenames = lambda *ignore: ["baba"]
     kernel.shell.pdb_session = pdb_obj
-    match = kernel.do_complete('ba', 2)
-    assert 'baba' in match['matches']
+    match = kernel.do_complete("ba", 2)
+    assert "baba" in match["matches"]
     pdb_obj.curframe = None
 
 
 @pytest.mark.parametrize("exclude_callables_and_modules", [True, False])
 @pytest.mark.parametrize("exclude_unsupported", [True, False])
-def test_callables_and_modules(kernel, exclude_callables_and_modules,
-                               exclude_unsupported):
+def test_callables_and_modules(
+    kernel, exclude_callables_and_modules, exclude_unsupported
+):
     """
     Tests that callables and modules are in the namespace view only
     when the right options are passed to the kernel.
     """
     if IPYKERNEL_6:
-        asyncio.run(kernel.do_execute('import numpy', True))
-        asyncio.run(kernel.do_execute('a = 10', True))
-        asyncio.run(kernel.do_execute('def f(x): return x', True))
+        asyncio.run(kernel.do_execute("import numpy", True))
+        asyncio.run(kernel.do_execute("a = 10", True))
+        asyncio.run(kernel.do_execute("def f(x): return x", True))
     else:
-        kernel.do_execute('import numpy', True)
-        kernel.do_execute('a = 10', True)
-        kernel.do_execute('def f(x): return x', True)
+        kernel.do_execute("import numpy", True)
+        kernel.do_execute("a = 10", True)
+        kernel.do_execute("def f(x): return x", True)
 
     settings = kernel.namespace_view_settings
 
-    settings['exclude_callables_and_modules'] = exclude_callables_and_modules
-    settings['exclude_unsupported'] = exclude_unsupported
+    settings["exclude_callables_and_modules"] = exclude_callables_and_modules
+    settings["exclude_unsupported"] = exclude_unsupported
     nsview = kernel.get_namespace_view()
 
     # Callables and modules should always be in nsview when the option
     # is active.
     if not exclude_callables_and_modules:
-        assert 'numpy' in nsview.keys()
-        assert 'f' in nsview.keys()
+        assert "numpy" in nsview.keys()
+        assert "f" in nsview.keys()
     else:
-        assert 'numpy' not in nsview.keys()
-        assert 'f' not in nsview.keys()
+        assert "numpy" not in nsview.keys()
+        assert "f" not in nsview.keys()
 
     # Other values should always be part of nsview
-    assert 'a' in nsview.keys()
+    assert "a" in nsview.keys()
 
     # Restore settings for other tests
-    settings['exclude_callables_and_modules'] = True
-    settings['exclude_unsupported'] = False
+    settings["exclude_callables_and_modules"] = True
+    settings["exclude_unsupported"] = False
 
 
 def test_comprehensions_with_locals_in_pdb(kernel):
@@ -875,19 +994,20 @@ def test_comprehensions_with_locals_in_pdb(kernel):
     kernel.shell.pdb_session = pdb_obj
 
     # Create a local variable.
-    kernel.shell.pdb_session.default('zz = 10')
-    assert kernel.get_value('zz') == 10
+    kernel.shell.pdb_session.default("zz = 10")
+    assert kernel.get_value("zz") == 10
 
     # Run a list comprehension with this variable.
     kernel.shell.pdb_session.default("compr = [zz * i for i in [1, 2, 3]]")
-    assert kernel.get_value('compr') == [10, 20, 30]
+    assert kernel.get_value("compr") == [10, 20, 30]
 
     # Check that the variable is not reported as being part of globals.
     kernel.shell.pdb_session.default("in_globals = 'zz' in globals()")
-    assert kernel.get_value('in_globals') == False
+    assert kernel.get_value("in_globals") == False
 
     pdb_obj.curframe = None
     pdb_obj.curframe_locals = None
+
 
 def test_comprehensions_with_locals_in_pdb_2(kernel):
     """
@@ -902,14 +1022,15 @@ def test_comprehensions_with_locals_in_pdb_2(kernel):
     kernel.shell.pdb_session = pdb_obj
 
     # Create a local variable.
-    kernel.shell.pdb_session.default('aa = [1, 2]')
-    kernel.shell.pdb_session.default('bb = [3, 4]')
-    kernel.shell.pdb_session.default('res = []')
+    kernel.shell.pdb_session.default("aa = [1, 2]")
+    kernel.shell.pdb_session.default("bb = [3, 4]")
+    kernel.shell.pdb_session.default("res = []")
 
     # Run a list comprehension with this variable.
     kernel.shell.pdb_session.default(
-        "for c0 in aa: res.append([(c0, c1) for c1 in bb])")
-    assert kernel.get_value('res') == [[(1, 3), (1, 4)], [(2, 3), (2, 4)]]
+        "for c0 in aa: res.append([(c0, c1) for c1 in bb])"
+    )
+    assert kernel.get_value("res") == [[(1, 3), (1, 4)], [(2, 3), (2, 4)]]
 
     pdb_obj.curframe = None
     pdb_obj.curframe_locals = None
@@ -935,10 +1056,12 @@ def test_namespaces_in_pdb(kernel):
     # Create wrapper to check for errors
     old_error = pdb_obj.error
     pdb_obj._error_occured = False
+
     def error_wrapper(*args, **kwargs):
         print(args, kwargs)
         pdb_obj._error_occured = True
         return old_error(*args, **kwargs)
+
     pdb_obj.error = error_wrapper
 
     # Test globals are visible
@@ -972,20 +1095,14 @@ def test_functions_with_locals_in_pdb(kernel):
     kernel.shell.pdb_session = pdb_obj
 
     # Create a local function.
-    kernel.shell.pdb_session.default(
-        'def fun_a(): return [i for i in range(1)]')
-    kernel.shell.pdb_session.default(
-        'zz = fun_a()')
-    assert kernel.get_value('zz') == [0]
+    kernel.shell.pdb_session.default("def fun_a(): return [i for i in range(1)]")
+    kernel.shell.pdb_session.default("zz = fun_a()")
+    assert kernel.get_value("zz") == [0]
 
-    kernel.shell.pdb_session.default(
-        'a = 1')
-    kernel.shell.pdb_session.default(
-        'def fun_a(): return a')
-    kernel.shell.pdb_session.default(
-        'zz = fun_a()')
-    assert kernel.get_value('zz') == 1
-
+    kernel.shell.pdb_session.default("a = 1")
+    kernel.shell.pdb_session.default("def fun_a(): return a")
+    kernel.shell.pdb_session.default("zz = fun_a()")
+    assert kernel.get_value("zz") == 1
 
     pdb_obj.curframe = None
     pdb_obj.curframe_locals = None
@@ -1005,27 +1122,20 @@ def test_functions_with_locals_in_pdb_2(kernel):
     kernel.shell.pdb_session = pdb_obj
 
     # Create a local function.
-    kernel.shell.pdb_session.default(
-        'def fun_a(): return [i for i in range(1)]')
-    kernel.shell.pdb_session.default(
-        'zz = fun_a()')
-    assert kernel.get_value('zz') == [0]
+    kernel.shell.pdb_session.default("def fun_a(): return [i for i in range(1)]")
+    kernel.shell.pdb_session.default("zz = fun_a()")
+    assert kernel.get_value("zz") == [0]
 
-    kernel.shell.pdb_session.default(
-        'a = 1')
-    kernel.shell.pdb_session.default(
-        'def fun_a(): return a')
-    kernel.shell.pdb_session.default(
-        'zz = fun_a()')
-    assert kernel.get_value('zz') == 1
+    kernel.shell.pdb_session.default("a = 1")
+    kernel.shell.pdb_session.default("def fun_a(): return a")
+    kernel.shell.pdb_session.default("zz = fun_a()")
+    assert kernel.get_value("zz") == 1
 
     # Check baba is in locals and not globals
-    kernel.shell.pdb_session.default(
-        'll = locals().keys()')
-    assert "baba" in kernel.get_value('ll')
-    kernel.shell.pdb_session.default(
-        'gg = globals().keys()')
-    assert "baba" not in kernel.get_value('gg')
+    kernel.shell.pdb_session.default("ll = locals().keys()")
+    assert "baba" in kernel.get_value("ll")
+    kernel.shell.pdb_session.default("gg = globals().keys()")
+    assert "baba" not in kernel.get_value("gg")
 
     pdb_obj.curframe = None
     pdb_obj.curframe_locals = None
@@ -1042,46 +1152,40 @@ def test_locals_globals_in_pdb(kernel):
     pdb_obj.curframe_locals = pdb_obj.curframe.f_locals
     kernel.shell.pdb_session = pdb_obj
 
-    assert kernel.get_value('a') == 1
+    assert kernel.get_value("a") == 1
 
-    kernel.shell.pdb_session.default(
-        'test = "a" in globals()')
-    assert kernel.get_value('test') == False
+    kernel.shell.pdb_session.default('test = "a" in globals()')
+    assert kernel.get_value("test") == False
 
-    kernel.shell.pdb_session.default(
-        'test = "a" in locals()')
-    assert kernel.get_value('test') == True
+    kernel.shell.pdb_session.default('test = "a" in locals()')
+    assert kernel.get_value("test") == True
 
-    kernel.shell.pdb_session.default(
-        'def f(): return a')
-    kernel.shell.pdb_session.default(
-        'test = f()')
-    assert kernel.get_value('test') == 1
+    kernel.shell.pdb_session.default("def f(): return a")
+    kernel.shell.pdb_session.default("test = f()")
+    assert kernel.get_value("test") == 1
 
-    kernel.shell.pdb_session.default(
-        'a = 2')
-    assert kernel.get_value('a') == 2
+    kernel.shell.pdb_session.default("a = 2")
+    assert kernel.get_value("a") == 2
 
-    kernel.shell.pdb_session.default(
-        'test = "a" in globals()')
-    assert kernel.get_value('test') == False
+    kernel.shell.pdb_session.default('test = "a" in globals()')
+    assert kernel.get_value("test") == False
 
-    kernel.shell.pdb_session.default(
-        'test = "a" in locals()')
-    assert kernel.get_value('test') == True
+    kernel.shell.pdb_session.default('test = "a" in locals()')
+    assert kernel.get_value("test") == True
 
     pdb_obj.curframe = None
     pdb_obj.curframe_locals = None
 
 
 @flaky(max_runs=3)
-@pytest.mark.parametrize("backend", [None, 'inline', 'tk', 'qt5'])
+@pytest.mark.parametrize("backend", [None, "inline", "tk", "qt5"])
 @pytest.mark.skipif(
-    not bool(os.environ.get('USE_CONDA')),
-    reason="Doesn't work with pip packages")
+    not bool(os.environ.get("USE_CONDA")), reason="Doesn't work with pip packages"
+)
 @pytest.mark.skipif(
     sys.version_info[:2] < (3, 9),
-    reason="Too flaky in Python 3.7/8 and doesn't work in older versions")
+    reason="Too flaky in Python 3.7/8 and doesn't work in older versions",
+)
 def test_get_interactive_backend(backend):
     """
     Test that we correctly get the interactive backend set in the kernel.
@@ -1092,24 +1196,25 @@ def test_get_interactive_backend(backend):
         # Set backend
         if backend is not None:
             client.execute_interactive(
-                "%matplotlib {}".format(backend), timeout=TIMEOUT)
-            client.execute_interactive(
-                "import time; time.sleep(.1)", timeout=TIMEOUT)
+                "%matplotlib {}".format(backend), timeout=TIMEOUT
+            )
+            client.execute_interactive("import time; time.sleep(.1)", timeout=TIMEOUT)
 
         # Get backend
         code = "backend = get_ipython().kernel.get_mpl_interactive_backend()"
         reply = client.execute_interactive(
-            code, user_expressions={'output': 'backend'}, timeout=TIMEOUT)
+            code, user_expressions={"output": "backend"}, timeout=TIMEOUT
+        )
 
         # Get value obtained through user_expressions
-        user_expressions = reply['content']['user_expressions']
-        value = user_expressions['output']['data']['text/plain']
+        user_expressions = reply["content"]["user_expressions"]
+        value = user_expressions["output"]["data"]["text/plain"]
 
         # Assert we got the right interactive backend
         if backend is not None:
             assert MPL_BACKENDS_FROM_SPYDER[value] == backend
         else:
-            assert value == '0'
+            assert value == "0"
 
 
 def test_global_message(tmpdir):
@@ -1124,13 +1229,7 @@ def test_global_message(tmpdir):
         client.execute_interactive("%reset -f", timeout=TIMEOUT)
 
         # Write code with a global to a file
-        code = (
-            "def foo1():\n"
-            "    global x\n"
-            "    x = 2\n"
-            "x = 1\n"
-            "print(x)\n"
-        )
+        code = "def foo1():\n" "    global x\n" "    x = 2\n" "x = 1\n" "print(x)\n"
 
         p = tmpdir.join("test.py")
         p.write(code)
@@ -1139,20 +1238,25 @@ def test_global_message(tmpdir):
 
         def check_found(msg):
             if "text" in msg["content"]:
-                if ("WARNING: This file contains a global statement"  in
-                        msg["content"]["text"]):
+                if (
+                    "WARNING: This file contains a global statement"
+                    in msg["content"]["text"]
+                ):
                     global found
                     found = True
 
         # Run code in current namespace
-        client.execute_interactive("runfile(r'{}', current_namespace=True)".format(
-            str(p)), timeout=TIMEOUT, output_hook=check_found)
+        client.execute_interactive(
+            "runfile(r'{}', current_namespace=True)".format(str(p)),
+            timeout=TIMEOUT,
+            output_hook=check_found,
+        )
         assert not found
 
         # Run code in empty namespace
         client.execute_interactive(
-            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT,
-            output_hook=check_found)
+            "runfile(r'{}')".format(str(p)), timeout=TIMEOUT, output_hook=check_found
+        )
 
         assert found
 

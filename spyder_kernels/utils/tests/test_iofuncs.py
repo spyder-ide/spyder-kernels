@@ -24,8 +24,7 @@ import spyder_kernels.utils.iofuncs as iofuncs
 
 
 # Full path to this file's parent directory for loading data
-LOCATION = os.path.realpath(os.path.join(os.getcwd(),
-                                         os.path.dirname(__file__)))
+LOCATION = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
 # =============================================================================
@@ -37,18 +36,18 @@ def are_namespaces_equal(actual, expected):
     are_equal = True
     for var in sorted(expected.keys()):
         try:
-            are_equal = are_equal and bool(np.mean(
-                expected[var] == actual[var]))
+            are_equal = are_equal and bool(np.mean(expected[var] == actual[var]))
         except ValueError:
             are_equal = are_equal and all(
-                [np.all(obj1 == obj2) for obj1, obj2 in zip(expected[var],
-                                                            actual[var])])
+                [np.all(obj1 == obj2) for obj1, obj2 in zip(expected[var], actual[var])]
+            )
         print(str(var) + ": " + str(are_equal))
     return are_equal
 
 
 class CustomObj:
     """A custom class of objects for testing."""
+
     def __init__(self, data):
         self.data = None
         if data:
@@ -60,12 +59,14 @@ class CustomObj:
 
 class UnDeepCopyableObj(CustomObj):
     """A class of objects that cannot be deepcopied."""
+
     def __getstate__(self):
         raise RuntimeError()
 
 
 class UnPickleableObj(UnDeepCopyableObj):
     """A class of objects that can deepcopied, but not pickled."""
+
     def __deepcopy__(self, memo):
         new_one = self.__class__.__new__(self.__class__)
         new_one.__dict__.update(self.__dict__)
@@ -84,11 +85,11 @@ def spydata_values():
     This fixture declares those variables in a static way.
     """
     A = 1
-    B = 'ham'
+    B = "ham"
     C = np.eye(3)
-    D = {'a': True, 'b': np.eye(4, dtype=np.complex128)}
+    D = {"a": True, "b": np.eye(4, dtype=np.complex128)}
     E = [np.eye(2, dtype=np.int64), 42.0, np.eye(3, dtype=np.bool_)]
-    return {'A': A, 'B': B, 'C': C, 'D': D, 'E': E}
+    return {"A": A, "B": B, "C": C, "D": D, "E": E}
 
 
 @pytest.fixture
@@ -105,14 +106,14 @@ def real_values():
     i.e., a struct that contains other types that need to be converted,
     like other structs, matrices and Cell Arrays.
     """
-    path = os.path.join(LOCATION, 'numpy_data.npz')
+    path = os.path.join(LOCATION, "numpy_data.npz")
     file_s = np.load(path, allow_pickle=True)
-    A = file_s['A'].item()
-    B = file_s['B']
-    C = file_s['C']
-    D = file_s['D'].item()
-    E = file_s['E']
-    return {'A': A, 'B': B, 'C': C, 'D': D, 'E': E}
+    A = file_s["A"].item()
+    B = file_s["B"]
+    C = file_s["C"]
+    D = file_s["D"].item()
+    E = file_s["E"]
+    return {"A": A, "B": B, "C": C, "D": D, "E": E}
 
 
 @pytest.fixture
@@ -124,15 +125,16 @@ def namespace_objects_full(spydata_values):
     filtering out un-deep-copyable, un-pickleable, and uninteresting objects.
     """
     namespace_dict = copy.deepcopy(spydata_values)
-    namespace_dict['expected_error_string'] = (
-        'Some objects could not be saved: '
-        'undeepcopyable_instance, unpickleable_instance')
-    namespace_dict['module_obj'] = io
-    namespace_dict['class_obj'] = Exception
-    namespace_dict['function_obj'] = os.path.join
-    namespace_dict['unpickleable_instance'] = UnPickleableObj("spam")
-    namespace_dict['undeepcopyable_instance'] = UnDeepCopyableObj("ham")
-    namespace_dict['custom_instance'] = CustomObj("eggs")
+    namespace_dict["expected_error_string"] = (
+        "Some objects could not be saved: "
+        "undeepcopyable_instance, unpickleable_instance"
+    )
+    namespace_dict["module_obj"] = io
+    namespace_dict["class_obj"] = Exception
+    namespace_dict["function_obj"] = os.path.join
+    namespace_dict["unpickleable_instance"] = UnPickleableObj("spam")
+    namespace_dict["undeepcopyable_instance"] = UnDeepCopyableObj("ham")
+    namespace_dict["custom_instance"] = CustomObj("eggs")
 
     return namespace_dict
 
@@ -146,7 +148,7 @@ def namespace_objects_filtered(spydata_values):
     filtering out un-deep-copyable, un-pickleable, and uninteresting objects.
     """
     namespace_dict = copy.deepcopy(spydata_values)
-    namespace_dict['custom_instance'] = CustomObj("eggs")
+    namespace_dict["custom_instance"] = CustomObj("eggs")
 
     return namespace_dict
 
@@ -157,9 +159,9 @@ def namespace_objects_nocopyable():
     Define a dictionary of that cannot be deepcopied.
     """
     namespace_dict = {}
-    namespace_dict['expected_error_string'] = 'No supported objects to save'
-    namespace_dict['class_obj'] = Exception
-    namespace_dict['undeepcopyable_instance'] = UnDeepCopyableObj("ham")
+    namespace_dict["expected_error_string"] = "No supported objects to save"
+    namespace_dict["class_obj"] = Exception
+    namespace_dict["undeepcopyable_instance"] = UnDeepCopyableObj("ham")
 
     return namespace_dict
 
@@ -170,9 +172,9 @@ def namespace_objects_nopickleable():
     Define a dictionary of objects that cannot be pickled.
     """
     namespace_dict = {}
-    namespace_dict['expected_error_string'] = 'No supported objects to save'
-    namespace_dict['function_obj'] = os.path.join
-    namespace_dict['unpickleable_instance'] = UnPickleableObj("spam")
+    namespace_dict["expected_error_string"] = "No supported objects to save"
+    namespace_dict["function_obj"] = os.path.join
+    namespace_dict["unpickleable_instance"] = UnPickleableObj("spam")
 
     return namespace_dict
 
@@ -200,11 +202,11 @@ def test_npz_import():
     """
     Test the load of .npz files as dictionaries.
     """
-    filename = os.path.join(LOCATION, 'import_data.npz')
+    filename = os.path.join(LOCATION, "import_data.npz")
     data = iofuncs.load_array(filename)
     assert isinstance(data, tuple)
     variables, error = data
-    assert variables['val1'] == np.array(1) and not error
+    assert variables["val1"] == np.array(1) and not error
 
 
 @pytest.mark.skipif(iofuncs.load_matlab is None, reason="SciPy required")
@@ -218,7 +220,7 @@ def test_matlab_import(real_values):
     tically. i.e., The automatic conversion results should be equal to the
     manual conversion of the variables.
     """
-    path = os.path.join(LOCATION, 'data.mat')
+    path = os.path.join(LOCATION, "data.mat")
     inf, _ = iofuncs.load_matlab(path)
     valid = True
     for var in sorted(real_values.keys()):
@@ -226,8 +228,9 @@ def test_matlab_import(real_values):
     assert valid
 
 
-@pytest.mark.parametrize('spydata_file_name', ['export_data.spydata',
-                                               'export_data_renamed.spydata'])
+@pytest.mark.parametrize(
+    "spydata_file_name", ["export_data.spydata", "export_data_renamed.spydata"]
+)
 def test_spydata_import(spydata_file_name, spydata_values):
     """
     Test spydata handling and variable importing.
@@ -251,7 +254,7 @@ def test_spydata_import_witherror():
     and the current working directory is restored afterwards.
     """
     original_cwd = os.getcwd()
-    path = os.path.join(LOCATION, 'export_data_withfunction.spydata')
+    path = os.path.join(LOCATION, "export_data_withfunction.spydata")
     data, error = iofuncs.load_dictionary(path)
     assert error and isinstance(error, str)
     assert data is None
@@ -263,7 +266,7 @@ def test_spydata_import_missing_file():
     Test that import fails properly when file is missing, and resets the cwd.
     """
     original_cwd = os.getcwd()
-    path = os.path.join(LOCATION, 'non_existant_path_2019-01-23.spydata')
+    path = os.path.join(LOCATION, "non_existant_path_2019-01-23.spydata")
     try:
         iofuncs.load_dictionary(path)
     except IOError:
@@ -278,12 +281,12 @@ def test_spydata_import_missing_file():
 def test_matlabstruct():
     """Test support for matlab stlye struct."""
     a = iofuncs.MatlabStruct()
-    a.b = 'spam'
-    assert a["b"] == 'spam'
-    a.c["d"] = 'eggs'
-    assert a.c.d == 'eggs'
-    assert a == {'c': {'d': 'eggs'}, 'b': 'spam'}
-    a['d'] = [1, 2, 3]
+    a.b = "spam"
+    assert a["b"] == "spam"
+    a.c["d"] = "eggs"
+    assert a.c.d == "eggs"
+    assert a == {"c": {"d": "eggs"}, "b": "spam"}
+    a["d"] = [1, 2, 3]
 
     buf = io.BytesIO()
     iofuncs.save_matlab(a, buf)
@@ -291,19 +294,22 @@ def test_matlabstruct():
     data, error = iofuncs.load_matlab(buf)
 
     assert error is None
-    assert data['b'] == 'spam'
-    assert data['c'].d == 'eggs'
-    assert data['d'].tolist() == [[1, 2, 3]]
+    assert data["b"] == "spam"
+    assert data["c"].d == "eggs"
+    assert data["d"].tolist() == [[1, 2, 3]]
 
 
-@pytest.mark.parametrize('input_namespace,expected_namespace,filename', [
-    ('spydata_values', 'spydata_values', 'export_data_copy'),
-    ('namespace_objects_full', 'namespace_objects_filtered', 'export_data_2'),
-    ('namespace_objects_nocopyable', None, 'export_data_none_1'),
-    ('namespace_objects_nopickleable', None, 'export_data_none_2'),
-    ], indirect=['input_namespace', 'expected_namespace'])
-def test_spydata_export(input_namespace, expected_namespace,
-                        filename):
+@pytest.mark.parametrize(
+    "input_namespace,expected_namespace,filename",
+    [
+        ("spydata_values", "spydata_values", "export_data_copy"),
+        ("namespace_objects_full", "namespace_objects_filtered", "export_data_2"),
+        ("namespace_objects_nocopyable", None, "export_data_none_1"),
+        ("namespace_objects_nopickleable", None, "export_data_none_2"),
+    ],
+    indirect=["input_namespace", "expected_namespace"],
+)
+def test_spydata_export(input_namespace, expected_namespace, filename):
     """
     Test spydata export and re-import.
 
@@ -311,11 +317,11 @@ def test_spydata_export(input_namespace, expected_namespace,
     reloads and checks them to make sure they save/restore properly
     and no errors occur during the process.
     """
-    path = os.path.join(LOCATION, filename + '.spydata')
+    path = os.path.join(LOCATION, filename + ".spydata")
     expected_error = None
-    if 'expected_error_string' in input_namespace:
-        expected_error = input_namespace['expected_error_string']
-        del input_namespace['expected_error_string']
+    if "expected_error_string" in input_namespace:
+        expected_error = input_namespace["expected_error_string"]
+        del input_namespace["expected_error_string"]
     cwd_original = os.getcwd()
 
     try:

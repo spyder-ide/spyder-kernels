@@ -24,7 +24,7 @@ from spyder_kernels.console.kernel import SpyderKernel
 
 def get_kernel(kernel_class=SpyderKernel):
     """Get an instance of a kernel with the kernel class given."""
-    log = logging.getLogger('test')
+    log = logging.getLogger("test")
     log.setLevel(logging.DEBUG)
 
     for hdlr in log.handlers:
@@ -37,8 +37,7 @@ def get_kernel(kernel_class=SpyderKernel):
     context = zmq.Context.instance()
     iopub_socket = context.socket(zmq.PUB)
 
-    kernel = kernel_class(session=ss.Session(), iopub_socket=iopub_socket,
-                          log=log)
+    kernel = kernel_class(session=ss.Session(), iopub_socket=iopub_socket, log=log)
     return kernel
 
 

@@ -13,7 +13,7 @@ from spyder_kernels.utils.lazymodules import LazyModule, FakeObject
 
 def test_non_existent_module():
     """Test that we retun FakeObject's for non-existing modules."""
-    mod = LazyModule('no_module', second_level_attrs=['a'])
+    mod = LazyModule("no_module", second_level_attrs=["a"])
 
     # First level attributes must return FakeObject
     assert mod.foo is FakeObject
@@ -29,7 +29,7 @@ def test_non_existent_module():
 
 def test_existing_modules():
     """Test that lazy modules work for existing modules."""
-    np = LazyModule('numpy')
+    np = LazyModule("numpy")
     import numpy
 
     # Both the lazy and actual modules should return the same.

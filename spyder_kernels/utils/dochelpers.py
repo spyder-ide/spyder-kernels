@@ -32,14 +32,14 @@ def getobj(txt, last=False):
     try:
         while token is None or re.match(SYMBOLS, token):
             token = tokens.pop()
-        if token.endswith('.'):
+        if token.endswith("."):
             token = token[:-1]
-        if token.startswith('.'):
+        if token.startswith("."):
             # Invalid object name
             return None
         if last:
-            #XXX: remove this statement as well as the "last" argument
-            token += txt[ txt.rfind(token) + len(token) ]
+            # XXX: remove this statement as well as the "last" argument
+            token += txt[txt.rfind(token) + len(token)]
         token += txt_end
         if token:
             return token
@@ -71,79 +71,90 @@ def getdoc(obj):
     docstring:
       It's docstring
     """
-    
-    docstring = inspect.getdoc(obj) or inspect.getcomments(obj) or ''
-    
+
+    docstring = inspect.getdoc(obj) or inspect.getcomments(obj) or ""
+
     # Most of the time doc will only contain ascii characters, but there are
     # some docstrings that contain non-ascii characters. Not all source files
     # declare their encoding in the first line, so querying for that might not
     # yield anything, either. So assume the most commonly used
-    # multi-byte file encoding (which also covers ascii). 
+    # multi-byte file encoding (which also covers ascii).
     try:
         docstring = str(docstring)
     except:
         pass
-    
+
     # Doc dict keys
-    doc = {'name': '',
-           'argspec': '',
-           'note': '',
-           'docstring': docstring}
-    
+    doc = {"name": "", "argspec": "", "note": "", "docstring": docstring}
+
     if callable(obj):
         try:
             name = obj.__name__
         except AttributeError:
-            doc['docstring'] = docstring
+            doc["docstring"] = docstring
             return doc
         if inspect.ismethod(obj):
             imclass = obj.__self__.__class__
             if obj.__self__ is not None:
-                doc['note'] = 'Method of %s instance' \
-                              % obj.__self__.__class__.__name__
+                doc["note"] = "Method of %s instance" % obj.__self__.__class__.__name__
             else:
-                doc['note'] = 'Unbound %s method' % imclass.__name__
+                doc["note"] = "Unbound %s method" % imclass.__name__
             obj = obj.__func__
-        elif hasattr(obj, '__module__'):
-            doc['note'] = 'Function of %s module' % obj.__module__
+        elif hasattr(obj, "__module__"):
+            doc["note"] = "Function of %s module" % obj.__module__
         else:
-            doc['note'] = 'Function'
-        doc['name'] = obj.__name__
+            doc["note"] = "Function"
+        doc["name"] = obj.__name__
         if inspect.isfunction(obj):
-            (args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults,
-             annotations) = inspect.getfullargspec(obj)
-            doc['argspec'] = inspect.formatargspec(
-                args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults,
-                annotations, formatvalue=lambda o: '='+repr(o))
-            if name == '<lambda>':
-                doc['name'] = name + ' lambda '
-                doc['argspec'] = doc['argspec'][1:-1] # remove parentheses
+            (
+                args,
+                varargs,
+                varkw,
+                defaults,
+                kwonlyargs,
+                kwonlydefaults,
+                annotations,
+            ) = inspect.getfullargspec(obj)
+            doc["argspec"] = inspect.formatargspec(
+                args,
+                varargs,
+                varkw,
+                defaults,
+                kwonlyargs,
+                kwonlydefaults,
+                annotations,
+                formatvalue=lambda o: "=" + repr(o),
+            )
+            if name == "<lambda>":
+                doc["name"] = name + " lambda "
+                doc["argspec"] = doc["argspec"][1:-1]  # remove parentheses
         else:
-            argspec = getargspecfromtext(doc['docstring'])
+            argspec = getargspecfromtext(doc["docstring"])
             if argspec:
-                doc['argspec'] = argspec
+                doc["argspec"] = argspec
                 # Many scipy and numpy docstrings begin with a function
                 # signature on the first line. This ends up begin redundant
                 # when we are using title and argspec to create the
                 # rich text "Definition:" field. We'll carefully remove this
                 # redundancy but only under a strict set of conditions:
                 # Remove the starting charaters of the 'doc' portion *iff*
-                # the non-whitespace characters on the first line 
-                # match *exactly* the combined function title 
+                # the non-whitespace characters on the first line
+                # match *exactly* the combined function title
                 # and argspec we determined above.
-                signature = doc['name'] + doc['argspec']
-                docstring_blocks = doc['docstring'].split("\n\n")
+                signature = doc["name"] + doc["argspec"]
+                docstring_blocks = doc["docstring"].split("\n\n")
                 first_block = docstring_blocks[0].strip()
                 if first_block == signature:
-                    doc['docstring'] = doc['docstring'].replace(
-                                                     signature, '', 1).lstrip()
+                    doc["docstring"] = (
+                        doc["docstring"].replace(signature, "", 1).lstrip()
+                    )
             else:
-                doc['argspec'] = '(...)'
-        
+                doc["argspec"] = "(...)"
+
         # Remove self from argspec
-        argspec = doc['argspec']
-        doc['argspec'] = argspec.replace('(self)', '()').replace('(self, ', '(')
-        
+        argspec = doc["argspec"]
+        doc["argspec"] = argspec.replace("(self)", "()").replace("(self, ", "(")
+
     return doc
 
 
@@ -153,7 +164,7 @@ def getsource(obj):
         try:
             src = str(inspect.getsource(obj))
         except TypeError:
-            if hasattr(obj, '__class__'):
+            if hasattr(obj, "__class__"):
                 src = str(inspect.getsource(obj.__class__))
             else:
                 # Bindings like VTK or ITK require this case
@@ -168,15 +179,15 @@ def getsignaturefromtext(text, objname):
     Return a list containing a single string in most cases
     Example of multiple signatures: PyQt5 objects"""
     if isinstance(text, dict):
-        text = text.get('docstring', '')
+        text = text.get("docstring", "")
     # Regexps
     oneline_re = objname + r'\([^\)].+?(?<=[\w\]\}\'"])\)(?!,)'
     multiline_re = objname + r'\([^\)]+(?<=[\w\]\}\'"])\)(?!,)'
     multiline_end_parenleft_re = r'(%s\([^\)]+(\),\n.+)+(?<=[\w\]\}\'"])\))'
     # Grabbing signatures
     if not text:
-        text = ''
-    sigs_1 = re.findall(oneline_re + '|' + multiline_re, text)
+        text = ""
+    sigs_1 = re.findall(oneline_re + "|" + multiline_re, text)
     sigs_2 = [g[0] for g in re.findall(multiline_end_parenleft_re % objname, text)]
     all_sigs = sigs_1 + sigs_2
     # The most relevant signature is usually the first one. There could be
@@ -184,7 +195,8 @@ def getsignaturefromtext(text, objname):
     if all_sigs:
         return all_sigs[0]
     else:
-        return ''
+        return ""
+
 
 # Fix for Issue 1953
 # TODO: Add more signatures and remove this hack in 2.4
@@ -195,21 +207,21 @@ def getargspecfromtext(text):
     """
     Try to get the formatted argspec of a callable from the first block of its
     docstring
-    
+
     This will return something like
     '(foo, bar, k=1)'
     """
     blocks = text.split("\n\n")
     first_block = blocks[0].strip()
-    return getsignaturefromtext(first_block, '')
+    return getsignaturefromtext(first_block, "")
 
 
 def getargsfromtext(text, objname):
     """Get arguments from text (object documentation)"""
     signature = getsignaturefromtext(text, objname)
     if signature:
-        argtxt = signature[signature.find('(')+1:-1]
-        return argtxt.split(',')
+        argtxt = signature[signature.find("(") + 1 : -1]
+        return argtxt.split(",")
 
 
 def getargsfromdoc(obj):
@@ -224,12 +236,12 @@ def getargs(obj):
         func_obj = obj
     elif inspect.ismethod(obj):
         func_obj = obj.__func__
-    elif inspect.isclass(obj) and hasattr(obj, '__init__'):
-        func_obj = getattr(obj, '__init__')
+    elif inspect.isclass(obj) and hasattr(obj, "__init__"):
+        func_obj = getattr(obj, "__init__")
     else:
         return []
 
-    if not hasattr(func_obj, '__code__'):
+    if not hasattr(func_obj, "__code__"):
         # Builtin: try to extract info from doc
         args = getargsfromdoc(func_obj)
         if args is not None:
@@ -250,15 +262,15 @@ def getargs(obj):
     defaults = func_obj.__defaults__
     if defaults is not None:
         for index, default in enumerate(defaults):
-            args[index + len(args) - len(defaults)] += '=' + repr(default)
+            args[index + len(args) - len(defaults)] += "=" + repr(default)
 
     if inspect.isclass(obj) or inspect.ismethod(obj):
         if len(args) == 1:
             return None
 
     # Remove 'self' from args
-    if 'self' in args:
-        args.remove('self')
+    if "self" in args:
+        args.remove("self")
 
     return args
 
@@ -270,21 +282,21 @@ def getargtxt(obj, one_arg_per_line=True):
     """
     args = getargs(obj)
     if args:
-        sep = ', '
+        sep = ", "
         textlist = None
         for i_arg, arg in enumerate(args):
             if textlist is None:
-                textlist = ['']
+                textlist = [""]
             textlist[-1] += arg
-            if i_arg < len(args)-1:
+            if i_arg < len(args) - 1:
                 textlist[-1] += sep
                 if len(textlist[-1]) >= 32 or one_arg_per_line:
-                    textlist.append('')
+                    textlist.append("")
         if inspect.isclass(obj) or inspect.ismethod(obj):
             if len(textlist) == 1:
                 return None
-            if 'self'+sep in textlist:
-                textlist.remove('self'+sep)
+            if "self" + sep in textlist:
+                textlist.remove("self" + sep)
         return textlist
 
 
@@ -293,7 +305,7 @@ def isdefined(obj, force_import=False, namespace=None):
     If namespace is None --> namespace = locals()"""
     if namespace is None:
         namespace = locals()
-    attr_list = obj.split('.')
+    attr_list = obj.split(".")
     base = attr_list.pop(0)
     if len(base) == 0:
         return False
@@ -316,27 +328,29 @@ def isdefined(obj, force_import=False, namespace=None):
         if attr_not_found:
             if force_import:
                 try:
-                    __import__(base+'.'+attr, globals(), namespace)
+                    __import__(base + "." + attr, globals(), namespace)
                 except (ImportError, SyntaxError):
                     return False
             else:
                 return False
-        base += '.'+attr
+        base += "." + attr
     return True
-    
+
 
 if __name__ == "__main__":
+
     class Test:
         def method(self, x, y=2):
             pass
+
     print(getargtxt(Test.__init__))  # spyder: test-skip
     print(getargtxt(Test.method))  # spyder: test-skip
-    print(isdefined('numpy.take', force_import=True))  # spyder: test-skip
-    print(isdefined('__import__'))  # spyder: test-skip
-    print(isdefined('.keys', force_import=True))  # spyder: test-skip
-    print(getobj('globals'))  # spyder: test-skip
-    print(getobj('globals().keys'))  # spyder: test-skip
-    print(getobj('+scipy.signal.'))  # spyder: test-skip
-    print(getobj('4.'))  # spyder: test-skip
+    print(isdefined("numpy.take", force_import=True))  # spyder: test-skip
+    print(isdefined("__import__"))  # spyder: test-skip
+    print(isdefined(".keys", force_import=True))  # spyder: test-skip
+    print(getobj("globals"))  # spyder: test-skip
+    print(getobj("globals().keys"))  # spyder: test-skip
+    print(getobj("+scipy.signal."))  # spyder: test-skip
+    print(getobj("4."))  # spyder: test-skip
     print(getdoc(sorted))  # spyder: test-skip
     print(getargtxt(sorted))  # spyder: test-skip

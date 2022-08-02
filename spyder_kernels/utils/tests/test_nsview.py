@@ -22,23 +22,29 @@ import PIL.Image
 
 # Local imports
 from spyder_kernels.utils.nsview import (
-    sort_against, is_supported, value_to_display, get_size,
-    get_supported_types, get_type_string, get_numpy_type_string,
-    is_editable_type)
+    sort_against,
+    is_supported,
+    value_to_display,
+    get_size,
+    get_supported_types,
+    get_type_string,
+    get_numpy_type_string,
+    is_editable_type,
+)
 
 
 def generate_complex_object():
     """Taken from issue #4221."""
     bug = defaultdict(list)
     for i in range(50000):
-        a = {j:np.random.rand(10) for j in range(10)}
+        a = {j: np.random.rand(10) for j in range(10)}
         bug[i] = a
     return bug
 
 
 COMPLEX_OBJECT = generate_complex_object()
-DF = pd.DataFrame([1,2,3])
-DATASET = xr.Dataset({0: pd.DataFrame([1,2]), 1:pd.DataFrame([3,4])})
+DF = pd.DataFrame([1, 2, 3])
+DATASET = xr.Dataset({0: pd.DataFrame([1, 2]), 1: pd.DataFrame([3, 4])})
 
 
 # --- Tests
@@ -46,36 +52,40 @@ DATASET = xr.Dataset({0: pd.DataFrame([1,2]), 1:pd.DataFrame([3,4])})
 def test_get_size():
     """Test that the size of all values is returned correctly"""
 
-    class RecursionClassNoLen():
+    class RecursionClassNoLen:
         def __getattr__(self, name):
-            if name=='size': return self.name
+            if name == "size":
+                return self.name
             else:
                 return super(object, self).__getattribute__(name)
 
-
-    length = [list([1,2,3]), tuple([1,2,3]), set([1,2,3]), '123',
-              {1:1, 2:2, 3:3}]
+    length = [
+        list([1, 2, 3]),
+        tuple([1, 2, 3]),
+        set([1, 2, 3]),
+        "123",
+        {1: 1, 2: 2, 3: 3},
+    ]
     for obj in length:
         assert get_size(obj) == 3
 
-    df = pd.DataFrame([[1,2,3], [1,2,3]])
+    df = pd.DataFrame([[1, 2, 3], [1, 2, 3]])
     assert get_size(df) == (2, 3)
 
-    df = pd.Series([1,2,3])
+    df = pd.Series([1, 2, 3])
     assert get_size(df) == (3,)
 
-    df = pd.Index([1,2,3])
+    df = pd.Index([1, 2, 3])
     assert get_size(df) == (3,)
 
-    arr = np.array([[1,2,3], [1,2,3]], dtype=np.complex128)
+    arr = np.array([[1, 2, 3], [1, 2, 3]], dtype=np.complex128)
     assert get_size(arr) == (2, 3)
 
-    img = PIL.Image.new('RGB', (256,256))
-    assert get_size(img) == (256,256)
+    img = PIL.Image.new("RGB", (256, 256))
+    assert get_size(img) == (256, 256)
 
     obj = RecursionClassNoLen()
     assert get_size(obj) == 1
-
 
 
 def test_sort_against():
@@ -95,11 +105,11 @@ def test_sort_against_is_stable():
 def test_none_values_are_supported():
     """Tests that None values are displayed by default"""
     supported_types = get_supported_types()
-    mode = 'editable'
+    mode = "editable"
     none_var = None
     none_list = [2, None, 3, None]
-    none_dict = {'a': None, 'b': 4}
-    none_tuple = (None, [3, None, 4], 'eggs')
+    none_dict = {"a": None, "b": 4}
+    none_tuple = (None, [3, None, 4], "eggs")
     assert is_supported(none_var, filters=tuple(supported_types[mode]))
     assert is_supported(none_list, filters=tuple(supported_types[mode]))
     assert is_supported(none_dict, filters=tuple(supported_types[mode]))
@@ -108,27 +118,30 @@ def test_none_values_are_supported():
 
 def test_str_subclass_display():
     """Test for value_to_display of subclasses of str."""
+
     class Test(str):
         def __repr__(self):
-            return 'test'
+            return "test"
+
     value = Test()
     value_display = value_to_display(value)
-    assert 'Test object' in value_display
+    assert "Test object" in value_display
 
 
 def test_default_display():
     """Tests for default_display."""
     # Display of defaultdict
-    assert (value_to_display(COMPLEX_OBJECT) ==
-            'defaultdict object of collections module')
+    assert (
+        value_to_display(COMPLEX_OBJECT) == "defaultdict object of collections module"
+    )
 
     # Display of array of COMPLEX_OBJECT
-    assert (value_to_display(np.array(COMPLEX_OBJECT)) ==
-            'ndarray object of numpy module')
+    assert (
+        value_to_display(np.array(COMPLEX_OBJECT)) == "ndarray object of numpy module"
+    )
 
     # Display of Dataset
-    assert (value_to_display(DATASET) ==
-            'Dataset object of xarray.core.dataset module')
+    assert value_to_display(DATASET) == "Dataset object of xarray.core.dataset module"
 
 
 def test_list_display():
@@ -136,38 +149,41 @@ def test_list_display():
     long_list = list(range(100))
 
     # Simple list
-    assert value_to_display([1, 2, 3]) == '[1, 2, 3]'
+    assert value_to_display([1, 2, 3]) == "[1, 2, 3]"
 
     # Long list
-    assert (value_to_display(long_list) ==
-            '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, ...]')
+    assert value_to_display(long_list) == "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, ...]"
 
     # Short list of lists
-    assert (value_to_display([long_list] * 3) ==
-            '[[0, 1, 2, 3, 4, ...], [0, 1, 2, 3, 4, ...], [0, 1, 2, 3, 4, ...]]')
+    assert (
+        value_to_display([long_list] * 3)
+        == "[[0, 1, 2, 3, 4, ...], [0, 1, 2, 3, 4, ...], [0, 1, 2, 3, 4, ...]]"
+    )
 
     # Long list of lists
-    result = '[' + ''.join('[0, 1, 2, 3, 4, ...], '*10)[:-2] + ']'
-    assert value_to_display([long_list] * 10) == result[:70] + ' ...'
+    result = "[" + "".join("[0, 1, 2, 3, 4, ...], " * 10)[:-2] + "]"
+    assert value_to_display([long_list] * 10) == result[:70] + " ..."
 
     # Multiple level lists
-    assert (value_to_display([[1, 2, 3, [4], 5]] + long_list) ==
-            '[[1, 2, 3, [...], 5], 0, 1, 2, 3, 4, 5, 6, 7, 8, ...]')
-    assert value_to_display([1, 2, [DF]]) == '[1, 2, [Dataframe]]'
-    assert value_to_display([1, 2, [[DF], DATASET]]) == '[1, 2, [[...], Dataset]]'
+    assert (
+        value_to_display([[1, 2, 3, [4], 5]] + long_list)
+        == "[[1, 2, 3, [...], 5], 0, 1, 2, 3, 4, 5, 6, 7, 8, ...]"
+    )
+    assert value_to_display([1, 2, [DF]]) == "[1, 2, [Dataframe]]"
+    assert value_to_display([1, 2, [[DF], DATASET]]) == "[1, 2, [[...], Dataset]]"
 
     # List of complex object
-    assert value_to_display([COMPLEX_OBJECT]) == '[defaultdict]'
+    assert value_to_display([COMPLEX_OBJECT]) == "[defaultdict]"
 
     # List of composed objects
-    li = [COMPLEX_OBJECT, DATASET, 1, {1:2, 3:4}, DF]
-    result = '[defaultdict, Dataset, 1, {1:2, 3:4}, Dataframe]'
+    li = [COMPLEX_OBJECT, DATASET, 1, {1: 2, 3: 4}, DF]
+    result = "[defaultdict, Dataset, 1, {1:2, 3:4}, Dataframe]"
     assert value_to_display(li) == result
 
     # List starting with a non-supported object (#5313)
-    supported_types = tuple(get_supported_types()['editable'])
+    supported_types = tuple(get_supported_types()["editable"])
     li = [len, 1]
-    assert value_to_display(li) == '[builtin_function_or_method, 1]'
+    assert value_to_display(li) == "[builtin_function_or_method, 1]"
     assert is_supported(li, filters=supported_types)
 
 
@@ -177,41 +193,56 @@ def test_dict_display():
     long_dict = dict(zip(list(range(100)), list(range(100))))
 
     # Simple dict
-    assert value_to_display({0:0, 'a':'b'}) == "{0:0, 'a':'b'}"
+    assert value_to_display({0: 0, "a": "b"}) == "{0:0, 'a':'b'}"
 
     # Long dict
-    assert (value_to_display(long_dict) ==
-            '{0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, ...}')
+    assert (
+        value_to_display(long_dict)
+        == "{0:0, 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, ...}"
+    )
 
     # Short list of lists
-    assert (value_to_display({1:long_dict, 2:long_dict}) ==
-            '{1:{0:0, 1:1, 2:2, 3:3, 4:4, ...}, 2:{0:0, 1:1, 2:2, 3:3, 4:4, ...}}')
+    assert (
+        value_to_display({1: long_dict, 2: long_dict})
+        == "{1:{0:0, 1:1, 2:2, 3:3, 4:4, ...}, 2:{0:0, 1:1, 2:2, 3:3, 4:4, ...}}"
+    )
 
     # Long dict of dicts
-    result = ('{(0, 0, 0, 0, 0, ...):[0, 1, 2, 3, 4, ...], '
-               '(1, 1, 1, 1, 1, ...):[0, 1, 2, 3, 4, ...]}')
-    assert value_to_display({(0,)*100:long_list, (1,)*100:long_list}) == result[:70] + ' ...'
+    result = (
+        "{(0, 0, 0, 0, 0, ...):[0, 1, 2, 3, 4, ...], "
+        "(1, 1, 1, 1, 1, ...):[0, 1, 2, 3, 4, ...]}"
+    )
+    assert (
+        value_to_display({(0,) * 100: long_list, (1,) * 100: long_list})
+        == result[:70] + " ..."
+    )
 
     # Multiple level dicts
-    assert (value_to_display({0: {1:1, 2:2, 3:3, 4:{0:0}, 5:5}, 1:1}) ==
-            '{0:{1:1, 2:2, 3:3, 4:{...}, 5:5}, 1:1}')
-    assert value_to_display({0:0, 1:1, 2:2, 3:DF}) == '{0:0, 1:1, 2:2, 3:Dataframe}'
-    assert value_to_display({0:0, 1:1, 2:[[DF], DATASET]}) == '{0:0, 1:1, 2:[[...], Dataset]}'
+    assert (
+        value_to_display({0: {1: 1, 2: 2, 3: 3, 4: {0: 0}, 5: 5}, 1: 1})
+        == "{0:{1:1, 2:2, 3:3, 4:{...}, 5:5}, 1:1}"
+    )
+    assert value_to_display({0: 0, 1: 1, 2: 2, 3: DF}) == "{0:0, 1:1, 2:2, 3:Dataframe}"
+    assert (
+        value_to_display({0: 0, 1: 1, 2: [[DF], DATASET]})
+        == "{0:0, 1:1, 2:[[...], Dataset]}"
+    )
 
     # Dict of complex object
-    assert value_to_display({0:COMPLEX_OBJECT}) == '{0:defaultdict}'
+    assert value_to_display({0: COMPLEX_OBJECT}) == "{0:defaultdict}"
 
     # Dict of composed objects
-    li = {0:COMPLEX_OBJECT, 1:DATASET, 2:2, 3:{0:0, 1:1}, 4:DF}
-    result = '{0:defaultdict, 1:Dataset, 2:2, 3:{0:0, 1:1}, 4:Dataframe}'
+    li = {0: COMPLEX_OBJECT, 1: DATASET, 2: 2, 3: {0: 0, 1: 1}, 4: DF}
+    result = "{0:defaultdict, 1:Dataset, 2:2, 3:{0:0, 1:1}, 4:Dataframe}"
     assert value_to_display(li) == result
 
     # Dict starting with a non-supported object (#5313)
-    supported_types = tuple(get_supported_types()['editable'])
+    supported_types = tuple(get_supported_types()["editable"])
     di = {max: len, 1: 1}
     assert value_to_display(di) in (
-            '{builtin_function_or_method:builtin_function_or_method, 1:1}',
-            '{1:1, builtin_function_or_method:builtin_function_or_method}')
+        "{builtin_function_or_method:builtin_function_or_method, 1:1}",
+        "{1:1, builtin_function_or_method:builtin_function_or_method}",
+    )
     assert is_supported(di, filters=supported_types)
 
 
@@ -220,19 +251,19 @@ def test_set_display():
     long_set = {i for i in range(100)}
 
     # Simple set
-    assert value_to_display({1, 2, 3}) == '{1, 2, 3}'
+    assert value_to_display({1, 2, 3}) == "{1, 2, 3}"
 
     # Long set
-    disp = '{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, ...}'
+    disp = "{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, ...}"
     assert value_to_display(long_set) == disp
 
     # Short list of sets
-    disp = '[{0, 1, 2, 3, 4, ...}, {0, 1, 2, 3, 4, ...}, {0, 1, 2, 3, 4, ...}]'
+    disp = "[{0, 1, 2, 3, 4, ...}, {0, 1, 2, 3, 4, ...}, {0, 1, 2, 3, 4, ...}]"
     assert value_to_display([long_set] * 3) == disp
 
     # Long list of sets
-    disp = '[' + ''.join('{0, 1, 2, 3, 4, ...}, '*10)[:-2] + ']'
-    assert value_to_display([long_set] * 10) == disp[:70] + ' ...'
+    disp = "[" + "".join("{0, 1, 2, 3, 4, ...}, " * 10)[:-2] + "]"
+    assert value_to_display([long_set] * 10) == disp[:70] + " ..."
 
 
 def test_datetime_display():
@@ -247,33 +278,37 @@ def test_datetime_display():
     test_timedelta_2 = datetime.timedelta(0, 3600)
 
     # Simple dates/datetimes/timedeltas
-    assert value_to_display(test_date) == '2017-12-18'
-    assert value_to_display(test_datetime) == '2017-12-18 13:43:02'
-    assert value_to_display(test_timedelta) == '-1 day, 0:33:20'
+    assert value_to_display(test_date) == "2017-12-18"
+    assert value_to_display(test_datetime) == "2017-12-18 13:43:02"
+    assert value_to_display(test_timedelta) == "-1 day, 0:33:20"
 
     # Lists of dates/datetimes/timedeltas
-    assert (value_to_display([test_date, test_date_2]) ==
-            '[2017-12-18, 2017-02-02]')
-    assert (value_to_display([test_datetime, test_datetime_2]) ==
-            '[2017-12-18 13:43:02, 2017-08-18 00:41:27]')
-    assert (value_to_display([test_timedelta, test_timedelta_2]) ==
-            '[-1 day, 0:33:20, 1:00:00]')
+    assert value_to_display([test_date, test_date_2]) == "[2017-12-18, 2017-02-02]"
+    assert (
+        value_to_display([test_datetime, test_datetime_2])
+        == "[2017-12-18 13:43:02, 2017-08-18 00:41:27]"
+    )
+    assert (
+        value_to_display([test_timedelta, test_timedelta_2])
+        == "[-1 day, 0:33:20, 1:00:00]"
+    )
 
     # Tuple of dates/datetimes/timedeltas
-    assert (value_to_display((test_date, test_datetime, test_timedelta)) ==
-            '(2017-12-18, 2017-12-18 13:43:02, -1 day, 0:33:20)')
+    assert (
+        value_to_display((test_date, test_datetime, test_timedelta))
+        == "(2017-12-18, 2017-12-18 13:43:02, -1 day, 0:33:20)"
+    )
 
     # Dict of dates/datetimes/timedeltas
-    assert (value_to_display({0: test_date,
-                              1: test_datetime,
-                              2: test_timedelta_2}) ==
-            ("{0:2017-12-18, 1:2017-12-18 13:43:02, 2:1:00:00}"))
+    assert value_to_display({0: test_date, 1: test_datetime, 2: test_timedelta_2}) == (
+        "{0:2017-12-18, 1:2017-12-18 13:43:02, 2:1:00:00}"
+    )
 
 
 def test_str_in_container_display():
     """Test that strings are displayed correctly inside lists or dicts."""
     # Assert that both bytes and unicode return the right display
-    assert value_to_display([b'a', u'b']) == "['a', 'b']"
+    assert value_to_display([b"a", "b"]) == "['a', 'b']"
 
 
 def test_ellipses(tmpdir):
@@ -284,69 +319,69 @@ def test_ellipses(tmpdir):
     For issue 6942
     """
     # Create binary file with all bytes
-    file = tmpdir.new(basename='bytes.txt')
+    file = tmpdir.new(basename="bytes.txt")
     file.write_binary(bytearray(list(range(255))))
 
     # Read bytes back
-    buffer = file.read(mode='rb')
+    buffer = file.read(mode="rb")
 
     # Assert that there's a binary ellipses in the representation
-    assert b' ...' in value_to_display(buffer)
+    assert b" ..." in value_to_display(buffer)
 
 
 def test_get_type_string():
     """Test for get_type_string."""
     # Bools
-    assert get_type_string(True) == 'bool'
+    assert get_type_string(True) == "bool"
 
-    expected = ['int', 'float', 'complex']
+    expected = ["int", "float", "complex"]
     numeric_types = [1, 1.5, 1 + 2j]
     assert [get_type_string(t) for t in numeric_types] == expected
 
     # Lists
-    assert get_type_string([1, 2, 3]) == 'list'
+    assert get_type_string([1, 2, 3]) == "list"
 
     # Sets
-    assert get_type_string({1, 2, 3}) == 'set'
+    assert get_type_string({1, 2, 3}) == "set"
 
     # Dictionaries
-    assert get_type_string({'a': 1, 'b': 2}) == 'dict'
+    assert get_type_string({"a": 1, "b": 2}) == "dict"
 
     # Tuples
-    assert get_type_string((1, 2, 3)) == 'tuple'
+    assert get_type_string((1, 2, 3)) == "tuple"
 
     # Strings
-    assert get_type_string('foo') == 'str'
+    assert get_type_string("foo") == "str"
 
     # Numpy objects
-    assert get_type_string(np.array([1, 2, 3])) == 'NDArray'
+    assert get_type_string(np.array([1, 2, 3])) == "NDArray"
 
     masked_array = np.ma.MaskedArray([1, 2, 3], mask=[True, False, True])
-    assert get_type_string(masked_array) == 'MaskedArray'
+    assert get_type_string(masked_array) == "MaskedArray"
 
     matrix = np.matrix([[1, 2], [3, 4]])
-    assert get_type_string(matrix) == 'Matrix'
+    assert get_type_string(matrix) == "Matrix"
 
     # Pandas objects
     df = pd.DataFrame([1, 2, 3])
-    assert get_type_string(df) == 'DataFrame'
+    assert get_type_string(df) == "DataFrame"
 
     series = pd.Series([1, 2, 3])
-    assert get_type_string(series) == 'Series'
+    assert get_type_string(series) == "Series"
 
     index = pd.Index([1, 2, 3])
-    assert get_type_string(index) == 'Int64Index'
+    assert get_type_string(index) == "Int64Index"
 
     # PIL images
-    img = PIL.Image.new('RGB', (256,256))
-    assert get_type_string(img) == 'PIL.Image.Image'
+    img = PIL.Image.new("RGB", (256, 256))
+    assert get_type_string(img) == "PIL.Image.Image"
 
     # Datetime objects
     date = datetime.date(2010, 10, 1)
-    assert get_type_string(date) == 'datetime.date'
+    assert get_type_string(date) == "datetime.date"
 
     date = datetime.timedelta(-1, 2000)
-    assert get_type_string(date) == 'datetime.timedelta'
+    assert get_type_string(date) == "datetime.timedelta"
 
 
 def test_is_editable_type():
@@ -365,13 +400,13 @@ def test_is_editable_type():
     assert is_editable_type({1, 2, 3})
 
     # Dictionaries
-    assert is_editable_type({'a': 1, 'b': 2})
+    assert is_editable_type({"a": 1, "b": 2})
 
     # Tuples
     assert is_editable_type((1, 2, 3))
 
     # Strings
-    assert is_editable_type('foo')
+    assert is_editable_type("foo")
 
     # Numpy objects
     assert is_editable_type(np.array([1, 2, 3]))
@@ -393,7 +428,7 @@ def test_is_editable_type():
     assert is_editable_type(index)
 
     # PIL images
-    img = PIL.Image.new('RGB', (256,256))
+    img = PIL.Image.new("RGB", (256, 256))
     assert is_editable_type(img)
 
     # Datetime objects
@@ -406,6 +441,7 @@ def test_is_editable_type():
     # Other objects
     class MyClass:
         a = 1
+
     assert not is_editable_type(MyClass)
 
     my_instance = MyClass()
@@ -415,25 +451,25 @@ def test_is_editable_type():
 def test_get_numpy_type():
     """Test for get_numpy_type_string."""
     # Numpy objects
-    assert get_numpy_type_string(np.array([1, 2, 3])) == 'Array'
+    assert get_numpy_type_string(np.array([1, 2, 3])) == "Array"
 
     matrix = np.matrix([[1, 2], [3, 4]])
-    assert get_numpy_type_string(matrix) == 'Array'
+    assert get_numpy_type_string(matrix) == "Array"
 
-    assert get_numpy_type_string(np.int32(1)) == 'Scalar'
+    assert get_numpy_type_string(np.int32(1)) == "Scalar"
 
     # Regular Python objects
-    assert get_numpy_type_string(1.5) == 'Unknown'
-    assert get_numpy_type_string([1, 2, 3]) == 'Unknown'
-    assert get_numpy_type_string({1: 2}) == 'Unknown'
+    assert get_numpy_type_string(1.5) == "Unknown"
+    assert get_numpy_type_string([1, 2, 3]) == "Unknown"
+    assert get_numpy_type_string({1: 2}) == "Unknown"
 
     # PIL images
-    img = PIL.Image.new('RGB', (256,256))
-    assert get_numpy_type_string(img) == 'Unknown'
+    img = PIL.Image.new("RGB", (256, 256))
+    assert get_numpy_type_string(img) == "Unknown"
 
     # Pandas objects
     df = pd.DataFrame([1, 2, 3])
-    assert get_numpy_type_string(df) == 'Unknown'
+    assert get_numpy_type_string(df) == "Unknown"
 
 
 if __name__ == "__main__":

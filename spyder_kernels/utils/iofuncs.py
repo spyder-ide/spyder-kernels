@@ -33,7 +33,12 @@ import pickle
 
 # Local imports
 from spyder_kernels.utils.lazymodules import (
-    FakeObject, numpy as np, pandas as pd, PIL, scipy as sp)
+    FakeObject,
+    numpy as np,
+    pandas as pd,
+    PIL,
+    scipy as sp,
+)
 
 
 class MatlabStruct(dict):
@@ -53,6 +58,7 @@ class MatlabStruct(dict):
     {'c': {'d': 'eggs'}, 'b': 'spam'}
 
     """
+
     def __getattr__(self, attr):
         """Access the dictionary keys for unknown attributes."""
         try:
@@ -67,7 +73,7 @@ class MatlabStruct(dict):
 
         Do not create a key if the attribute starts with an underscore.
         """
-        if attr in self.keys() or attr.startswith('_'):
+        if attr in self.keys() or attr.startswith("_"):
             return dict.__getitem__(self, attr)
         frame = inspect.currentframe()
         # step into the function that called us
@@ -79,8 +85,11 @@ class MatlabStruct(dict):
 
     def _is_allowed(self, frame):
         """Check for allowed op code in the calling frame"""
-        allowed = [dis.opmap['STORE_ATTR'], dis.opmap['LOAD_CONST'],
-                   dis.opmap.get('STOP_CODE', 0)]
+        allowed = [
+            dis.opmap["STORE_ATTR"],
+            dis.opmap["LOAD_CONST"],
+            dis.opmap.get("STOP_CODE", 0),
+        ]
         bytecode = frame.f_code.co_code
         instruction = bytecode[frame.f_lasti + 3]
         return instruction in allowed
@@ -110,7 +119,7 @@ def get_matlab_value(val):
         return val
 
     # Convert user defined classes.
-    if hasattr(val, 'classname'):
+    if hasattr(val, "classname"):
         out = dict()
         for name in val.dtype.names:
             out[name] = get_matlab_value(val[name].squeeze().tolist())
@@ -125,7 +134,7 @@ def get_matlab_value(val):
         val = out
 
     # Extract cells.
-    elif val.dtype.kind == 'O':
+    elif val.dtype.kind == "O":
         val = val.squeeze().tolist()
         if not isinstance(val, list):
             val = [val]
@@ -137,8 +146,8 @@ def get_matlab_value(val):
 
     # Compress empty values.
     elif val.size == 0:
-        if val.dtype.kind in 'US':
-            val = ''
+        if val.dtype.kind in "US":
+            val = ""
         else:
             val = []
 
@@ -147,7 +156,7 @@ def get_matlab_value(val):
 
 def load_matlab(filename):
     if sp.io is FakeObject:
-        return None, ''
+        return None, ""
 
     try:
         out = sp.io.loadmat(filename, struct_as_record=True)
@@ -164,21 +173,21 @@ def save_matlab(data, filename):
         return
 
     try:
-        sp.io.savemat(filename, data, oned_as='row')
+        sp.io.savemat(filename, data, oned_as="row")
     except Exception as error:
         return str(error)
 
 
 def load_array(filename):
     if np.load is FakeObject:
-        return None, ''
+        return None, ""
 
     try:
         name = osp.splitext(osp.basename(filename))[0]
         data = np.load(filename)
         if isinstance(data, np.lib.npyio.NpzFile):
             return dict(data), None
-        elif hasattr(data, 'keys'):
+        elif hasattr(data, "keys"):
             return data, None
         else:
             return {name: data}, None
@@ -188,29 +197,29 @@ def load_array(filename):
 
 def __save_array(data, basename, index):
     """Save numpy array"""
-    fname = basename + '_%04d.npy' % index
+    fname = basename + "_%04d.npy" % index
     np.save(fname, data)
     return fname
 
 
-if sys.byteorder == 'little':
-    _ENDIAN = '<'
+if sys.byteorder == "little":
+    _ENDIAN = "<"
 else:
-    _ENDIAN = '>'
+    _ENDIAN = ">"
 
 DTYPES = {
-    "1": ('|b1', None),
-    "L": ('|u1', None),
-    "I": ('%si4' % _ENDIAN, None),
-    "F": ('%sf4' % _ENDIAN, None),
-    "I;16": ('|u2', None),
-    "I;16S": ('%si2' % _ENDIAN, None),
-    "P": ('|u1', None),
-    "RGB": ('|u1', 3),
-    "RGBX": ('|u1', 4),
-    "RGBA": ('|u1', 4),
-    "CMYK": ('|u1', 4),
-    "YCbCr": ('|u1', 4),
+    "1": ("|b1", None),
+    "L": ("|u1", None),
+    "I": ("%si4" % _ENDIAN, None),
+    "F": ("%sf4" % _ENDIAN, None),
+    "I;16": ("|u2", None),
+    "I;16S": ("%si2" % _ENDIAN, None),
+    "P": ("|u1", None),
+    "RGB": ("|u1", 3),
+    "RGBX": ("|u1", 4),
+    "RGBA": ("|u1", 4),
+    "CMYK": ("|u1", 4),
+    "YCbCr": ("|u1", 4),
 }
 
 
@@ -228,7 +237,7 @@ def __image_to_array(filename):
 
 def load_image(filename):
     if PIL.Image is FakeObject or np.array is FakeObject:
-        return None, ''
+        return None, ""
 
     try:
         name = osp.splitext(osp.basename(filename))[0]
@@ -243,7 +252,7 @@ def load_pickle(filename):
         if pd.read_pickle is not FakeObject:
             return pd.read_pickle(filename), None
         else:
-            with open(filename, 'rb') as fid:
+            with open(filename, "rb") as fid:
                 data = pickle.load(fid)
             return data, None
     except Exception as err:
@@ -253,7 +262,7 @@ def load_pickle(filename):
 def load_json(filename):
     """Load a json file as a dictionary"""
     try:
-        with open(filename, 'r') as fid:
+        with open(filename, "r") as fid:
             data = json.load(fid)
         return data, None
     except Exception as err:
@@ -276,8 +285,7 @@ def save_dictionary(data, filename):
             # would want them to be and so they don't show up in the skip list.
             # Skip callables, since they are only pickled by reference and thus
             # must already be present in the user's environment anyway.
-            if not (callable(obj_value) or isinstance(obj_value,
-                                                      types.ModuleType)):
+            if not (callable(obj_value) or isinstance(obj_value, types.ModuleType)):
                 # If an object cannot be deepcopied, then it cannot be pickled.
                 # Ergo, we skip it and list it later.
                 try:
@@ -286,7 +294,7 @@ def save_dictionary(data, filename):
                     skipped_keys.append(obj_name)
         data = data_copy
         if not data:
-            raise RuntimeError('No supported objects to save')
+            raise RuntimeError("No supported objects to save")
 
         saved_arrays = {}
         if np.ndarray is not FakeObject:
@@ -294,11 +302,9 @@ def save_dictionary(data, filename):
             arr_fname = osp.splitext(filename)[0]
             for name in list(data.keys()):
                 try:
-                    if (isinstance(data[name], np.ndarray) and
-                            data[name].size > 0):
+                    if isinstance(data[name], np.ndarray) and data[name].size > 0:
                         # Save arrays at data root
-                        fname = __save_array(data[name], arr_fname,
-                                             len(saved_arrays))
+                        fname = __save_array(data[name], arr_fname, len(saved_arrays))
                         saved_arrays[(name, None)] = osp.basename(fname)
                         data.pop(name)
                     elif isinstance(data[name], (list, dict)):
@@ -309,31 +315,41 @@ def save_dictionary(data, filename):
                             iterator = iter(list(data[name].items()))
                         to_remove = []
                         for index, value in iterator:
-                            if (isinstance(value, np.ndarray) and
-                                    value.size > 0):
-                                fname = __save_array(value, arr_fname,
-                                                     len(saved_arrays))
-                                saved_arrays[(name, index)] = (
-                                    osp.basename(fname))
+                            if isinstance(value, np.ndarray) and value.size > 0:
+                                fname = __save_array(
+                                    value, arr_fname, len(saved_arrays)
+                                )
+                                saved_arrays[(name, index)] = osp.basename(fname)
                                 to_remove.append(index)
                         for index in sorted(to_remove, reverse=True):
                             data[name].pop(index)
-                except (RuntimeError, pickle.PicklingError, TypeError,
-                        AttributeError, IndexError):
+                except (
+                    RuntimeError,
+                    pickle.PicklingError,
+                    TypeError,
+                    AttributeError,
+                    IndexError,
+                ):
                     # If an array can't be saved with numpy for some reason,
                     # leave the object intact and try to save it normally.
                     pass
             if saved_arrays:
-                data['__saved_arrays__'] = saved_arrays
+                data["__saved_arrays__"] = saved_arrays
 
-        pickle_filename = osp.splitext(filename)[0] + '.pickle'
+        pickle_filename = osp.splitext(filename)[0] + ".pickle"
         # Attempt to pickle everything.
         # If pickling fails, iterate through to eliminate problem objs & retry.
-        with open(pickle_filename, 'w+b') as fdesc:
+        with open(pickle_filename, "w+b") as fdesc:
             try:
                 pickle.dump(data, fdesc, protocol=2)
-            except (pickle.PicklingError, AttributeError, TypeError,
-                    ImportError, IndexError, RuntimeError):
+            except (
+                pickle.PicklingError,
+                AttributeError,
+                TypeError,
+                ImportError,
+                IndexError,
+                RuntimeError,
+            ):
                 data_filtered = {}
                 for obj_name, obj_value in data.items():
                     try:
@@ -343,14 +359,13 @@ def save_dictionary(data, filename):
                     else:
                         data_filtered[obj_name] = obj_value
                 if not data_filtered:
-                    raise RuntimeError('No supported objects to save')
+                    raise RuntimeError("No supported objects to save")
                 pickle.dump(data_filtered, fdesc, protocol=2)
 
         # Use PAX (POSIX.1-2001) format instead of default GNU.
         # This improves interoperability and UTF-8/long variable name support.
         with tarfile.open(filename, "w", format=tarfile.PAX_FORMAT) as tar:
-            for fname in ([pickle_filename]
-                          + [fn for fn in list(saved_arrays.values())]):
+            for fname in [pickle_filename] + [fn for fn in list(saved_arrays.values())]:
                 tar.add(osp.basename(fname))
                 os.remove(fname)
     except (RuntimeError, pickle.PicklingError, TypeError) as error:
@@ -358,8 +373,9 @@ def save_dictionary(data, filename):
     else:
         if skipped_keys:
             skipped_keys.sort()
-            error_message = ('Some objects could not be saved: '
-                             + ', '.join(skipped_keys))
+            error_message = "Some objects could not be saved: " + ", ".join(
+                skipped_keys
+            )
     finally:
         os.chdir(old_cwd)
     return error_message
@@ -376,15 +392,15 @@ def load_dictionary(filename):
     try:
         with tarfile.open(filename, "r") as tar:
             tar.extractall()
-        pickle_filename = glob.glob('*.pickle')[0]
+        pickle_filename = glob.glob("*.pickle")[0]
         # 'New' format (Spyder >=2.2)
-        with open(pickle_filename, 'rb') as fdesc:
+        with open(pickle_filename, "rb") as fdesc:
             data = pickle.loads(fdesc.read())
         saved_arrays = {}
         if np.load is not FakeObject:
             # Loading numpy arrays saved with np.save
             try:
-                saved_arrays = data.pop('__saved_arrays__')
+                saved_arrays = data.pop("__saved_arrays__")
                 for (name, index), fname in list(saved_arrays.items()):
                     arr = np.load(osp.join(tmp_folder, fname))
                     if index is None:
@@ -418,7 +434,7 @@ class IOFunctions:
         self.save_funcs = None
 
     def setup(self):
-        iofuncs = self.get_internal_funcs()+self.get_3rd_party_funcs()
+        iofuncs = self.get_internal_funcs() + self.get_3rd_party_funcs()
         load_extensions = {}
         save_extensions = {}
         load_funcs = {}
@@ -438,7 +454,8 @@ class IOFunctions:
                 save_filters.append(filter_str)
                 save_funcs[ext] = savefunc
         load_filters.insert(
-            0, str("Supported files" + " (*" + " *".join(load_ext) + ")"))
+            0, str("Supported files" + " (*" + " *".join(load_ext) + ")")
+        )
         load_filters.append(str("All files (*.*)"))
         self.load_filters = "\n".join(load_filters)
         self.save_filters = "\n".join(save_filters)
@@ -449,30 +466,36 @@ class IOFunctions:
 
     def get_internal_funcs(self):
         return [
-                ('.spydata', "Spyder data files",
-                             load_dictionary, save_dictionary),
-                ('.npy', "NumPy arrays", load_array, None),
-                ('.npz', "NumPy zip arrays", load_array, None),
-                ('.mat', "Matlab files", load_matlab, save_matlab),
-                ('.csv', "CSV text files", 'import_wizard', None),
-                ('.txt', "Text files", 'import_wizard', None),
-                ('.jpg', "JPEG images", load_image, None),
-                ('.png', "PNG images", load_image, None),
-                ('.gif', "GIF images", load_image, None),
-                ('.tif', "TIFF images", load_image, None),
-                ('.pkl', "Pickle files", load_pickle, None),
-                ('.pickle', "Pickle files", load_pickle, None),
-                ('.json', "JSON files", load_json, None),
-                ]
+            (".spydata", "Spyder data files", load_dictionary, save_dictionary),
+            (".npy", "NumPy arrays", load_array, None),
+            (".npz", "NumPy zip arrays", load_array, None),
+            (".mat", "Matlab files", load_matlab, save_matlab),
+            (".csv", "CSV text files", "import_wizard", None),
+            (".txt", "Text files", "import_wizard", None),
+            (".jpg", "JPEG images", load_image, None),
+            (".png", "PNG images", load_image, None),
+            (".gif", "GIF images", load_image, None),
+            (".tif", "TIFF images", load_image, None),
+            (".pkl", "Pickle files", load_pickle, None),
+            (".pickle", "Pickle files", load_pickle, None),
+            (".json", "JSON files", load_json, None),
+        ]
 
     def get_3rd_party_funcs(self):
         other_funcs = []
         try:
             from spyder.otherplugins import get_spyderplugins_mods
+
             for mod in get_spyderplugins_mods(io=True):
                 try:
-                    other_funcs.append((mod.FORMAT_EXT, mod.FORMAT_NAME,
-                                        mod.FORMAT_LOAD, mod.FORMAT_SAVE))
+                    other_funcs.append(
+                        (
+                            mod.FORMAT_EXT,
+                            mod.FORMAT_NAME,
+                            mod.FORMAT_LOAD,
+                            mod.FORMAT_SAVE,
+                        )
+                    )
                 except AttributeError as error:
                     print("%s: %s" % (mod, str(error)), file=sys.stderr)
         except ImportError:
@@ -493,6 +516,7 @@ class IOFunctions:
         else:
             return None, "<b>Unsupported file type '%s'</b>" % ext
 
+
 iofunctions = IOFunctions()
 iofunctions.setup()
 
@@ -504,25 +528,28 @@ def save_auto(data, filename):
 
 if __name__ == "__main__":
     import datetime
-    testdict = {'d': 1, 'a': np.random.rand(10, 10), 'b': [1, 2]}
+
+    testdict = {"d": 1, "a": np.random.rand(10, 10), "b": [1, 2]}
     testdate = datetime.date(1945, 5, 8)
-    example = {'str': 'kjkj kj k j j kj k jkj',
-               'unicode': u'éù',
-               'list': [1, 3, [4, 5, 6], 'kjkj', None],
-               'tuple': ([1, testdate, testdict], 'kjkj', None),
-               'dict': testdict,
-               'float': 1.2233,
-               'array': np.random.rand(4000, 400),
-               'empty_array': np.array([]),
-               'date': testdate,
-               'datetime': datetime.datetime(1945, 5, 8),
-               }
+    example = {
+        "str": "kjkj kj k j j kj k jkj",
+        "unicode": "éù",
+        "list": [1, 3, [4, 5, 6], "kjkj", None],
+        "tuple": ([1, testdate, testdict], "kjkj", None),
+        "dict": testdict,
+        "float": 1.2233,
+        "array": np.random.rand(4000, 400),
+        "empty_array": np.array([]),
+        "date": testdate,
+        "datetime": datetime.datetime(1945, 5, 8),
+    }
     import time
+
     t0 = time.time()
     save_dictionary(example, "test.spydata")
-    print(" Data saved in %.3f seconds" % (time.time()-t0))  # spyder: test-skip
+    print(" Data saved in %.3f seconds" % (time.time() - t0))  # spyder: test-skip
     t0 = time.time()
     example2, ok = load_dictionary("test.spydata")
     os.remove("test.spydata")
 
-    print("Data loaded in %.3f seconds" % (time.time()-t0))  # spyder: test-skip
+    print("Data loaded in %.3f seconds" % (time.time() - t0))  # spyder: test-skip

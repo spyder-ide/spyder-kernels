@@ -72,7 +72,7 @@ class CommError(RuntimeError):
     pass
 
 
-class CommsErrorWrapper():
+class CommsErrorWrapper:
     def __init__(self, call_name, call_id):
         self.call_name = call_name
         self.call_id = call_id
@@ -91,9 +91,11 @@ class CommsErrorWrapper():
         Format the error received from the other side and returns a list of
         strings.
         """
-        lines = (['Exception in comms call {}:\n'.format(self.call_name)]
-                 + traceback.format_list(self.tb)
-                 + traceback.format_exception_only(self.etype, self.error))
+        lines = (
+            ["Exception in comms call {}:\n".format(self.call_name)]
+            + traceback.format_list(self.tb)
+            + traceback.format_exception_only(self.etype, self.error)
+        )
         return lines
 
     def print_error(self, file=None):
@@ -147,12 +149,11 @@ class CommBase:
         self._reply_inbox = {}
         self._reply_waitlist = {}
 
+        self._register_message_handler("remote_call", self._handle_remote_call)
         self._register_message_handler(
-            'remote_call', self._handle_remote_call)
-        self._register_message_handler(
-            'remote_call_reply', self._handle_remote_call_reply)
-        self.register_call_handler('_set_pickle_protocol',
-                                   self._set_pickle_protocol)
+            "remote_call_reply", self._handle_remote_call_reply
+        )
+        self.register_call_handler("_set_pickle_protocol", self._set_pickle_protocol)
 
     def get_comm_id_list(self, comm_id=None):
         """Get a list of comms id."""
@@ -168,7 +169,7 @@ class CommBase:
 
         for comm_id in id_list:
             try:
-                self._comms[comm_id]['comm'].close()
+                self._comms[comm_id]["comm"].close()
                 del self._comms[comm_id]
             except KeyError:
                 pass
@@ -189,7 +190,7 @@ class CommBase:
         id_list = self.get_comm_id_list(comm_id)
         if len(id_list) == 0:
             return False
-        return all([self._comms[cid]['status'] == 'ready' for cid in id_list])
+        return all([self._comms[cid]["status"] == "ready" for cid in id_list])
 
     def register_call_handler(self, call_name, handler):
         """
@@ -214,8 +215,7 @@ class CommBase:
         return RemoteCallFactory(self, comm_id, callback, **settings)
 
     # ---- Private -----
-    def _send_message(self, spyder_msg_type, content=None, data=None,
-                      comm_id=None):
+    def _send_message(self, spyder_msg_type, content=None, data=None, comm_id=None):
         """
         Publish custom messages to the other side.
 
@@ -236,27 +236,30 @@ class CommBase:
         id_list = self.get_comm_id_list(comm_id)
         for comm_id in id_list:
             msg_dict = {
-                'spyder_msg_type': spyder_msg_type,
-                'content': content,
-                'pickle_protocol': self._comms[comm_id]['pickle_protocol'],
-                'python_version': sys.version,
-                }
-            buffers = [cloudpickle.dumps(
-                data, protocol=self._comms[comm_id]['pickle_protocol'])]
-            self._comms[comm_id]['comm'].send(msg_dict, buffers=buffers)
+                "spyder_msg_type": spyder_msg_type,
+                "content": content,
+                "pickle_protocol": self._comms[comm_id]["pickle_protocol"],
+                "python_version": sys.version,
+            }
+            buffers = [
+                cloudpickle.dumps(
+                    data, protocol=self._comms[comm_id]["pickle_protocol"]
+                )
+            ]
+            self._comms[comm_id]["comm"].send(msg_dict, buffers=buffers)
 
     def _set_pickle_protocol(self, protocol):
         """Set the pickle protocol used to send data."""
         protocol = min(protocol, pickle.HIGHEST_PROTOCOL)
-        self._comms[self.calling_comm_id]['pickle_protocol'] = protocol
-        self._comms[self.calling_comm_id]['status'] = 'ready'
+        self._comms[self.calling_comm_id]["pickle_protocol"] = protocol
+        self._comms[self.calling_comm_id]["status"] = "ready"
 
     @property
     def _comm_name(self):
         """
         Get the name used for the underlying comms.
         """
-        return 'spyder_api'
+        return "spyder_api"
 
     def _register_message_handler(self, message_id, handler):
         """
@@ -285,65 +288,60 @@ class CommBase:
         comm.on_msg(self._comm_message)
         comm.on_close(self._comm_close)
         self._comms[comm.comm_id] = {
-            'comm': comm,
-            'pickle_protocol': DEFAULT_PICKLE_PROTOCOL,
-            'status': 'opening',
-            }
+            "comm": comm,
+            "pickle_protocol": DEFAULT_PICKLE_PROTOCOL,
+            "status": "opening",
+        }
 
     def _comm_close(self, msg):
         """Close comm."""
-        comm_id = msg['content']['comm_id']
+        comm_id = msg["content"]["comm_id"]
         del self._comms[comm_id]
 
     def _comm_message(self, msg):
         """
         Handle internal spyder messages.
         """
-        self.calling_comm_id = msg['content']['comm_id']
+        self.calling_comm_id = msg["content"]["comm_id"]
 
         # Get message dict
-        msg_dict = msg['content']['data']
+        msg_dict = msg["content"]["data"]
 
         # Load the buffer. Only one is supported.
         try:
-            buffer = cloudpickle.loads(msg['buffers'][0])
+            buffer = cloudpickle.loads(msg["buffers"][0])
         except Exception as e:
-            logger.debug(
-                "Exception in cloudpickle.loads : %s" % str(e))
+            logger.debug("Exception in cloudpickle.loads : %s" % str(e))
             buffer = CommsErrorWrapper(
-                msg_dict['content']['call_name'],
-                msg_dict['content']['call_id'])
+                msg_dict["content"]["call_name"], msg_dict["content"]["call_id"]
+            )
 
-            msg_dict['content']['is_error'] = True
+            msg_dict["content"]["is_error"] = True
 
-        spyder_msg_type = msg_dict['spyder_msg_type']
+        spyder_msg_type = msg_dict["spyder_msg_type"]
 
         if spyder_msg_type in self._message_handlers:
-            self._message_handlers[spyder_msg_type](
-                msg_dict, buffer)
+            self._message_handlers[spyder_msg_type](msg_dict, buffer)
         else:
             logger.debug("No such spyder message type: %s" % spyder_msg_type)
 
     def _handle_remote_call(self, msg, buffer):
         """Handle a remote call."""
-        msg_dict = msg['content']
+        msg_dict = msg["content"]
         self.on_incoming_call(msg_dict)
         try:
             return_value = self._remote_callback(
-                    msg_dict['call_name'],
-                    buffer['call_args'],
-                    buffer['call_kwargs'])
+                msg_dict["call_name"], buffer["call_args"], buffer["call_kwargs"]
+            )
             self._set_call_return_value(msg_dict, return_value)
         except Exception:
-            exc_infos = CommsErrorWrapper(
-                msg_dict['call_name'], msg_dict['call_id'])
+            exc_infos = CommsErrorWrapper(msg_dict["call_name"], msg_dict["call_id"])
             self._set_call_return_value(msg_dict, exc_infos, is_error=True)
 
     def _remote_callback(self, call_name, call_args, call_kwargs):
         """Call the callback function for the remote call."""
         if call_name in self._remote_call_handlers:
-            return self._remote_call_handlers[call_name](
-                *call_args, **call_kwargs)
+            return self._remote_call_handlers[call_name](*call_args, **call_kwargs)
 
         raise CommError("No such spyder call type: %s" % call_name)
 
@@ -353,33 +351,36 @@ class CommBase:
 
         This will reply if settings['blocking'] == True
         """
-        settings = call_dict['settings']
+        settings = call_dict["settings"]
 
-        display_error = ('display_error' in settings and
-                         settings['display_error'])
+        display_error = "display_error" in settings and settings["display_error"]
         if is_error and display_error:
             data.print_error()
 
-        send_reply = 'send_reply' in settings and settings['send_reply']
+        send_reply = "send_reply" in settings and settings["send_reply"]
         if not send_reply:
             # Nothing to send back
             return
         content = {
-            'is_error': is_error,
-            'call_id': call_dict['call_id'],
-            'call_name': call_dict['call_name']
+            "is_error": is_error,
+            "call_id": call_dict["call_id"],
+            "call_name": call_dict["call_name"],
         }
 
-        self._send_message('remote_call_reply', content=content, data=data,
-                           comm_id=self.calling_comm_id)
+        self._send_message(
+            "remote_call_reply",
+            content=content,
+            data=data,
+            comm_id=self.calling_comm_id,
+        )
 
     def _register_call(self, call_dict, callback=None):
         """
         Register the call so the reply can be properly treated.
         """
-        settings = call_dict['settings']
-        blocking = 'blocking' in settings and settings['blocking']
-        call_id = call_dict['call_id']
+        settings = call_dict["settings"]
+        blocking = "blocking" in settings and settings["blocking"]
+        call_id = call_dict["call_id"]
         if blocking or callback is not None:
             self._reply_waitlist[call_id] = blocking, callback
 
@@ -397,8 +398,8 @@ class CommBase:
         """Send call."""
         call_dict = self.on_outgoing_call(call_dict)
         self._send_message(
-            'remote_call', content=call_dict, data=call_data,
-            comm_id=comm_id)
+            "remote_call", content=call_dict, data=call_data, comm_id=comm_id
+        )
 
     def _get_call_return_value(self, call_dict, comm_id):
         """
@@ -407,19 +408,19 @@ class CommBase:
         If settings['blocking'] == True, this will wait for a reply and return
         the replied value.
         """
-        settings = call_dict['settings']
+        settings = call_dict["settings"]
 
-        blocking = 'blocking' in settings and settings['blocking']
+        blocking = "blocking" in settings and settings["blocking"]
 
         if not blocking:
             return
 
-        call_id = call_dict['call_id']
-        call_name = call_dict['call_name']
+        call_id = call_dict["call_id"]
+        call_name = call_dict["call_name"]
 
         # Wait for the blocking call
-        if 'timeout' in settings and settings['timeout'] is not None:
-            timeout = settings['timeout']
+        if "timeout" in settings and settings["timeout"] is not None:
+            timeout = settings["timeout"]
         else:
             timeout = TIMEOUT
 
@@ -427,10 +428,10 @@ class CommBase:
 
         reply = self._reply_inbox.pop(call_id)
 
-        if reply['is_error']:
-            return self._sync_error(reply['value'])
+        if reply["is_error"]:
+            return self._sync_error(reply["value"])
 
-        return reply['value']
+        return reply["value"]
 
     def _wait_reply(self, comm_id, call_id, call_name, timeout):
         """
@@ -442,18 +443,19 @@ class CommBase:
         """
         A blocking call received a reply.
         """
-        content = msg_dict['content']
-        call_id = content['call_id']
-        call_name = content['call_name']
-        is_error = content['is_error']
+        content = msg_dict["content"]
+        call_id = content["call_id"]
+        call_name = content["call_name"]
+        is_error = content["is_error"]
 
         # Unexpected reply
         if call_id not in self._reply_waitlist:
             if is_error:
                 return self._async_error(buffer)
             else:
-                logger.debug('Got an unexpected reply {}, id:{}'.format(
-                    call_name, call_id))
+                logger.debug(
+                    "Got an unexpected reply {}, id:{}".format(call_name, call_id)
+                )
             return
 
         blocking, callback = self._reply_waitlist.pop(call_id)
@@ -469,10 +471,10 @@ class CommBase:
         # Blocking inbox
         if blocking:
             self._reply_inbox[call_id] = {
-                    'is_error': is_error,
-                    'value': buffer,
-                    'content': content
-                    }
+                "is_error": is_error,
+                "value": buffer,
+                "content": content,
+            }
 
     def _async_error(self, error_wrapper):
         """
@@ -492,23 +494,23 @@ class RemoteCallFactory:
 
     def __init__(self, comms_wrapper, comm_id, callback, **settings):
         # Avoid setting attributes
-        super(RemoteCallFactory, self).__setattr__(
-            '_comms_wrapper', comms_wrapper)
-        super(RemoteCallFactory, self).__setattr__('_comm_id', comm_id)
-        super(RemoteCallFactory, self).__setattr__('_callback', callback)
-        super(RemoteCallFactory, self).__setattr__('_settings', settings)
+        super(RemoteCallFactory, self).__setattr__("_comms_wrapper", comms_wrapper)
+        super(RemoteCallFactory, self).__setattr__("_comm_id", comm_id)
+        super(RemoteCallFactory, self).__setattr__("_callback", callback)
+        super(RemoteCallFactory, self).__setattr__("_settings", settings)
 
     def __getattr__(self, name):
         """Get a call for a function named 'name'."""
-        return RemoteCall(name, self._comms_wrapper, self._comm_id,
-                          self._callback, self._settings)
+        return RemoteCall(
+            name, self._comms_wrapper, self._comm_id, self._callback, self._settings
+        )
 
     def __setattr__(self, name, value):
         """Set an attribute to the other side."""
         raise NotImplementedError
 
 
-class RemoteCall():
+class RemoteCall:
     """Class to call the other side of the comms like a function."""
 
     def __init__(self, name, comms_wrapper, comm_id, callback, settings):
@@ -524,19 +526,19 @@ class RemoteCall():
 
         The args and kwargs have to be picklable.
         """
-        blocking = 'blocking' in self._settings and self._settings['blocking']
-        self._settings['send_reply'] = blocking or self._callback is not None
+        blocking = "blocking" in self._settings and self._settings["blocking"]
+        self._settings["send_reply"] = blocking or self._callback is not None
 
         call_id = uuid.uuid4().hex
         call_dict = {
-            'call_name': self._name,
-            'call_id': call_id,
-            'settings': self._settings,
-            }
+            "call_name": self._name,
+            "call_id": call_id,
+            "settings": self._settings,
+        }
         call_data = {
-            'call_args': args,
-            'call_kwargs': kwargs,
-            }
+            "call_args": args,
+            "call_kwargs": kwargs,
+        }
 
         if not self._comms_wrapper.is_open(self._comm_id):
             # Only an error if the call is blocking.
@@ -546,5 +548,4 @@ class RemoteCall():
             return
         self._comms_wrapper._register_call(call_dict, self._callback)
         self._comms_wrapper._send_call(call_dict, call_data, self._comm_id)
-        return self._comms_wrapper._get_call_return_value(
-            call_dict, self._comm_id)
+        return self._comms_wrapper._get_call_return_value(call_dict, self._comm_id)
