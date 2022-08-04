@@ -788,10 +788,7 @@ class SpyderPdb(ipyPdb):
             step = dict(fname=fname, lineno=lineno)
             self._previous_step = (fname, lineno)
 
-        try:
-            frontend_request(blocking=False).pdb_state(dict(step=step))
-        except (CommError, TimeoutError):
-            logger.debug("Could not send Pdb state to the frontend.")
+        state = dict(step=step)
 
         # Publish Pdb stack so we can update the Variable Explorer
         # and the Editor on the Spyder side
@@ -807,11 +804,12 @@ class SpyderPdb(ipyPdb):
             # Adjust the index
             pdb_index -= sum(hidden[:pdb_index])
 
+        state['stack'] = (pdb_stack, pdb_index)
+
         try:
-            frontend_request(blocking=False).set_pdb_stack(
-                pdb_stack, pdb_index)
+            frontend_request(blocking=False).pdb_state(state)
         except (CommError, TimeoutError):
-            logger.debug("Could not send Pdb stack to the frontend.")
+            logger.debug("Could not send Pdb state to the frontend.")
 
     def run(self, cmd, globals=None, locals=None):
         """Debug a statement executed via the exec() function.
