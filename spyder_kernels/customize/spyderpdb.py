@@ -784,16 +784,16 @@ class SpyderPdb(ipyPdb):
             # Publish Pdb stack so we can update the Debugger on Spyder
             pdb_stack = traceback.StackSummary.extract(self.stack)
             pdb_index = self.curindex
-    
+
             skip_hidden = getattr(self, 'skip_hidden', False)
-    
+
             if skip_hidden:
                 # Filter out the hidden frames
                 hidden = self.hidden_frames(self.stack)
                 pdb_stack = [f for f, h in zip(pdb_stack, hidden) if not h]
                 # Adjust the index
                 pdb_index -= sum(hidden[:pdb_index])
-    
+
             state['stack'] = (pdb_stack, pdb_index)
 
         return state
