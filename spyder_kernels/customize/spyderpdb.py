@@ -91,7 +91,6 @@ class SpyderPdb(ipyPdb):
         # has no effect in previous versions.
         self.report_skipped = False
 
-
         # Keep track of remote filename
         self.remote_filename = None
 
@@ -543,21 +542,58 @@ class SpyderPdb(ipyPdb):
         # about a changed frame the next the input prompt is entered again.
         self._previous_step = None
 
+    def maybe_do_continue(self):
+        """
+        Jump to first breakpoint if needed
+
+        Fixes issue 2034
+        """
+        if not self.starting:
+            # Only run this after a Pdb session is created
+            return
+        self.starting = False
+
+        if not self.continue_if_has_breakpoints:
+            # This was disabled
+            return
+
+        # Get all breakpoints for the file we're going to debug
+        frame = self.curframe
+        if not frame:
+            # We are not debugging, return. Solves #10290
+            return
+
+        lineno = frame.f_lineno
+        breaks = self.get_file_breaks(frame.f_code.co_filename)
+
+        # Do 'continue' if the first breakpoint is *not* placed
+        # where the debugger is going to land.
+        # Fixes issue 4681
+        if self.pdb_stop_first_line:
+            do_continue = breaks and lineno < breaks[0]
+        else:
+            # The breakpoint could be in another file.
+            do_continue = not (breaks and lineno >= breaks[0])
+
+        if not do_continue:
+            return
+
+        try:
+            if self.pdb_use_exclamation_mark:
+                cont_cmd = '!continue'
+            else:
+                cont_cmd = 'continue'
+            frontend_request(blocking=False).pdb_execute(cont_cmd)
+        except (CommError, TimeoutError):
+            logger.debug(
+                "Could not send a Pdb continue call to the frontend.")
+
     def preloop(self):
         """Ask Spyder for breakpoints before the first prompt is created."""
-        try:
-            pdb_settings = frontend_request(blocking=True).get_pdb_settings()
-            self.pdb_ignore_lib = pdb_settings['pdb_ignore_lib']
-            self.pdb_execute_events = pdb_settings['pdb_execute_events']
-            self.pdb_use_exclamation_mark = pdb_settings[
-                'pdb_use_exclamation_mark']
-            self.pdb_stop_first_line = pdb_settings['pdb_stop_first_line']
-            if self.starting:
-                self.set_spyder_breakpoints(pdb_settings['breakpoints'])
-            if self.send_initial_notification:
-                self.publish_pdb_state()
-        except (CommError, TimeoutError):
-            logger.debug("Could not get breakpoints from the frontend.")
+        if self.send_initial_notification:
+            self.publish_pdb_state()
+        if self.starting:
+            self.maybe_do_continue()
         super(SpyderPdb, self).preloop()
 
     def set_continue(self):
@@ -611,7 +647,6 @@ class SpyderPdb(ipyPdb):
                 print("--KeyboardInterrupt--\n"
                       "For copying text while debugging, use Ctrl+Shift+C",
                       file=self.stdout)
-
 
     def cmdloop(self, intro=None):
         """
@@ -723,44 +758,7 @@ class SpyderPdb(ipyPdb):
                     # The file is not readable
                     pass
 
-        # Jump to first breakpoint.
-        # Fixes issue 2034
-        if self.starting:
-            # Only run this after a Pdb session is created
-            self.starting = False
-
-            # Get all breakpoints for the file we're going to debug
-            frame = self.curframe
-            if not frame:
-                # We are not debugging, return. Solves #10290
-                return
-            lineno = frame.f_lineno
-            breaks = self.get_file_breaks(frame.f_code.co_filename)
-
-            # Do 'continue' if the first breakpoint is *not* placed
-            # where the debugger is going to land.
-            # Fixes issue 4681
-            if self.pdb_stop_first_line:
-                do_continue = (
-                    self.continue_if_has_breakpoints
-                    and breaks
-                    and lineno < breaks[0])
-            else:
-                # The breakpoint could be in another file.
-                do_continue = (
-                    self.continue_if_has_breakpoints
-                    and not (breaks and lineno >= breaks[0]))
-
-            if do_continue:
-                try:
-                    if self.pdb_use_exclamation_mark:
-                        cont_cmd = '!continue'
-                    else:
-                        cont_cmd = 'continue'
-                    frontend_request(blocking=False).pdb_execute(cont_cmd)
-                except (CommError, TimeoutError):
-                    logger.debug(
-                        "Could not send a Pdb continue call to the frontend.")
+    breakpoints = property(fset=set_spyder_breakpoints)
 
     def publish_pdb_state(self):
         """
