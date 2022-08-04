@@ -79,6 +79,7 @@ class SpyderPdb(ipyPdb):
         self.pdb_ignore_lib = False
         self.pdb_execute_events = False
         self.pdb_use_exclamation_mark = False
+        self.pdb_publish_stack = False
         self._exclamation_warning_printed = False
         self.pdb_stop_first_line = True
         self._disable_next_stack_entry = False
@@ -790,21 +791,21 @@ class SpyderPdb(ipyPdb):
 
         state = dict(step=step)
 
-        # Publish Pdb stack so we can update the Variable Explorer
-        # and the Editor on the Spyder side
-        pdb_stack = traceback.StackSummary.extract(self.stack)
-        pdb_index = self.curindex
-
-        skip_hidden = getattr(self, 'skip_hidden', False)
-
-        if skip_hidden:
-            # Filter out the hidden frames
-            hidden = self.hidden_frames(self.stack)
-            pdb_stack = [f for f, h in zip(pdb_stack, hidden) if not h]
-            # Adjust the index
-            pdb_index -= sum(hidden[:pdb_index])
-
-        state['stack'] = (pdb_stack, pdb_index)
+        if self.pdb_publish_stack:
+            # Publish Pdb stack so we can update the Debugger on Spyder
+            pdb_stack = traceback.StackSummary.extract(self.stack)
+            pdb_index = self.curindex
+    
+            skip_hidden = getattr(self, 'skip_hidden', False)
+    
+            if skip_hidden:
+                # Filter out the hidden frames
+                hidden = self.hidden_frames(self.stack)
+                pdb_stack = [f for f, h in zip(pdb_stack, hidden) if not h]
+                # Adjust the index
+                pdb_index -= sum(hidden[:pdb_index])
+    
+            state['stack'] = (pdb_stack, pdb_index)
 
         try:
             frontend_request(blocking=False).pdb_state(state)

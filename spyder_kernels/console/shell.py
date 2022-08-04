@@ -40,7 +40,8 @@ class SpyderShell(ZMQInteractiveShell):
         'pdb_execute_events',
         'pdb_use_exclamation_mark',
         'pdb_stop_first_line',
-        'breakpoints'
+        'breakpoints',
+        'pdb_publish_stack'
         ]
 
     def __init__(self, *args, **kwargs):
