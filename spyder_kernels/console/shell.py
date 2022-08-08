@@ -249,14 +249,15 @@ class SpyderShell(ZMQInteractiveShell):
 
     def spyderkernel_sigint_handler(self, signum, frame):
         """SIGINT handler."""
-        pdb_session = self.pdb_session
         if self._request_pdb_stop:
             # SIGINT called from request_pdb_stop
             self._request_pdb_stop = False
             debugger = SpyderPdb()
             debugger.interrupt()
             debugger.set_trace(frame)
-        elif pdb_session:
+            return
+        pdb_session = self.pdb_session
+        if pdb_session:
             # SIGINT called while debugging
             if pdb_session.allow_kbdint:
                 raise KeyboardInterrupt
@@ -264,15 +265,18 @@ class SpyderShell(ZMQInteractiveShell):
                 # second call to interrupt, raise
                 raise KeyboardInterrupt
             pdb_session.interrupt()
-        elif self._allow_kbdint:
+            return
+        if self._allow_kbdint:
             # Do not raise KeyboardInterrupt in the middle of ipython code
-            signal.default_int_handler(signum, frame)
+            raise KeyboardInterrupt
 
-    async def run_code(self, code_obj, result=None, *, async_=False):
+    async def run_code(self, *args, **kwargs):
         """Execute a code object."""
         try:
-            self._allow_kbdint = True
-            return await super().run_code(
-                code_obj, result=result, async_=async_)
-        finally:
-            self._allow_kbdint = False
+            try:
+                self._allow_kbdint = True
+                return await super().run_code(*args, **kwargs)
+            finally:
+                self._allow_kbdint = False
+        except KeyboardInterrupt:
+            self.showtraceback()
