@@ -26,7 +26,6 @@ from ipykernel.zmqshell import ZMQInteractiveShell
 from spyder_kernels.customize.spyderpdb import SpyderPdb
 from spyder_kernels.comms.frontendcomm import CommError
 from spyder_kernels.utils.mpl import automatic_backend
-from spyder_kernels.comms.frontendcomm import CommError
 
 
 logger = logging.getLogger(__name__)
