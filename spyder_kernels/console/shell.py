@@ -279,3 +279,13 @@ class SpyderShell(ZMQInteractiveShell):
                 self._allow_kbdint = False
         except KeyboardInterrupt:
             self.showtraceback()
+
+    def pdb_input_reply(self, line, echo_stack_entry=True):
+        """Get a pdb command from the frontend."""
+        debugger = self.pdb_session
+        if not debugger:
+            return
+        debugger._disable_next_stack_entry = not echo_stack_entry
+        debugger._cmd_input_line = line
+        # Interrupts eventloop if needed
+        self.kernel.interrupt_eventloop()
