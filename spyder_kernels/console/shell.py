@@ -255,6 +255,7 @@ class SpyderShell(ZMQInteractiveShell):
             debugger.interrupt()
             debugger.set_trace(frame)
             return
+
         pdb_session = self.pdb_session
         if pdb_session:
             # SIGINT called while debugging
@@ -265,6 +266,7 @@ class SpyderShell(ZMQInteractiveShell):
                 raise KeyboardInterrupt
             pdb_session.interrupt()
             return
+
         if self._allow_kbdint:
             # Do not raise KeyboardInterrupt in the middle of ipython code
             raise KeyboardInterrupt
