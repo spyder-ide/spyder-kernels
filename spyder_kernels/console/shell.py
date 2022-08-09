@@ -85,12 +85,13 @@ class SpyderShell(ZMQInteractiveShell):
     # --- For Pdb namespace integration
     def set_pdb_configuration(self, pdb_conf):
         """
-        Set pdb configuration.
+        Set Pdb configuration.
 
         Parameters
         ----------
         pdb_conf: dict
-            dict containing the configuration, the keys are PDB_CONF_KEYS
+            Dictionary containing the configuration. Its keys are part of the
+            `PDB_CONF_KEYS` class constant.
         """
         for key in self.PDB_CONF_KEYS:
             if key in pdb_conf:
