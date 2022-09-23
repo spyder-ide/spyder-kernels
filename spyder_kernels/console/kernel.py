@@ -151,6 +151,7 @@ class SpyderKernel(IPythonKernel):
             return (
                 "Can not read fault file!\n" 
                 + "UnicodeDecodeError: " + str(e))
+
         # Remove file
         try:
             os.remove(fault_filename)
@@ -167,8 +168,9 @@ class SpyderKernel(IPythonKernel):
             r"(Current thread|Thread) "
             r"(0x[\da-f]+) \(most recent call first\):"
             r"(?:.|\r\n|\r|\n)+?(?=Current thread|Thread|\Z)")
-        # Keep line for future improvments
+        # Keep line for future improvements
         # files_regex = r"File \"([^\"]+)\", line (\d+) in (\S+)"
+
         text = ""
         start_idx = 0
         for idx, match in enumerate(re.finditer(thread_regex, fault)):
@@ -192,6 +194,7 @@ class SpyderKernel(IPythonKernel):
                 except StopIteration:
                     end_idx = None
                 text += "\nMain thread:\n" + match.group(0)[:end_idx] + "\n"
+
         # Add anything after match
         text += fault[start_idx:]
         return text
