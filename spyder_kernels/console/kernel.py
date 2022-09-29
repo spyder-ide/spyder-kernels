@@ -132,8 +132,11 @@ class SpyderKernel(IPythonKernel):
         fault_dir = None
         if sys.platform.startswith('linux'):
             # Do not use /tmp for temporary files
-            fault_dir = '/tmp/spyder'
-            os.makedirs(fault_dir, exist_ok=True)
+            try:
+                fault_dir = '/tmp/spyder'
+                os.makedirs(fault_dir, exist_ok=True)
+            except Exception:
+                fault_dir = None
 
         self.faulthandler_handle = tempfile.NamedTemporaryFile(
             'wt', suffix='.fault', dir=fault_dir)
