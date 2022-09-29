@@ -129,8 +129,14 @@ class SpyderKernel(IPythonKernel):
         Open a file to save the faulthandling and identifiers for
         internal threads.
         """
+        fault_dir = None
+        if sys.platform.startswith('linux'):
+            # Do not use /tmp for temporary files
+            fault_dir = '/tmp/spyder'
+            os.makedirs(fault_dir, exist_ok=True)
+
         self.faulthandler_handle = tempfile.NamedTemporaryFile(
-            'wt', suffix='.fault')
+            'wt', suffix='.fault', dir=fault_dir)
         main_id = threading.main_thread().ident
         system_ids = [
             thread.ident for thread in threading.enumerate()
