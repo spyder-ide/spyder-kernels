@@ -1198,5 +1198,20 @@ def test_non_strings_in_locals(kernel):
     assert "1:" in nsview
 
 
+@pytest.mark.skipif(
+    sys.version_info[0] < 3, reason="Doesn't work with Python 2")
+def test_django_settings(kernel):
+    """
+    Test that we don't generate errors when importing `django.conf.settings`.
+
+    This is a regression test for issue spyder-ide/spyder#19516
+    """
+    execute = asyncio.run(kernel.do_execute(
+        'from django.conf import settings', True))
+
+    nsview = repr(kernel.get_namespace_view())
+    assert "'settings':" in nsview
+
+
 if __name__ == "__main__":
     pytest.main()

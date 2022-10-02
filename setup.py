@@ -64,6 +64,7 @@ TEST_REQUIREMENTS = [
     'scipy',
     'xarray',
     'pillow',
+    'django',
 ]
 
 setup(
