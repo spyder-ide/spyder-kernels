@@ -1181,5 +1181,22 @@ def test_debug_namespace(tmpdir):
                     break
 
 
+def test_non_strings_in_locals(kernel):
+    """
+    Test that we can hande non-string entries in `locals` when bulding the
+    namespace view.
+
+    This is a regression test for issue spyder-ide/spyder#19145
+    """
+    if IPYKERNEL_6:
+        execute = asyncio.run(kernel.do_execute(
+            'locals().update({1:2})', True))
+    else:
+        execute = kernel.do_execute('locals().update({1:2})', True)
+
+    nsview = repr(kernel.get_namespace_view())
+    assert "1:" in nsview
+
+
 if __name__ == "__main__":
     pytest.main()

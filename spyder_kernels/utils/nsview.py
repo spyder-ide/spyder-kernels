@@ -593,11 +593,13 @@ def globalsfilter(input_dict, check_all=False, filters=None,
                   excluded_names=None, exclude_callables_and_modules=None):
     """Keep objects in namespace view according to different criteria."""
     output_dict = {}
+    _is_string = is_type_text_string
+
     for key, value in list(input_dict.items()):
         excluded = (
-            (exclude_private and key.startswith('_')) or
-            (exclude_capitalized and key[0].isupper()) or
-            (exclude_uppercase and key.isupper() and
+            (exclude_private and _is_string(key) and key.startswith('_')) or
+            (exclude_capitalized and _is_string(key) and key[0].isupper()) or
+            (exclude_uppercase and _is_string(key) and key.isupper() and
              len(key) > 1 and not key[1:].isdigit()) or
             (key in excluded_names) or
             (exclude_callables_and_modules and is_callable_or_module(value)) or
