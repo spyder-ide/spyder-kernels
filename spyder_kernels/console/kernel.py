@@ -133,7 +133,8 @@ class SpyderKernel(IPythonKernel):
         if sys.platform.startswith('linux'):
             # Do not use /tmp for temporary files
             try:
-                fault_dir = '/tmp/spyder'
+                from xdg.BaseDirectory import xdg_data_home
+                fault_dir = xdg_data_home
                 os.makedirs(fault_dir, exist_ok=True)
             except Exception:
                 fault_dir = None
