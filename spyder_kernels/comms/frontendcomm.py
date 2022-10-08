@@ -48,8 +48,7 @@ class FrontendComm(CommBase):
             self._comm_name, self._comm_open)
         self.comm_lock = threading.Lock()
         self._cached_messages = {}
-        self._pending_comms = []
-        self._iopub_ready = False
+        self._pending_comms = {}
 
     def close(self, comm_id=None):
         """Close the comm and notify the other side."""
@@ -127,7 +126,10 @@ class FrontendComm(CommBase):
 
     def notify_comm_ready(self, comm):
         """Send messages about comm readiness to frontend."""
-        self.remote_call(comm.comm_id)._comm_ready()
+        self.remote_call(
+            comm_id=comm.comm_id,
+            callback=self._comm_ready_callback
+        )._comm_ready()
 
         # Cached messages for that comm
         if comm.comm_id in self._cached_messages:
@@ -137,10 +139,8 @@ class FrontendComm(CommBase):
 
     def notify_iopub_ready(self):
         """Notify frontend that the iopub is ready"""
-        self._iopub_ready = True
-        for comm in self._pending_comms:
-            self.notify_comm_ready(comm)
-        self._pending_comms = []
+        for comm_id in self._pending_comms:
+            self.notify_comm_ready(self._pending_comms[comm_id])
 
     # --- Private --------
     def _wait_reply(self, comm_id, call_id, call_name, timeout, retry=True):
@@ -156,6 +156,10 @@ class FrontendComm(CommBase):
                 "Timeout while waiting for '{}' reply.".format(
                     call_name))
 
+    def _comm_ready_callback(self, ret):
+        """A comm has replied"""
+        self._pending_comms.pop(self.calling_comm_id, None)
+
     def _comm_open(self, comm, msg):
         """
         A new comm is open!
@@ -165,10 +169,8 @@ class FrontendComm(CommBase):
         self._set_pickle_protocol(
             msg['content']['data']['pickle_highest_protocol'])
 
-        if not self._iopub_ready:
-            # Frontend will not recieve comm messages
-            self._pending_comms.append(comm)
-            return
+        # Frontend might not recieve comm messages, might send again later
+        self._pending_comms[comm.comm_id] = comm
         self.notify_comm_ready(comm)
 
     def _comm_close(self, msg):

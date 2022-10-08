@@ -67,6 +67,7 @@ class SpyderShell(ZMQInteractiveShell):
         if self.active_eventloop != "inline":
             # Some eventloops prevent the kernel from shutting down
             self.enable_gui('inline')
+        self.kernel.exit_iopub_monitor_thread()
         return super(SpyderShell, self).ask_exit()
 
     def _showtraceback(self, etype, evalue, stb):

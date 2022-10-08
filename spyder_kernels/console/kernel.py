@@ -116,16 +116,20 @@ class SpyderKernel(IPythonKernel):
         #    publisher sends)
         self.quit_event = threading.Event()
         self.iopub_monitor = self.iopub_socket.get_monitor_socket(
-            zmq.EVENT_ACCEPTED)
+            zmq.EVENT_HANDSHAKE_SUCCEEDED)
         self.iopub_monitor_thread = threading.Thread(
             target=self._iopub_monitor_main)
         self.iopub_monitor_thread.start()
 
     # -- Public API -----------------------------------------------------------
     def do_shutdown(self, restart):
-       """Disable faulthandler if enabled before proceeding."""
-       self.quit_event.set()
-       super(SpyderKernel, self).do_shutdown(restart)
+        """Disable faulthandler if enabled before proceeding."""
+        self.exit_iopub_monitor_thread()
+        super(SpyderKernel, self).do_shutdown(restart)
+
+    def exit_iopub_monitor_thread(self):
+        self.quit_event.set()
+        self.iopub_monitor.context.destroy()
 
     def frontend_call(self, blocking=False, broadcast=True,
                       timeout=None, callback=None):
