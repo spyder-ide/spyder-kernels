@@ -108,29 +108,7 @@ class SpyderKernel(IPythonKernel):
         # Socket to signal shell_stream locally
         self.loopback_socket = None
 
-        # Monitor iopub for new connections
-        # This is necessary because any iopub message 
-        # (including comm responses) will be dropped before iopub connection is
-        # finished. (See https://zguide.zeromq.org/docs/chapter1 :
-        # ** the subscriber will always miss the first messages that the 
-        #    publisher sends)
-        self.quit_event = threading.Event()
-        self.iopub_monitor = self.iopub_socket.get_monitor_socket(
-            zmq.EVENT_HANDSHAKE_SUCCEEDED)
-        self.iopub_monitor_thread = threading.Thread(
-            target=self._iopub_monitor_main)
-        self.iopub_monitor_thread.start()
-
     # -- Public API -----------------------------------------------------------
-    def do_shutdown(self, restart):
-        """Disable faulthandler if enabled before proceeding."""
-        self.exit_iopub_monitor_thread()
-        super(SpyderKernel, self).do_shutdown(restart)
-
-    def exit_iopub_monitor_thread(self):
-        self.quit_event.set()
-        self.iopub_monitor.context.destroy()
-
     def frontend_call(self, blocking=False, broadcast=True,
                       timeout=None, callback=None):
         """Call the frontend."""
@@ -697,14 +675,6 @@ class SpyderKernel(IPythonKernel):
             os.environ.pop('PYTHONPATH', None)
 
     # -- Private API ---------------------------------------------------
-    def _iopub_monitor_main(self):
-        """
-        Send comm message to frontend when comms are connected
-        """
-        while not self.quit_event.is_set():
-            self.iopub_monitor.recv()
-            self.frontend_comm.notify_iopub_ready()
-
     # --- For the Variable Explorer
     def _get_current_namespace(self, with_magics=False, frame=None):
         """

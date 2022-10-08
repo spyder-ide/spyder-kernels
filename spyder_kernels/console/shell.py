@@ -64,11 +64,10 @@ class SpyderShell(ZMQInteractiveShell):
 
     def ask_exit(self):
         """Engage the exit actions."""
-        if self.active_eventloop != "inline":
+        if self.active_eventloop not in [None, "inline"]:
             # Some eventloops prevent the kernel from shutting down
             self.enable_gui('inline')
-        self.kernel.exit_iopub_monitor_thread()
-        return super(SpyderShell, self).ask_exit()
+        super(SpyderShell, self).ask_exit()
 
     def _showtraceback(self, etype, evalue, stb):
         """

@@ -49,6 +49,7 @@ class FrontendComm(CommBase):
         self.comm_lock = threading.Lock()
         self._cached_messages = {}
         self._pending_comms = {}
+        self.iopub_monitor = None
 
     def close(self, comm_id=None):
         """Close the comm and notify the other side."""
@@ -137,12 +138,41 @@ class FrontendComm(CommBase):
                 comm.handle_msg(msg)
             self._cached_messages.pop(comm.comm_id)
 
-    def notify_iopub_ready(self):
-        """Notify frontend that the iopub is ready"""
-        for comm_id in self._pending_comms:
-            self.notify_comm_ready(self._pending_comms[comm_id])
-
     # --- Private --------
+    def _wait_for_iopub_connect(self, comm):
+        """Wait 10 seconds for iopub new connections."""
+        # This is necessary because any iopub message 
+        # (including comm responses) will be dropped before iopub connection is
+        # finished. (See https://zguide.zeromq.org/docs/chapter1 :
+        # ** the subscriber will always miss the first messages that the 
+        #    publisher sends)
+        if self.iopub_monitor is None:
+            self.iopub_monitor = self.kernel.iopub_socket.get_monitor_socket(
+                zmq.EVENT_HANDSHAKE_SUCCEEDED)
+        iopub_monitor_thread = threading.Thread(
+            target=self._iopub_monitor_main, args=(comm.comm_id, ))
+        self._pending_comms[comm.comm_id] = (comm, iopub_monitor_thread)
+        iopub_monitor_thread.start()
+
+    def _iopub_monitor_main(self, comm_id):
+        """
+        Send comm message to frontend when comms are connected
+        """
+        if self.iopub_monitor.poll(1e4):
+            # If a message is recieved on iopub_monitor, there is a good chance
+            # That it will go through. Try sending again if it passed
+            if comm_id in self._pending_comms:
+                self.notify_comm_ready(self._pending_comms[comm_id][0])
+            # remove the recieved message
+            self.iopub_monitor.recv(flags=zmq.NOBLOCK)
+            # There usually is a second message
+            if self.iopub_monitor.poll(100):
+                self.iopub_monitor.recv(flags=zmq.NOBLOCK)
+
+    def _comm_ready_callback(self, ret):
+        """A comm has replied"""
+        self._pending_comms.pop(self.calling_comm_id, None)
+
     def _wait_reply(self, comm_id, call_id, call_name, timeout, retry=True):
         """Wait until the frontend replies to a request."""
         def reply_received():
@@ -156,10 +186,6 @@ class FrontendComm(CommBase):
                 "Timeout while waiting for '{}' reply.".format(
                     call_name))
 
-    def _comm_ready_callback(self, ret):
-        """A comm has replied"""
-        self._pending_comms.pop(self.calling_comm_id, None)
-
     def _comm_open(self, comm, msg):
         """
         A new comm is open!
@@ -169,9 +195,10 @@ class FrontendComm(CommBase):
         self._set_pickle_protocol(
             msg['content']['data']['pickle_highest_protocol'])
 
-        # Frontend might not recieve comm messages, might send again later
-        self._pending_comms[comm.comm_id] = comm
         self.notify_comm_ready(comm)
+        # The above call might fail if iopub is not connected.
+        # Check if a connection happens soon
+        self._wait_for_iopub_connect(comm)
 
     def _comm_close(self, msg):
         """Close comm."""
