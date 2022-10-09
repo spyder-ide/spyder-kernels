@@ -159,8 +159,8 @@ class FrontendComm(CommBase):
         Send comm message to frontend when comms are connected
         """
         if self.iopub_monitor.poll(1e4):
-            # If a message is recieved on iopub_monitor, there is a good chance
-            # That it will go through. Try sending again if it passed
+            # If a message is received on iopub_monitor, there is a good chance
+            # that it will go through. Try sending it again if it passed.
             if comm_id in self._pending_comms:
                 self.notify_comm_ready(self._pending_comms[comm_id][0])
             # remove the recieved message
