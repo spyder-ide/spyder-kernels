@@ -29,7 +29,7 @@ import zmq
 from zmq.utils.garbage import gc
 
 # Local imports
-from spyder_kernels.comms.frontendcomm import FrontendComm, CommError
+from spyder_kernels.comms.frontendcomm import FrontendComm
 from spyder_kernels.utils.iofuncs import iofunctions
 from spyder_kernels.utils.mpl import (
     MPL_BACKENDS_FROM_SPYDER, MPL_BACKENDS_TO_SPYDER, INLINE_FIGURE_FORMATS)

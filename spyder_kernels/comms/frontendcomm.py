@@ -163,8 +163,9 @@ class FrontendComm(CommBase):
             # that it will go through. Try sending it again if it passed.
             if comm_id in self._pending_comms:
                 self.notify_comm_ready(self._pending_comms[comm_id][0])
-            # remove the recieved message
+            # Remove the received message
             self.iopub_monitor.recv(flags=zmq.NOBLOCK)
+
             # There usually is a second message
             if self.iopub_monitor.poll(100):
                 self.iopub_monitor.recv(flags=zmq.NOBLOCK)
@@ -196,8 +197,9 @@ class FrontendComm(CommBase):
             msg['content']['data']['pickle_highest_protocol'])
 
         self.notify_comm_ready(comm)
+
         # The above call might fail if iopub is not connected.
-        # Check if a connection happens soon
+        # Check if a connection will happen soon
         self._wait_for_iopub_connect(comm)
 
     def _comm_close(self, msg):
