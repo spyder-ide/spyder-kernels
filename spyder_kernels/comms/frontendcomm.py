@@ -10,7 +10,6 @@ In addition to the remote_call mechanism implemented in CommBase:
 """
 
 import asyncio
-import pickle
 import sys
 import threading
 import time
@@ -49,7 +48,6 @@ class FrontendComm(CommBase):
         self.comm_lock = threading.Lock()
         self._cached_messages = {}
         self._pending_comms = {}
-        self.iopub_monitor = None
 
     def close(self, comm_id=None):
         """Close the comm and notify the other side."""
@@ -125,54 +123,35 @@ class FrontendComm(CommBase):
             self._cached_messages[comm_id] = []
         self._cached_messages[comm_id].append(msg)
 
-    def notify_comm_ready(self, comm):
+    # --- Private --------
+    def _check_comm_reply(self):
+        """
+        Send comm message to frontend to check if the iopub channel is ready
+        """
+        if len(self._pending_comms) == 0:
+            return
+        for comm in self._pending_comms.values():
+            self._notify_comm_ready(comm)
+        self.kernel.io_loop.call_later(1, self._check_comm_reply)
+
+    def _notify_comm_ready(self, comm):
         """Send messages about comm readiness to frontend."""
         self.remote_call(
             comm_id=comm.comm_id,
             callback=self._comm_ready_callback
         )._comm_ready()
 
+    def _comm_ready_callback(self, ret):
+        """A comm has replied"""
+        comm = self._pending_comms.pop(self.calling_comm_id, None)
+        if not comm:
+            return
         # Cached messages for that comm
         if comm.comm_id in self._cached_messages:
             for msg in self._cached_messages[comm.comm_id]:
                 comm.handle_msg(msg)
             self._cached_messages.pop(comm.comm_id)
 
-    # --- Private --------
-    def _wait_for_iopub_connect(self, comm):
-        """Wait 10 seconds for iopub new connections."""
-        # This is necessary because any iopub message 
-        # (including comm responses) will be dropped before iopub connection is
-        # finished. (See https://zguide.zeromq.org/docs/chapter1 :
-        # ** the subscriber will always miss the first messages that the 
-        #    publisher sends)
-        if self.iopub_monitor is None:
-            self.iopub_monitor = self.kernel.iopub_socket.get_monitor_socket(
-                zmq.EVENT_HANDSHAKE_SUCCEEDED)
-        iopub_monitor_thread = threading.Thread(
-            target=self._iopub_monitor_main, args=(comm.comm_id, ))
-        self._pending_comms[comm.comm_id] = (comm, iopub_monitor_thread)
-        iopub_monitor_thread.start()
-
-    def _iopub_monitor_main(self, comm_id):
-        """
-        Send comm message to frontend when comms are connected
-        """
-        if self.iopub_monitor.poll(1e4):
-            # If a message is received on iopub_monitor, there is a good chance
-            # that it will go through. Try sending it again if it passed.
-            if comm_id in self._pending_comms:
-                self.notify_comm_ready(self._pending_comms[comm_id][0])
-            # Remove the received message
-            self.iopub_monitor.recv(flags=zmq.NOBLOCK)
-
-            # There usually is a second message
-            if self.iopub_monitor.poll(100):
-                self.iopub_monitor.recv(flags=zmq.NOBLOCK)
-
-    def _comm_ready_callback(self, ret):
-        """A comm has replied"""
-        self._pending_comms.pop(self.calling_comm_id, None)
 
     def _wait_reply(self, comm_id, call_id, call_name, timeout, retry=True):
         """Wait until the frontend replies to a request."""
@@ -196,11 +175,11 @@ class FrontendComm(CommBase):
         self._set_pickle_protocol(
             msg['content']['data']['pickle_highest_protocol'])
 
-        self.notify_comm_ready(comm)
-
-        # The above call might fail if iopub is not connected.
-        # Check if a connection will happen soon
-        self._wait_for_iopub_connect(comm)
+        # IOPub might not be connected yet, keep sending messages until a
+        # reply is recieved
+        self._pending_comms[comm.comm_id] = comm
+        self._notify_comm_ready(comm)
+        self.kernel.io_loop.call_later(.3, self._check_comm_reply)
 
     def _comm_close(self, msg):
         """Close comm."""
