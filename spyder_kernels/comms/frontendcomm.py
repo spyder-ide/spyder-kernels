@@ -259,22 +259,22 @@ class FrontendComm(CommBase):
 
     def _remote_callback(self, call_name, call_args, call_kwargs):
         """Call the callback function for the remote call."""
-        # save stdout and stderr in case another thread changes them
-        current_stdout = sys.stdout
-        current_stderr = sys.stderr
-        saved_stdout_write = current_stdout.write
-        saved_stderr_write = current_stderr.write
-        thread_id = threading.get_ident()
-        current_stdout.write = WriteWrapper(
-            saved_stdout_write, call_name, thread_id)
-        current_stderr.write = WriteWrapper(
-            saved_stderr_write, call_name, thread_id)
-        try:
-            return super(FrontendComm, self)._remote_callback(
-                call_name, call_args, call_kwargs)
-        finally:
-            current_stdout.write = saved_stdout_write
-            current_stderr.write = saved_stderr_write
+        with self.comm_lock:
+            current_stdout = sys.stdout
+            current_stderr = sys.stderr
+            saved_stdout_write = current_stdout.write
+            saved_stderr_write = current_stderr.write
+            thread_id = threading.get_ident()
+            current_stdout.write = WriteWrapper(
+                saved_stdout_write, call_name, thread_id)
+            current_stderr.write = WriteWrapper(
+                saved_stderr_write, call_name, thread_id)
+            try:
+                return super(FrontendComm, self)._remote_callback(
+                    call_name, call_args, call_kwargs)
+            finally:
+                current_stdout.write = saved_stdout_write
+                current_stderr.write = saved_stderr_write
 
 
 class WriteWrapper(object):
