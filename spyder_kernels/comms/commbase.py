@@ -186,8 +186,7 @@ class CommBase:
         call_name : str
             The name of the called function.
         handler : callback
-            A function to handle the request, or `None` to unregister
-            `call_name`.
+            A function to handle the request.
         """
         self._remote_call_handlers[call_name] = handler
 
