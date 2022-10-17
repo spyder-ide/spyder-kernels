@@ -64,7 +64,7 @@ class FrontendComm(CommBase):
         self.register_call_handler('_send_comm_config',
                                    self._send_comm_config)
 
-        self.comm_lock = threading.Lock()
+        self.comm_lock = threading.RLock()
 
         # self.kernel.parent is IPKernelApp unless we are in tests
         if self.kernel.parent:
