@@ -46,7 +46,7 @@ class FrontendComm(CommBase):
         self.kernel = kernel
         self.kernel.comm_manager.register_target(
             self._comm_name, self._comm_open)
-        self.comm_lock = threading.Lock()
+        self.comm_lock = threading.RLock()
         self._cached_messages = {}
 
     def close(self, comm_id=None):
