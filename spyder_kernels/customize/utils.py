@@ -117,7 +117,11 @@ def capture_last_Expr(code_ast, out_varname):
         if sys.version_info[:2] >= (3, 8):
             # Exists from 3.8, necessary from 3.11
             assign_node.end_lineno = expr_node.end_lineno
-            assign_node.end_col_offset = expr_node.end_col_offset
+            if assign_node.lineno == assign_node.end_lineno:
+                # Add 'globals()[{}] = ' and remove 'None'
+                assign_node.end_col_offset += expr_node.end_col_offset - 4
+            else:
+                assign_node.end_col_offset = expr_node.end_col_offset
         code_ast.body[-1] = assign_node
     return code_ast, capture_last_expression
 
