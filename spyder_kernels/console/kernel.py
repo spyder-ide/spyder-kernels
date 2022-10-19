@@ -126,21 +126,21 @@ class SpyderKernel(IPythonKernel):
             callback=callback,
             timeout=timeout)
 
+    def get_state(self):
+        """"get current state to send to the frontend"""
+        state = {}
+        state["cwd"] = self.get_cwd()
+        state["namespace_view"] = self.get_namespace_view()
+        state["var_properties"] = self.get_var_properties()
+        return state
+
     def publish_state(self):
         """Publish the current kernel state"""
         if not self.frontend_comm.is_open():
             # No one to send to
             return
-        state = {}
-        cwd = self.get_cwd()
-        if cwd:
-            state["cwd"] = cwd
-        namespace_view = self.get_namespace_view()
-        state["namespace_view"] = namespace_view
-        var_properties = self.get_var_properties()
-        state["var_properties"] = var_properties
         try:
-            self.frontend_call(blocking=False).update_state(state)
+            self.frontend_call(blocking=False).update_state(self.get_state())
         except Exception:
             pass
 
