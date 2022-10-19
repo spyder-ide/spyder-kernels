@@ -34,6 +34,7 @@ from spyder_kernels.utils.mpl import (
 from spyder_kernels.utils.nsview import (
     get_remote_data, make_remote_view, get_size)
 from spyder_kernels.console.shell import SpyderShell
+from spyder_kernels.utils.iofuncs import WriteContext
 
 
 
@@ -69,7 +70,6 @@ class SpyderKernel(IPythonKernel):
             'remove_value': self.remove_value,
             'copy_value': self.copy_value,
             'set_cwd': self.set_cwd,
-            'get_cwd': self.get_cwd,
             'get_syspath': self.get_syspath,
             'get_env': self.get_env,
             'close_all_mpl_figures': self.close_all_mpl_figures,
@@ -129,9 +129,10 @@ class SpyderKernel(IPythonKernel):
     def get_state(self):
         """"get current state to send to the frontend"""
         state = {}
-        state["cwd"] = self.get_cwd()
-        state["namespace_view"] = self.get_namespace_view()
-        state["var_properties"] = self.get_var_properties()
+        with WriteContext("get_state"):
+            state["cwd"] = self.get_cwd()
+            state["namespace_view"] = self.get_namespace_view()
+            state["var_properties"] = self.get_var_properties()
         return state
 
     def publish_state(self):
