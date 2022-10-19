@@ -126,6 +126,24 @@ class SpyderKernel(IPythonKernel):
             callback=callback,
             timeout=timeout)
 
+    def publish_state(self):
+        """Publish the current kernel state"""
+        if not self.frontend_comm.is_open():
+            # No one to send to
+            return
+        state = {}
+        cwd = self.get_cwd()
+        if cwd:
+            state["cwd"] = cwd
+        namespace_view = self.get_namespace_view()
+        state["namespace_view"] = namespace_view
+        var_properties = self.get_var_properties()
+        state["var_properties"] = var_properties
+        try:
+            self.frontend_call(blocking=False).update_state(state)
+        except Exception:
+            pass
+
     def enable_faulthandler(self, fn):
         """
         Open a file to save the faulthandling and identifiers for
