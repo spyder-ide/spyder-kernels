@@ -96,6 +96,7 @@ class SpyderKernel(IPythonKernel):
         self._mpl_backend_error = None
         self._running_namespace = None
         self.faulthandler_handle = None
+        self._cwd_initialised = False
 
         # Add handlers to control to process messages while debugging
         self.control_handlers['comm_msg'] = self.control_comm_msg
@@ -130,7 +131,8 @@ class SpyderKernel(IPythonKernel):
         """"get current state to send to the frontend"""
         state = {}
         with WriteContext("get_state"):
-            state["cwd"] = self.get_cwd()
+            if self._cwd_initialised:
+                state["cwd"] = self.get_cwd()
             state["namespace_view"] = self.get_namespace_view()
             state["var_properties"] = self.get_var_properties()
         return state
@@ -565,7 +567,9 @@ class SpyderKernel(IPythonKernel):
     # --- Additional methods
     def set_cwd(self, dirname):
         """Set current working directory."""
+        self._cwd_initialised = True
         os.chdir(dirname)
+        self.publish_state()
 
     def get_cwd(self):
         """Get current working directory."""
