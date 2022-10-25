@@ -505,21 +505,39 @@ class SpyderKernel(IPythonKernel):
         }
 
         try:
-            gui = self.shell.active_eventloop
+            # --- Get interactive framework
+            framework = None
 
-            if gui in mapping:
-                return MPL_BACKENDS_TO_SPYDER[mapping[gui]]
+            # This is necessary because _get_running_interactive_framework
+            # can't detect Tk in a Jupyter kernel.
+            if hasattr(self, 'app_wrapper'):
+                if hasattr(self.app_wrapper, 'app'):
+                    import tkinter
+                    if isinstance(self.app_wrapper.app, tkinter.Tk):
+                        framework = 'tk'
+
+            if framework is None:
+                try:
+                    # This is necessary for Matplotlib 3.3.0+
+                    from matplotlib import cbook
+                    framework = cbook._get_running_interactive_framework()
+                except AttributeError:
+                    # For older versions
+                    from matplotlib import backends
+                    framework = backends._get_running_interactive_framework()
 
             # --- Return backend according to framework
-            if gui in [None, 'inline']:
+            if framework is None:
                 # Since no interactive backend has been set yet, this is
                 # equivalent to having the inline one.
                 return 0
-
-            # This covers the case of other backends (e.g. Wx or Gtk)
-            # which users can set interactively with the %matplotlib
-            # magic but not through our Preferences.
-            return -1
+            elif framework in mapping:
+                return MPL_BACKENDS_TO_SPYDER[mapping[framework]]
+            else:
+                # This covers the case of other backends (e.g. Wx or Gtk)
+                # which users can set interactively with the %matplotlib
+                # magic but not through our Preferences.
+                return -1
         except Exception:
             return None
 
