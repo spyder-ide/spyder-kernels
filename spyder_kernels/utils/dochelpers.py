@@ -110,11 +110,7 @@ def getdoc(obj):
             doc['note'] = 'Function'
         doc['name'] = obj.__name__
         if inspect.isfunction(obj):
-            (args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults,
-             annotations) = inspect.getfullargspec(obj)
-            doc['argspec'] = inspect.formatargspec(
-                args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults,
-                annotations, formatvalue=lambda o: '='+repr(o))
+            doc['argspec'] = str(inspect.signature(obj))
             if name == '<lambda>':
                 doc['name'] = name + ' lambda '
                 doc['argspec'] = doc['argspec'][1:-1] # remove parentheses
