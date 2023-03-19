@@ -4,13 +4,10 @@
 # Licensed under the terms of the MIT License
 # (see spyder_kernels/__init__.py for details)
 
-import builtins
 import linecache
 import os.path
 import types
 import sys
-
-from IPython.core.getipython import get_ipython
 
 
 def new_main_mod(filename, modname):
@@ -41,8 +38,14 @@ class NamespaceManager:
     """
 
     def __init__(
-        self, filename, current_namespace=False, file_code=None, local_ns=None
+        self,
+        shell,
+        filename,
+        current_namespace=False,
+        file_code=None,
+        local_ns=None
     ):
+        self.shell = shell
         self.filename = filename
         self.ns_globals = None
         self.ns_locals = None
@@ -51,8 +54,7 @@ class NamespaceManager:
         self._previous_main = None
         self._reset_main = False
         self._file_code = file_code
-        ipython_shell = get_ipython()
-        self.context_globals = ipython_shell.user_ns
+        self.context_globals = shell.user_ns
         self.context_locals = local_ns
 
     def __enter__(self):
@@ -60,7 +62,6 @@ class NamespaceManager:
         Prepare the namespace.
         """
         # Save previous __file__
-        ipython_shell = get_ipython()
         if self.current_namespace:
             self.ns_globals = self.context_globals
             self.ns_locals = self.context_locals
@@ -78,7 +79,7 @@ class NamespaceManager:
             self._reset_main = True
 
         # Save current namespace for access by variable explorer
-        ipython_shell.add_namespace_manager(self)
+        self.shell.add_namespace_manager(self)
 
         if (self._file_code is not None
                 and isinstance(self._file_code, bytes)):
@@ -100,8 +101,7 @@ class NamespaceManager:
         """
         Reset the namespace.
         """
-        ipython_shell = get_ipython()
-        ipython_shell.remove_namespace_manager(self)
+        self.shell.remove_namespace_manager(self)
         if self._previous_filename:
             self.ns_globals['__file__'] = self._previous_filename
         elif '__file__' in self.ns_globals:

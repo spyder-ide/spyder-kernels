@@ -288,6 +288,7 @@ class SpyderCodeRunner(Magics):
         filename = canonic_filename
 
         with NamespaceManager(
+            self.shell,
             filename,
             current_namespace=current_namespace,
             file_code=file_code,
@@ -379,7 +380,11 @@ class SpyderCodeRunner(Magics):
         filename = canonic_filename
 
         with NamespaceManager(
-            filename, current_namespace=True, file_code=file_code, local_ns=local_ns
+            self.shell,
+            filename,
+            current_namespace=True,
+            file_code=file_code,
+            local_ns=local_ns
         ) as (ns_globals, ns_locals):
             return self._exec_code(
                 cell_code,

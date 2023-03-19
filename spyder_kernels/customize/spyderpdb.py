@@ -19,7 +19,6 @@ from collections import namedtuple
 
 from IPython.core.autocall import ZMQExitAutocall
 from IPython.core.debugger import Pdb as ipyPdb
-from IPython.core.getipython import get_ipython
 from IPython.core.inputtransformer2 import TransformerManager
 
 import spyder_kernels
@@ -42,7 +41,7 @@ class DebugWrapper:
         """
         Debugging starts.
         """
-        shell = get_ipython()
+        shell = self.shell
         if shell.pdb_session == self.pdb_obj:
             self._cleanup = False
         else:
@@ -54,7 +53,7 @@ class DebugWrapper:
         Debugging ends.
         """
         if self._cleanup:
-            get_ipython().remove_pdb_session(self.pdb_obj)
+            self.shell.remove_pdb_session(self.pdb_obj)
 
 class SpyderPdb(ipyPdb):
     """
@@ -176,7 +175,7 @@ class SpyderPdb(ipyPdb):
                 sys.stdout = self.stdout
                 sys.displayhook = self.displayhook
                 if execute_events:
-                     get_ipython().events.trigger('pre_execute')
+                     self.shell.events.trigger('pre_execute')
 
                 code_ast = ast.parse(line)
 
@@ -273,7 +272,7 @@ class SpyderPdb(ipyPdb):
 
             finally:
                 if execute_events:
-                     get_ipython().events.trigger('post_execute')
+                     self.shell.events.trigger('post_execute')
                 sys.stdout = save_stdout
                 sys.stdin = save_stdin
                 sys.displayhook = save_displayhook
@@ -291,12 +290,12 @@ class SpyderPdb(ipyPdb):
 
     def set_trace(self, frame=None):
         """Register that debugger is tracing."""
-        get_ipython().add_pdb_session(self)
+        self.shell.add_pdb_session(self)
         super(SpyderPdb, self).set_trace(frame)
 
     def set_quit(self):
         """Register that debugger is not tracing."""
-        get_ipython().remove_pdb_session(self)
+        self.shell.remove_pdb_session(self)
         super(SpyderPdb, self).set_quit()
 
     def interaction(self, frame, traceback):
@@ -459,7 +458,7 @@ class SpyderPdb(ipyPdb):
         cursor_start = cursor_pos - len(text)
 
         if ipython_do_complete:
-            kernel = get_ipython().kernel
+            kernel = self.shell.kernel
             # Make complete call with current frame
             if self.curframe:
                 if self.curframe_locals:
@@ -567,7 +566,7 @@ class SpyderPdb(ipyPdb):
                 'status': 'ok'
                 }
 
-        kernel = get_ipython().kernel
+        kernel = self.shell.kernel
         # Make complete call with current frame
         if self.curframe:
             if self.curframe_locals:
@@ -670,7 +669,7 @@ class SpyderPdb(ipyPdb):
         """
         Get input from frontend. Blocks until return
         """
-        kernel = get_ipython().kernel
+        kernel = self.shell.kernel
         # Only works if the comm is open
         if not kernel.frontend_comm.is_open():
             return input(prompt)
@@ -766,7 +765,7 @@ class SpyderPdb(ipyPdb):
 
         The state is only sent if it has changed since the last update.
         """
-        state = get_ipython().kernel.get_state()
+        state = self.shell.kernel.get_state()
 
         frame = self.curframe
         if frame is None:
