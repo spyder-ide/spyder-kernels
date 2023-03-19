@@ -67,8 +67,6 @@ class SpyderPdb(ipyPdb):
      - Add completion to non-command code.
     """
 
-    starting = True
-
     def __init__(self, completekey='tab', stdin=None, stdout=None,
                  skip=None, nosigint=False):
         """Init Pdb."""
@@ -123,12 +121,13 @@ class SpyderPdb(ipyPdb):
             self.print_exclamation_warning()
             self.error("Unknown command '" + line.split()[0] + "'")
             return
-        # Disallow the use of %debug magic in the debugger
-        if line.startswith("%debug"):
-            self.error("Please don't use '%debug' in the debugger.\n"
-                       "For a recursive debugger, use the pdb 'debug'"
-                       " command instead")
-            return
+
+        # Replace %debug magic in the debugger
+        if line.startswith("%debug") or line.startswith("%%debug"):
+            cmd, arg, _ = self.parseline(line.lstrip("%"))
+            if cmd == "debug":
+                return self.do_debug(arg)
+
         locals = self.curframe_locals
         globals = self.curframe.f_globals
 
@@ -188,6 +187,8 @@ class SpyderPdb(ipyPdb):
                     code_ast, capture_last_expression = capture_last_Expr(
                         code_ast, "_spyderpdb_out")
 
+                globals["__spyder_builtins__"] = builtins
+
                 if locals is not globals:
                     # Mitigates a behaviour of CPython that makes it difficult
                     # to work with exec and the local namespace
@@ -212,31 +213,28 @@ class SpyderPdb(ipyPdb):
                     indent = "    "
                     code = ["def _spyderpdb_code():"]
 
-                    # Load the locals
-                    globals["_spyderpdb_builtins_locals"] = builtins.locals
-
-                    # Save builtins locals in case it is shadowed
-                    globals["_spyderpdb_locals"] = locals
+                    # Add locals in globals
+                    # If the debugger is recursive, the globals could already
+                    # have a _spyderpdb_locals as it might be shared between
+                    # levels
+                    if "_spyderpdb_locals" in globals:
+                        globals["_spyderpdb_locals"].append(locals)
+                    else:
+                        globals["_spyderpdb_locals"] = [locals]
 
                     # Load locals if they have a valid name
                     # In comprehensions, locals could contain ".0" for example
-                    code += [indent + "{k} = _spyderpdb_locals['{k}']".format(
+                    code += [indent + "{k} = _spyderpdb_locals[-1]['{k}']".format(
                         k=k) for k in locals if k.isidentifier()]
 
+                    # The code comes here
 
                     # Update the locals
-                    code += [indent + "_spyderpdb_locals.update("
-                             "_spyderpdb_builtins_locals())"]
+                    code += [indent + "_spyderpdb_locals[-1].update("
+                             "__spyder_builtins__.locals())"]
 
                     # Run the function
                     code += ["_spyderpdb_code()"]
-
-                    # Cleanup
-                    code += [
-                        "del _spyderpdb_code",
-                        "del _spyderpdb_locals",
-                        "del _spyderpdb_builtins_locals"
-                    ]
 
                     # Parse the function
                     fun_ast = ast.parse('\n'.join(code) + '\n')
@@ -249,7 +247,17 @@ class SpyderPdb(ipyPdb):
                     )
                     code_ast = fun_ast
 
-                exec(compile(code_ast, "<stdin>", "exec"), globals)
+                try:
+                    exec(compile(code_ast, "<stdin>", "exec"), globals)
+                finally:
+                    if locals is not globals:
+                        # CLeanup code
+                        globals.pop("_spyderpdb_code", None)
+                        if len(globals["_spyderpdb_locals"]) > 1:
+                            del globals["_spyderpdb_locals"][-1]
+                        else:
+                            del globals["_spyderpdb_locals"]
+                        
 
                 if capture_last_expression:
                     out = globals.pop("_spyderpdb_out", None)
@@ -312,24 +320,63 @@ class SpyderPdb(ipyPdb):
     # --- Methods overriden for skipping libraries
     def stop_here(self, frame):
         """Check if pdb should stop here."""
-        if (frame is not None
-                and "__tracebackhide__" in frame.f_locals
-                and frame.f_locals["__tracebackhide__"] == "__pdb_exit__"):
+        # Never stop if we are continuing unless there is a breakpoint
+        if self.stopframe == self.botframe and self.stoplineno == -1:
+            return False
+        if self.should_continue(frame):
+            self.set_continue()
+            return False
+        if (
+            frame is not None
+            and "__tracebackhide__" in frame.f_locals
+            and frame.f_locals["__tracebackhide__"] == "__pdb_exit__"
+        ):
             self.onecmd('exit')
             return False
 
         if not super(SpyderPdb, self).stop_here(frame):
             return False
+        if frame is self.stopframe:
+            return True
         filename = frame.f_code.co_filename
         if filename.startswith('<'):
             # This is not a file
             return True
         if self.pdb_ignore_lib and path_is_library(filename):
             return False
-        if os.path.dirname(spyder_kernels.__file__) in filename:
+        if self.skip_hidden and os.path.dirname(spyder_kernels.__file__) in filename:
             # This is spyder-kernels internals
             return False
         return True
+    
+    def should_continue(self, frame):
+        """
+        Jump to first breakpoint if needed
+
+        Fixes spyder-ide/spyder#2034
+        """
+
+        if not self.continue_if_has_breakpoints:
+            # This was disabled
+            return False
+        self.continue_if_has_breakpoints = False
+
+        # Get all breakpoints for the file we're going to debug
+        if not frame:
+            # We are not debugging, return. Solves spyder-ide/spyder#10290
+            return False
+
+        lineno = frame.f_lineno
+        breaks = self.get_file_breaks(frame.f_code.co_filename)
+
+        # Do 'continue' if the first breakpoint is *not* placed
+        # where the debugger is going to land.
+        # Fixes spyder-ide/spyder#4681
+        if self.pdb_stop_first_line:
+            return breaks and lineno < breaks[0]
+
+        # The breakpoint could be in another file.
+        return not (breaks and lineno >= breaks[0])
 
     def do_where(self, arg):
         """w(here)
@@ -713,39 +760,6 @@ class SpyderPdb(ipyPdb):
 
     breakpoints = property(fset=set_spyder_breakpoints)
 
-    def should_do_continue(self):
-        """
-        Jump to first breakpoint if needed
-
-        Fixes spyder-ide/spyder#2034
-        """
-        if not self.starting:
-            # Only run this after a Pdb session is created
-            return False
-        self.starting = False
-
-        if not self.continue_if_has_breakpoints:
-            # This was disabled
-            return False
-
-        # Get all breakpoints for the file we're going to debug
-        frame = self.curframe
-        if not frame:
-            # We are not debugging, return. Solves spyder-ide/spyder#10290
-            return False
-
-        lineno = frame.f_lineno
-        breaks = self.get_file_breaks(frame.f_code.co_filename)
-
-        # Do 'continue' if the first breakpoint is *not* placed
-        # where the debugger is going to land.
-        # Fixes spyder-ide/spyder#4681
-        if self.pdb_stop_first_line:
-            return breaks and lineno < breaks[0]
-
-        # The breakpoint could be in another file.
-        return not (breaks and lineno >= breaks[0])
-
     def get_pdb_state(self):
         """
         Send debugger state (frame position) to the frontend.
@@ -753,12 +767,6 @@ class SpyderPdb(ipyPdb):
         The state is only sent if it has changed since the last update.
         """
         state = get_ipython().kernel.get_state()
-        if self.starting and self.should_do_continue():
-            if self.pdb_use_exclamation_mark:
-                cont_cmd = '!continue'
-            else:
-                cont_cmd = 'continue'
-            state['request_pdb_input'] = cont_cmd
 
         frame = self.curframe
         if frame is None:
@@ -807,7 +815,6 @@ class SpyderPdb(ipyPdb):
 
         globals defaults to __main__.dict; locals defaults to globals.
         """
-        self.starting = True
         with DebugWrapper(self):
             super(SpyderPdb, self).run(cmd, globals, locals)
 
@@ -816,7 +823,6 @@ class SpyderPdb(ipyPdb):
 
         globals defaults to __main__.dict; locals defaults to globals.
         """
-        self.starting = True
         with DebugWrapper(self):
             super(SpyderPdb, self).runeval(expr, globals, locals)
 
@@ -825,7 +831,6 @@ class SpyderPdb(ipyPdb):
 
         Return the result of the function call.
         """
-        self.starting = True
         with DebugWrapper(self):
             super(SpyderPdb, self).runcall(*args, **kwds)
 
