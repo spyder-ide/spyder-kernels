@@ -133,7 +133,7 @@ def runcell_arguments(func):
 
 
 @magics_class
-class SpyderMagics(Magics):
+class SpyderCodeRunner(Magics):
     """Magics related to code execution, debugging, profiling, etc."""
 
     @runfile_arguments
