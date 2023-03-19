@@ -105,14 +105,6 @@ def kernel_config():
     clear_argv = "import sys; sys.argv = ['']; del sys"
     spy_cfg.IPKernelApp.exec_lines = [clear_argv]
 
-    # Set our runfile in builtins here to prevent other packages shadowing it.
-    # This started to be a problem since IPykernel 6.3.0.
-    spy_cfg.IPKernelApp.exec_lines.append(
-        "import builtins; "
-        "builtins.runfile = builtins.spyder_runfile; "
-        "del builtins.spyder_runfile; del builtins"
-    )
-
     # Prevent other libraries to change the breakpoint builtin.
     # This started to be a problem since IPykernel 6.3.0.
     if sys.version_info[0:2] >= (3, 7):

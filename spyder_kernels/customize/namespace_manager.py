@@ -40,10 +40,11 @@ class NamespaceManager:
     current_namespace is True, or a new namespace.
     """
 
-    def __init__(self, filename, namespace=None, current_namespace=False,
-                 file_code=None, stack_depth=1):
+    def __init__(
+        self, filename, current_namespace=False, file_code=None, local_ns=None
+    ):
         self.filename = filename
-        self.ns_globals = namespace
+        self.ns_globals = None
         self.ns_locals = None
         self.current_namespace = current_namespace
         self._previous_filename = None
@@ -51,8 +52,8 @@ class NamespaceManager:
         self._reset_main = False
         self._file_code = file_code
         ipython_shell = get_ipython()
-        self.context_globals = ipython_shell.get_global_scope(stack_depth + 1)
-        self.context_locals = ipython_shell.get_local_scope(stack_depth + 1)
+        self.context_globals = ipython_shell.user_ns
+        self.context_locals = local_ns
 
     def __enter__(self):
         """
@@ -60,22 +61,21 @@ class NamespaceManager:
         """
         # Save previous __file__
         ipython_shell = get_ipython()
-        if self.ns_globals is None:
-            if self.current_namespace:
-                self.ns_globals = self.context_globals
-                self.ns_locals = self.context_locals
-                if '__file__' in self.ns_globals:
-                    self._previous_filename = self.ns_globals['__file__']
-                self.ns_globals['__file__'] = self.filename
-            else:
-                main_mod = new_main_mod(self.filename, '__main__')
-                self.ns_globals = main_mod.__dict__
-                self.ns_locals = None
-                # Needed to allow pickle to reference main
-                if '__main__' in sys.modules:
-                    self._previous_main = sys.modules['__main__']
-                sys.modules['__main__'] = main_mod
-                self._reset_main = True
+        if self.current_namespace:
+            self.ns_globals = self.context_globals
+            self.ns_locals = self.context_locals
+            if '__file__' in self.ns_globals:
+                self._previous_filename = self.ns_globals['__file__']
+            self.ns_globals['__file__'] = self.filename
+        else:
+            main_mod = new_main_mod(self.filename, '__main__')
+            self.ns_globals = main_mod.__dict__
+            self.ns_locals = None
+            # Needed to allow pickle to reference main
+            if '__main__' in sys.modules:
+                self._previous_main = sys.modules['__main__']
+            sys.modules['__main__'] = main_mod
+            self._reset_main = True
 
         # Save current namespace for access by variable explorer
         ipython_shell.add_namespace_manager(self)

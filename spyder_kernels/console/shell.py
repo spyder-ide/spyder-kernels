@@ -12,6 +12,7 @@ Spyder shell for Jupyter kernels.
 
 # Standard library imports
 import bdb
+import builtins
 import logging
 import os
 import signal
@@ -26,6 +27,7 @@ from ipykernel.zmqshell import ZMQInteractiveShell
 import spyder_kernels
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 from spyder_kernels.customize.spyderpdb import SpyderPdb
+from spyder_kernels.customize.code_runner import SpyderCodeRunner
 from spyder_kernels.comms.frontendcomm import CommError
 from spyder_kernels.utils.mpl import automatic_backend
 
@@ -63,6 +65,18 @@ class SpyderShell(ZMQInteractiveShell):
         # register post_execute
         self.events.register('post_execute', self.do_post_execute)
 
+    def init_magics(self):
+        """Init magics"""
+        super().init_magics()
+        code_runner = SpyderCodeRunner(shell=self)
+        self.register_magics(code_runner)
+        builtins.runfile = code_runner.runfile
+        builtins.debugfile = code_runner.debugfile
+        builtins.profilefile = code_runner.profilefile
+        builtins.runcell = code_runner.runcell
+        builtins.debugcell = code_runner.debugcell
+        builtins.profilecell = code_runner.profilecell
+        
     def ask_exit(self):
         """Engage the exit actions."""
         if self.active_eventloop not in [None, "inline"]:

@@ -834,46 +834,8 @@ class SpyderPdb(ipyPdb):
         with DebugWrapper(self):
             super(SpyderPdb, self).runcall(*args, **kwds)
 
-    def enter_recursive_debugger(self, code, filename,
-                                 continue_if_has_breakpoints):
-        """
-        Enter debugger recursively.
-        """
-        sys.settrace(None)
-        globals = self.curframe.f_globals
-        locals = self.curframe_locals
-        # Create child debugger
-        debugger = SpyderPdb(
-            completekey=self.completekey,
-            stdin=self.stdin, stdout=self.stdout)
-        debugger.use_rawinput = self.use_rawinput
-        debugger.prompt = "(%s) " % self.prompt.strip()
-
-        debugger.set_remote_filename(filename)
-        debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
-
-        # Enter recursive debugger
-        sys.call_tracing(debugger.run, (code, globals, locals))
-        # Reset parent debugger
-        sys.settrace(self.trace_dispatch)
-        self.lastcmd = debugger.lastcmd
-
-        # Reset _previous_step so that get_pdb_state() notifies Spyder about
-        # a changed debugger position. The reset is required because the
-        # recursive debugger might change the position, but the parent debugger
-        # (self) is not aware of this.
-        self._previous_step = None
-
     def set_remote_filename(self, filename):
         """Set remote filename to signal Spyder on mainpyfile."""
         self.remote_filename = filename
         self.mainpyfile = self.canonic(filename)
         self._wait_for_mainpyfile = True
-
-
-def get_new_debugger(filename, continue_if_has_breakpoints):
-    """Get a new debugger."""
-    debugger = SpyderPdb()
-    debugger.set_remote_filename(filename)
-    debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
-    return debugger
