@@ -124,11 +124,6 @@ class SpyderShell(ZMQInteractiveShell):
                 if self.pdb_session:
                     setattr(self.pdb_session, key, pdb_conf[key])
 
-    def get_global_scope(self, stack_depth):
-        """Get global scope at given frame depth."""
-        frame = sys._getframe(stack_depth + 1)
-        return frame.f_globals
-
     def is_debugging(self):
         """
         Check if we are currently debugging.
