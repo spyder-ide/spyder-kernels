@@ -41,7 +41,7 @@ class DebugWrapper:
         """
         Debugging starts.
         """
-        shell = self.shell
+        shell = self.pdb_obj.shell
         if shell.pdb_session == self.pdb_obj:
             self._cleanup = False
         else:
@@ -53,7 +53,7 @@ class DebugWrapper:
         Debugging ends.
         """
         if self._cleanup:
-            self.shell.remove_pdb_session(self.pdb_obj)
+            self.pdb_obj.shell.remove_pdb_session(self.pdb_obj)
 
 class SpyderPdb(ipyPdb):
     """
