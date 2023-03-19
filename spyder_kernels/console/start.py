@@ -259,7 +259,7 @@ def varexp(line):
     except:
         import matplotlib.pyplot as pyplot
     pyplot.figure();
-    getattr(pyplot, funcname[2:])(ip.kernel._get_current_namespace()[name])
+    getattr(pyplot, funcname[2:])(ip._get_current_namespace()[name])
     pyplot.show()
 
 

@@ -4,6 +4,7 @@
 # Licensed under the terms of the MIT License
 # (see spyder_kernels/__init__.py for details)
 
+import builtins
 import linecache
 import os.path
 import types
@@ -47,7 +48,6 @@ class NamespaceManager:
         self.current_namespace = current_namespace
         self._previous_filename = None
         self._previous_main = None
-        self._previous_running_namespace = None
         self._reset_main = False
         self._file_code = file_code
         ipython_shell = get_ipython()
@@ -78,10 +78,7 @@ class NamespaceManager:
                 self._reset_main = True
 
         # Save current namespace for access by variable explorer
-        self._previous_running_namespace = (
-            ipython_shell.kernel._running_namespace)
-        ipython_shell.kernel._running_namespace = (
-            self.ns_globals, self.ns_locals)
+        ipython_shell.add_namespace_manager(self)
 
         if (self._file_code is not None
                 and isinstance(self._file_code, bytes)):
@@ -104,8 +101,7 @@ class NamespaceManager:
         Reset the namespace.
         """
         ipython_shell = get_ipython()
-        ipython_shell.kernel._running_namespace = (
-            self._previous_running_namespace)
+        ipython_shell.remove_namespace_manager(self)
         if self._previous_filename:
             self.ns_globals['__file__'] = self._previous_filename
         elif '__file__' in self.ns_globals:
@@ -117,8 +113,6 @@ class NamespaceManager:
 
         if not self.current_namespace:
             self.context_globals.update(self.ns_globals)
-            if self.context_locals and self.ns_locals:
-                self.context_locals.update(self.ns_locals)
 
         if self._previous_main:
             sys.modules['__main__'] = self._previous_main
