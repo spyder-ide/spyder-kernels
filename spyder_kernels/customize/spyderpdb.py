@@ -55,6 +55,7 @@ class DebugWrapper:
         if self._cleanup:
             self.pdb_obj.shell.remove_pdb_session(self.pdb_obj)
 
+
 class SpyderPdb(ipyPdb):
     """
     Extends Pdb to add features:
@@ -307,14 +308,12 @@ class SpyderPdb(ipyPdb):
             return super(SpyderPdb, self).interaction(
                 frame, traceback)
 
-    def print_stack_entry(self, frame_lineno, prompt_prefix='\n-> ',
-                          context=None):
+    def print_stack_entry(self, *args, **kwargs):
         """Disable printing stack entry if requested."""
         if self._disable_next_stack_entry:
             self._disable_next_stack_entry = False
             return
-        return super(SpyderPdb, self).print_stack_entry(
-            frame_lineno, prompt_prefix, context)
+        return super(SpyderPdb, self).print_stack_entry(*args, **kwargs)
 
     # --- Methods overriden for skipping libraries
     def stop_here(self, frame):
@@ -322,7 +321,7 @@ class SpyderPdb(ipyPdb):
         # Never stop if we are continuing unless there is a breakpoint
         if self.stopframe == self.botframe and self.stoplineno == -1:
             return False
-        if self.should_continue(frame):
+        if self.continue_if_has_breakpoints and self.should_continue(frame):
             self.set_continue()
             return False
         if (
@@ -458,7 +457,6 @@ class SpyderPdb(ipyPdb):
         cursor_start = cursor_pos - len(text)
 
         if ipython_do_complete:
-            kernel = self.shell.kernel
             # Make complete call with current frame
             if self.curframe:
                 if self.curframe_locals:
@@ -467,10 +465,10 @@ class SpyderPdb(ipyPdb):
                                   self.curframe.f_globals)
                 else:
                     frame = self.curframe
-                kernel.shell.set_completer_frame(frame)
-            result = kernel._do_complete(code, cursor_pos)
+                self.shell.set_completer_frame(frame)
+            result = self.shell.kernel._do_complete(code, cursor_pos)
             # Reset frame
-            kernel.shell.set_completer_frame()
+            self.shell.set_completer_frame()
             # If there is no Pdb results to merge, return the result
             if not compfunc:
                 return result
@@ -566,7 +564,6 @@ class SpyderPdb(ipyPdb):
                 'status': 'ok'
                 }
 
-        kernel = self.shell.kernel
         # Make complete call with current frame
         if self.curframe:
             if self.curframe_locals:
@@ -575,10 +572,10 @@ class SpyderPdb(ipyPdb):
                               self.curframe.f_globals)
             else:
                 frame = self.curframe
-            kernel.shell.set_completer_frame(frame)
-        result = kernel._do_complete(code, cursor_pos)
+            self.shell.set_completer_frame(frame)
+        result = self.shell.kernel._do_complete(code, cursor_pos)
         # Reset frame
-        kernel.shell.set_completer_frame()
+        self.shell.set_completer_frame()
         return result
 
     # --- Methods overriden by us for Spyder integration
