@@ -34,7 +34,9 @@ from IPython.core.magic import (
     line_cell_magic,
     magics_class,
     Magics,
+    line_magic,
 )
+from IPython.core import magic_arguments
 
 from spyder_kernels.comms.frontendcomm import frontend_request, CommError
 from spyder_kernels.customize.namespace_manager import NamespaceManager
@@ -49,125 +51,213 @@ SHOW_GLOBAL_MSG = True
 SHOW_INVALID_SYNTAX_MSG = True
 
 
-@magics_class
-class SpyderCodeRunner(Magics):
-    """
-    Functions and Magics related to code execution, debugging, profiling, etc.
-    """
+def runfile_arguments(func):
+    """Decorator to add runfile magic arguments to magic."""
+    decorators = [
+        magic_arguments.magic_arguments(),
+        magic_arguments.argument(
+            "filename",
+            help="""
+            filename to run
+            """,
+        ),
+        magic_arguments.argument(
+            "--args",
+            help="""
+            command line arguments (string)
+            """,
+        ),
+        magic_arguments.argument(
+            "--wdir",
+            const=True,
+            nargs="?",
+            help="""
+            working directory
+            """,
+        ),
+        magic_arguments.argument(
+            "--post-mortem",
+            action="store_true",
+            help="""
+            enter post-mortem mode on error
+            """,
+        ),
+        magic_arguments.argument(
+            "--current-namespace",
+            action="store_true",
+            help="""
+            use current namespace
+            """,
+        )
+        ]
+    for dec in reversed(decorators):
+        func = dec(func)
+    return func
 
-    def runfile(self, filename=None, args=None, wdir=None, namespace=None,
-                post_mortem=False, current_namespace=False):
+
+def runcell_arguments(func):
+    """Decorator to add runcell magic arguments to magic."""
+    decorators = [
+        magic_arguments.magic_arguments(),
+        magic_arguments.argument(
+            "--name", "-n",
+            help="""
+            Cell name.
+            """,
+        ),
+        magic_arguments.argument(
+            "--index", "-i",
+            help="""
+            Cell index.
+            """,
+        ),
+        magic_arguments.argument(
+            "filename",
+            nargs="?",
+            help="""
+            filename
+            """,
+        ),
+        magic_arguments.argument(
+            "--post-mortem",
+            action="store_true",
+            default=False,
+            help="""
+            Automatically enter post mortem on exception.
+            """,
+        )
+        ]
+    for dec in reversed(decorators):
+        func = dec(func)
+    return func
+
+
+@magics_class
+class SpyderMagics(Magics):
+    """Magics related to code execution, debugging, profiling, etc."""
+
+    @runfile_arguments
+    @needs_local_scope
+    @line_magic
+    def runfile(self, line, local_ns=None):
         """
         Run a file.
         """
-        local_ns = self.shell.get_local_scope(1)
-        if filename is None:
-            filename = self._get_current_file_name()
-        canonic_filename = canonic(filename)
+        args = self._parse_argstring(self.runfile, line)
+
         return self._exec_file(
-            filename=filename,
-            canonic_filename=canonic_filename,
-            args=args,
-            wdir=wdir,
-            post_mortem=post_mortem,
-            current_namespace=current_namespace,
+            filename=args.filename,
+            canonic_filename=args.canonic_filename,
+            args=args.args,
+            wdir=args.wdir,
+            post_mortem=args.post_mortem,
+            current_namespace=args.current_namespace,
             local_ns=local_ns,
         )
 
-    def debugfile(self, filename=None, args=None, wdir=None, namespace=None,
-                  post_mortem=False, current_namespace=False):
+    @runfile_arguments
+    @needs_local_scope
+    @line_magic
+    def debugfile(self, line, local_ns=None):
         """
         Debug a file.
         """
-        local_ns = self.shell.get_local_scope(1)
-        if filename is None:
-            filename = self._get_current_file_name()
-        canonic_filename = canonic(filename)
-        with self._debugger_exec(canonic_filename, True) as debug_exec:
+        args = self._parse_argstring(self.debugfile, line)
+
+        with self._debugger_exec(args.canonic_filename, True) as debug_exec:
             self._exec_file(
-                filename=filename,
-                canonic_filename=canonic_filename,
-                args=args,
-                wdir=wdir,
-                current_namespace=current_namespace,
+                filename=args.filename,
+                canonic_filename=args.canonic_filename,
+                args=args.args,
+                wdir=args.wdir,
+                current_namespace=args.current_namespace,
                 exec_fun=debug_exec,
-                post_mortem=post_mortem,
+                post_mortem=args.post_mortem,
                 local_ns=local_ns,
             )
 
-    def profilefile(self, filename=None, args=None, wdir=None, namespace=None,
-                    post_mortem=False, current_namespace=False):
+    @runfile_arguments
+    @needs_local_scope
+    @line_magic
+    def profilefile(self, line, local_ns=None):
         """
         Profile a file.
         """
-        local_ns = self.shell.get_local_scope(1)
-        if filename is None:
-            filename = self._get_current_file_name()
-        canonic_filename = canonic(filename)
+        args = self._parse_argstring(self.profilefile, line)
+
         with self._profile_exec() as prof_exec:
             self._exec_file(
-                filename=filename,
-                canonic_filename=canonic_filename,
-                wdir=wdir,
-                current_namespace=current_namespace,
-                args=args,
+                filename=args.filename,
+                canonic_filename=args.canonic_filename,
+                wdir=args.wdir,
+                current_namespace=args.current_namespace,
+                args=args.args,
                 exec_fun=prof_exec,
-                post_mortem=post_mortem,
+                post_mortem=args.post_mortem,
                 local_ns=local_ns,
             )
 
-    def runcell(self, cellname, filename=None, post_mortem=False):
+    @runcell_arguments
+    @needs_local_scope
+    @line_magic
+    def runcell(self, line, local_ns=None):
         """
         Run a code cell from an editor.
         """
-        local_ns = self.shell.get_local_scope(1)
-        if filename is None:
-            filename = self._get_current_file_name()
-        canonic_filename = canonic(filename)
+        args = self._parse_argstring(self.runcell, line)
+        cell_id = args.name
+        if cell_id is None:
+            cell_id = int(args.index)
 
         return self._exec_cell(
-            cell_id=cellname,
-            filename=filename,
-            canonic_filename=canonic_filename,
-            post_mortem=post_mortem,
+            cell_id=cell_id,
+            filename=args.filename,
+            canonic_filename=args.canonic_filename,
+            post_mortem=args.post_mortem,
             local_ns=local_ns
         )
 
-    def debugcell(self, cellname, filename=None, post_mortem=False):
+    @runcell_arguments
+    @needs_local_scope
+    @line_magic
+    def debugcell(self, line, local_ns=None):
         """
         Debug a code cell from an editor.
         """
-        local_ns = self.shell.get_local_scope(1)
-        if filename is None:
-            filename = self._get_current_file_name()
-        canonic_filename = canonic(filename)
+        args = self._parse_argstring(self.debugcell, line)
+        cell_id = args.name
+        if cell_id is None:
+            cell_id = int(args.index)
 
-        with self._debugger_exec(canonic_filename, False) as debug_exec:
+        with self._debugger_exec(args.canonic_filename, False) as debug_exec:
             return self._exec_cell(
-                cell_id=cellname,
-                filename=filename,
-                canonic_filename=canonic_filename,
+                cell_id=cell_id,
+                filename=args.filename,
+                canonic_filename=args.canonic_filename,
                 exec_fun=debug_exec,
-                post_mortem=post_mortem,
+                post_mortem=args.post_mortem,
                 local_ns=local_ns,
             )
 
-    def profilecell(self, cellname, filename=None, post_mortem=False):
+    @runcell_arguments
+    @needs_local_scope
+    @line_magic
+    def profilecell(self, line, local_ns=None):
         """
         Profile a code cell from an editor.
         """
-        local_ns = self.shell.get_local_scope(1)
-        if filename is None:
-            filename = self._get_current_file_name()
-        canonic_filename = canonic(filename)
+        args = self._parse_argstring(self.profilecell, line)
+        cell_id = args.name
+        if cell_id is None:
+            cell_id = int(args.index)
 
         with self._profile_exec() as prof_exec:
             return self._exec_cell(
-                cell_id=cellname,
-                filename=filename,
-                canonic_filename=canonic_filename,
+                cell_id=cell_id,
+                filename=args.filename,
+                canonic_filename=args.canonic_filename,
                 exec_fun=prof_exec,
-                post_mortem=post_mortem,
+                post_mortem=args.post_mortem,
                 local_ns=local_ns,
             )
 
@@ -561,3 +651,18 @@ class SpyderCodeRunner(Magics):
             # wait for stdout to print
             time.sleep(0.1)
             p.interaction(frame, tb)
+    
+    def _parse_argstring(self, magic_func, argstring):
+        """
+        Parse a string of arguments for a magic function
+
+        This is needed because magic_arguments.parse_argstring does
+        plateform-dependent things with quotes and backslahes
+        e.g. on windows, string are removed and backslahes are escaped
+        """
+        argv = shlex.split(argstring)
+        args = magic_func.parser.parse_args(argv)
+        if args.filename is None:
+            args.filename = self._get_current_file_name()
+        args.canonic_filename = canonic(args.filename)
+        return args
