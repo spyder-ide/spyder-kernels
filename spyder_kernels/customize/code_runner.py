@@ -71,7 +71,8 @@ class SpyderCodeRunner(Magics):
             wdir=wdir,
             post_mortem=post_mortem,
             current_namespace=current_namespace,
-            local_ns=local_ns,
+            context_globals=self.shell.user_ns,
+            context_locals=local_ns,
         )
 
     def debugfile(self, filename=None, args=None, wdir=None, namespace=None,
@@ -92,7 +93,8 @@ class SpyderCodeRunner(Magics):
                 current_namespace=current_namespace,
                 exec_fun=debug_exec,
                 post_mortem=post_mortem,
-                local_ns=local_ns,
+                context_globals=self.shell.user_ns,
+                context_locals=local_ns,
             )
 
     def profilefile(self, filename=None, args=None, wdir=None, namespace=None,
@@ -113,7 +115,8 @@ class SpyderCodeRunner(Magics):
                 args=args,
                 exec_fun=prof_exec,
                 post_mortem=post_mortem,
-                local_ns=local_ns,
+                context_globals=self.shell.user_ns,
+                context_locals=local_ns,
             )
 
     def runcell(self, cellname, filename=None, post_mortem=False):
@@ -130,7 +133,8 @@ class SpyderCodeRunner(Magics):
             filename=filename,
             canonic_filename=canonic_filename,
             post_mortem=post_mortem,
-            local_ns=local_ns
+            context_globals=self.shell.user_ns,
+            context_locals=local_ns,
         )
 
     def debugcell(self, cellname, filename=None, post_mortem=False):
@@ -149,7 +153,8 @@ class SpyderCodeRunner(Magics):
                 canonic_filename=canonic_filename,
                 exec_fun=debug_exec,
                 post_mortem=post_mortem,
-                local_ns=local_ns,
+                context_globals=self.shell.user_ns,
+                context_locals=local_ns,
             )
 
     def profilecell(self, cellname, filename=None, post_mortem=False):
@@ -168,7 +173,8 @@ class SpyderCodeRunner(Magics):
                 canonic_filename=canonic_filename,
                 exec_fun=prof_exec,
                 post_mortem=post_mortem,
-                local_ns=local_ns,
+                context_globals=self.shell.user_ns,
+                context_locals=local_ns,
             )
 
     @no_var_expand
@@ -263,7 +269,8 @@ class SpyderCodeRunner(Magics):
         current_namespace=False,
         exec_fun=None,
         canonic_filename=None,
-        local_ns=None,
+        context_locals=None,
+        context_globals=None,
     ):
         """
         Execute a file.
@@ -292,7 +299,8 @@ class SpyderCodeRunner(Magics):
             filename,
             current_namespace=current_namespace,
             file_code=file_code,
-            local_ns=local_ns,
+            context_locals=context_locals,
+            context_globals=context_globals,
         ) as (ns_globals, ns_locals):
             sys.argv = [filename]
             if args is not None:
@@ -350,7 +358,8 @@ class SpyderCodeRunner(Magics):
         post_mortem=False,
         exec_fun=None,
         canonic_filename=None,
-        local_ns=None,
+        context_locals=None,
+        context_globals=None,
     ):
         """
         Execute a code cell.
@@ -384,7 +393,8 @@ class SpyderCodeRunner(Magics):
             filename,
             current_namespace=True,
             file_code=file_code,
-            local_ns=local_ns
+            context_locals=context_locals,
+            context_globals=context_globals
         ) as (ns_globals, ns_locals):
             return self._exec_code(
                 cell_code,

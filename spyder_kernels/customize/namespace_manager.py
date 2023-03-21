@@ -43,7 +43,8 @@ class NamespaceManager:
         filename,
         current_namespace=False,
         file_code=None,
-        local_ns=None
+        context_locals=None,
+        context_globals=None,
     ):
         self.shell = shell
         self.filename = filename
@@ -54,8 +55,10 @@ class NamespaceManager:
         self._previous_main = None
         self._reset_main = False
         self._file_code = file_code
-        self.context_globals = shell.user_ns
-        self.context_locals = local_ns
+        if context_globals is None:
+            context_globals = shell.user_ns
+        self.context_globals = context_globals
+        self.context_locals = context_locals
 
     def __enter__(self):
         """
