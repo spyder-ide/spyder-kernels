@@ -60,7 +60,12 @@ class SpyderCodeRunner(Magics):
         """
         Run a file.
         """
-        local_ns = self.shell.get_local_scope(1)
+        if namespace is None:
+            namespace = self.shell.user_ns
+            local_ns = self.shell.get_local_scope(1)
+        else:
+            local_ns = None
+            current_namespace = True
         if filename is None:
             filename = self._get_current_file_name()
         canonic_filename = canonic(filename)
@@ -71,7 +76,7 @@ class SpyderCodeRunner(Magics):
             wdir=wdir,
             post_mortem=post_mortem,
             current_namespace=current_namespace,
-            context_globals=self.shell.user_ns,
+            context_globals=namespace,
             context_locals=local_ns,
         )
 
@@ -80,7 +85,12 @@ class SpyderCodeRunner(Magics):
         """
         Debug a file.
         """
-        local_ns = self.shell.get_local_scope(1)
+        if namespace is None:
+            namespace = self.shell.user_ns
+            local_ns = self.shell.get_local_scope(1)
+        else:
+            local_ns = None
+            current_namespace = True
         if filename is None:
             filename = self._get_current_file_name()
         canonic_filename = canonic(filename)
@@ -93,7 +103,7 @@ class SpyderCodeRunner(Magics):
                 current_namespace=current_namespace,
                 exec_fun=debug_exec,
                 post_mortem=post_mortem,
-                context_globals=self.shell.user_ns,
+                context_globals=namespace,
                 context_locals=local_ns,
             )
 
@@ -102,7 +112,12 @@ class SpyderCodeRunner(Magics):
         """
         Profile a file.
         """
-        local_ns = self.shell.get_local_scope(1)
+        if namespace is None:
+            namespace = self.shell.user_ns
+            local_ns = self.shell.get_local_scope(1)
+        else:
+            local_ns = None
+            current_namespace = True
         if filename is None:
             filename = self._get_current_file_name()
         canonic_filename = canonic(filename)
@@ -115,7 +130,7 @@ class SpyderCodeRunner(Magics):
                 args=args,
                 exec_fun=prof_exec,
                 post_mortem=post_mortem,
-                context_globals=self.shell.user_ns,
+                context_globals=namespace,
                 context_locals=local_ns,
             )
 
