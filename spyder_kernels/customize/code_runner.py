@@ -152,7 +152,7 @@ class SpyderCodeRunner(Magics):
             wdir=args.wdir,
             post_mortem=args.post_mortem,
             current_namespace=args.current_namespace,
-            context_globals=self.shell.user_ns,
+            context_globals=namespace,
             context_locals=local_ns,
         )
 
@@ -174,7 +174,7 @@ class SpyderCodeRunner(Magics):
                 current_namespace=args.current_namespace,
                 exec_fun=debug_exec,
                 post_mortem=args.post_mortem,
-                context_globals=self.shell.user_ns,
+                context_globals=namespace,
                 context_locals=local_ns,
             )
 
@@ -196,7 +196,7 @@ class SpyderCodeRunner(Magics):
                 args=args.args,
                 exec_fun=prof_exec,
                 post_mortem=args.post_mortem,
-                context_globals=self.shell.user_ns,
+                context_globals=namespace,
                 context_locals=local_ns,
             )
 
