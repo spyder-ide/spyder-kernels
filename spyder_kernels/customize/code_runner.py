@@ -88,6 +88,12 @@ def runfile_arguments(func):
             help="""
             use current namespace
             """,
+        ),
+        magic_arguments.argument(
+            "--namespace",
+            help="""
+            namespace to run the file in
+            """,
         )
         ]
     for dec in reversed(decorators):
@@ -143,7 +149,8 @@ class SpyderCodeRunner(Magics):
         """
         Run a file.
         """
-        args = self._parse_argstring(self.runfile, line)
+        args, local_ns = self._parse_runfile_argstring(
+            self.runfile, line, local_ns)
 
         return self._exec_file(
             filename=args.filename,
@@ -152,7 +159,7 @@ class SpyderCodeRunner(Magics):
             wdir=args.wdir,
             post_mortem=args.post_mortem,
             current_namespace=args.current_namespace,
-            context_globals=namespace,
+            context_globals=args.namespace,
             context_locals=local_ns,
         )
 
@@ -163,7 +170,8 @@ class SpyderCodeRunner(Magics):
         """
         Debug a file.
         """
-        args = self._parse_argstring(self.debugfile, line)
+        args, local_ns = self._parse_runfile_argstring(
+            self.debugfile, line, local_ns)
 
         with self._debugger_exec(args.canonic_filename, True) as debug_exec:
             self._exec_file(
@@ -174,7 +182,7 @@ class SpyderCodeRunner(Magics):
                 current_namespace=args.current_namespace,
                 exec_fun=debug_exec,
                 post_mortem=args.post_mortem,
-                context_globals=namespace,
+                context_globals=args.namespace,
                 context_locals=local_ns,
             )
 
@@ -185,7 +193,8 @@ class SpyderCodeRunner(Magics):
         """
         Profile a file.
         """
-        args = self._parse_argstring(self.profilefile, line)
+        args, local_ns = self._parse_runfile_argstring(
+            self.profilefile, line, local_ns)
 
         with self._profile_exec() as prof_exec:
             self._exec_file(
@@ -196,7 +205,7 @@ class SpyderCodeRunner(Magics):
                 args=args.args,
                 exec_fun=prof_exec,
                 post_mortem=args.post_mortem,
-                context_globals=namespace,
+                context_globals=args.namespace,
                 context_locals=local_ns,
             )
 
@@ -207,13 +216,10 @@ class SpyderCodeRunner(Magics):
         """
         Run a code cell from an editor.
         """
-        args = self._parse_argstring(self.runcell, line)
-        cell_id = args.name
-        if cell_id is None:
-            cell_id = int(args.index)
+        args = self._parse_runcell_argstring(self.runcell, line)
 
         return self._exec_cell(
-            cell_id=cell_id,
+            cell_id=args.cell_id,
             filename=args.filename,
             canonic_filename=args.canonic_filename,
             post_mortem=args.post_mortem,
@@ -228,14 +234,11 @@ class SpyderCodeRunner(Magics):
         """
         Debug a code cell from an editor.
         """
-        args = self._parse_argstring(self.debugcell, line)
-        cell_id = args.name
-        if cell_id is None:
-            cell_id = int(args.index)
+        args = self._parse_runcell_argstring(self.debugcell, line)
 
         with self._debugger_exec(args.canonic_filename, False) as debug_exec:
             return self._exec_cell(
-                cell_id=cell_id,
+                cell_id=args.cell_id,
                 filename=args.filename,
                 canonic_filename=args.canonic_filename,
                 exec_fun=debug_exec,
@@ -251,14 +254,11 @@ class SpyderCodeRunner(Magics):
         """
         Profile a code cell from an editor.
         """
-        args = self._parse_argstring(self.profilecell, line)
-        cell_id = args.name
-        if cell_id is None:
-            cell_id = int(args.index)
+        args = self._parse_runcell_argstring(self.profilecell, line)
 
         with self._profile_exec() as prof_exec:
             return self._exec_cell(
-                cell_id=cell_id,
+                cell_id=args.cell_id,
                 filename=args.filename,
                 canonic_filename=args.canonic_filename,
                 exec_fun=prof_exec,
@@ -680,4 +680,35 @@ class SpyderCodeRunner(Magics):
         if args.filename is None:
             args.filename = self._get_current_file_name()
         args.canonic_filename = canonic(args.filename)
+        return args
+    
+    def _parse_runfile_argstring(self, magic_func, argstring, local_ns):
+        """
+        Parse a string for runfile
+        """
+        args = self._parse_argstring(magic_func, argstring)
+        if args.namespace is None:
+            args.namespace = self.shell.user_ns
+        else:
+            
+            if local_ns is not None and args.namespace in local_ns:
+                args.namespace = local_ns[args.namespace]
+            elif args.namespace in self.shell.user_ns:
+                args.namespace = self.shell.user_ns[args.namespace]
+            else:
+                raise NameError(
+                    f"name '{args.namespace}' is not defined"
+                )
+            local_ns = None
+            args.current_namespace = True
+        return args, local_ns
+
+    def _parse_runcell_argstring(self, magic_func, argstring):
+        """
+        Parse a sting for runcell
+        """
+        args = self._parse_argstring(magic_func, argstring)
+        args.cell_id = args.name
+        if args.cell_id is None:
+            args.cell_id = int(args.index)
         return args
