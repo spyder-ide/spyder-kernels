@@ -110,10 +110,6 @@ class NamespaceManager:
         elif '__file__' in self.ns_globals:
             self.ns_globals.pop('__file__')
 
-        # exec adds __builtins__ to the global namespace
-        if '__builtins__' in self.ns_globals:
-            self.ns_globals.pop('__builtins__')
-
         if not self.current_namespace:
             if self.context_locals is not None:
                 self.context_locals.update(self.ns_globals)
