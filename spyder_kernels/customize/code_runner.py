@@ -14,13 +14,10 @@ import ast
 import bdb
 import builtins
 from contextlib import contextmanager
-import cProfile
-from functools import partial
 import io
 import logging
 import os
 import pdb
-import tempfile
 import shlex
 import sys
 import time
@@ -32,19 +29,16 @@ from IPython.core.inputtransformer2 import (
     leading_empty_lines,
 )
 from IPython.core.magic import (
-    needs_local_scope,
-    no_var_expand,
-    line_cell_magic,
     magics_class,
     Magics,
 )
 
 # Local imports
-from spyder_kernels.comms.frontendcomm import frontend_request, CommError
+from spyder_kernels.comms.frontendcomm import frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 from spyder_kernels.customize.spyderpdb import SpyderPdb
 from spyder_kernels.customize.umr import UserModuleReloader
-from spyder_kernels.customize.utils import capture_last_Expr, canonic, create_pathlist
+from spyder_kernels.customize.utils import capture_last_Expr, canonic
 
 
 # UMR instance
@@ -118,33 +112,6 @@ class SpyderCodeRunner(Magics):
                 context_locals=local_ns,
             )
 
-    def profilefile(self, filename=None, args=None, wdir=None, namespace=None,
-                    post_mortem=False, current_namespace=False):
-        """
-        Profile a file.
-        """
-        if namespace is None:
-            namespace = self.shell.user_ns
-            local_ns = self.shell.get_local_scope(1)
-        else:
-            local_ns = None
-            current_namespace = True
-        if filename is None:
-            filename = self._get_current_file_name()
-        canonic_filename = canonic(filename)
-        with self._profile_exec() as prof_exec:
-            self._exec_file(
-                filename=filename,
-                canonic_filename=canonic_filename,
-                wdir=wdir,
-                current_namespace=current_namespace,
-                args=args,
-                exec_fun=prof_exec,
-                post_mortem=post_mortem,
-                context_globals=namespace,
-                context_locals=local_ns,
-            )
-
     def runcell(self, cellname, filename=None, post_mortem=False):
         """
         Run a code cell from an editor.
@@ -182,36 +149,6 @@ class SpyderCodeRunner(Magics):
                 context_globals=self.shell.user_ns,
                 context_locals=local_ns,
             )
-
-    def profilecell(self, cellname, filename=None, post_mortem=False):
-        """
-        Profile a code cell from an editor.
-        """
-        local_ns = self.shell.get_local_scope(1)
-        if filename is None:
-            filename = self._get_current_file_name()
-        canonic_filename = canonic(filename)
-
-        with self._profile_exec() as prof_exec:
-            return self._exec_cell(
-                cell_id=cellname,
-                filename=filename,
-                canonic_filename=canonic_filename,
-                exec_fun=prof_exec,
-                post_mortem=post_mortem,
-                context_globals=self.shell.user_ns,
-                context_locals=local_ns,
-            )
-
-    @no_var_expand
-    @needs_local_scope
-    @line_cell_magic
-    def profile(self, line, cell=None, local_ns=None):
-        """Profile the given line."""
-        if cell is not None:
-            line += "\n" + cell
-        with self._profile_exec() as prof_exec:
-            return prof_exec(line, self.shell.user_ns, local_ns)
 
     @contextmanager
     def _debugger_exec(self, filename, continue_if_has_breakpoints):
@@ -251,41 +188,6 @@ class SpyderCodeRunner(Magics):
             # recursive debugger might change the position, but the parent
             # debugger (self) is not aware of this.
             session._previous_step = None
-
-    @contextmanager
-    def _profile_exec(self):
-        """Get an exec function for profiling."""
-        with tempfile.TemporaryDirectory() as tempdir:
-            # Reset the tracing function in case we are debugging
-            trace_fun = sys.gettrace()
-            sys.settrace(None)
-            # Get a file to save the results
-            profile_filename = os.path.join(tempdir, "profile.prof")
-            try:
-                if self.shell.is_debugging():
-                    def prof_exec(code, glob, loc):
-                        # if we are debugging (tracing), call_tracing is
-                        # necessary for profiling
-                        return sys.call_tracing(cProfile.runctx, (
-                            code, glob, loc, profile_filename
-                        ))
-                    yield prof_exec
-                else:
-                    yield partial(cProfile.runctx, filename=profile_filename)
-            finally:
-                # Resect tracing function
-                sys.settrace(trace_fun)
-                if os.path.isfile(profile_filename):
-                    # Send result to frontend
-                    with open(profile_filename, "br") as f:
-                        profile_result = f.read()
-                    try:
-                        frontend_request(blocking=False).show_profile_file(
-                            profile_result, create_pathlist()
-                        )
-                    except CommError:
-                        logger.debug(
-                            "Could not send profile result to the frontend.")
 
     def _exec_file(
         self,
