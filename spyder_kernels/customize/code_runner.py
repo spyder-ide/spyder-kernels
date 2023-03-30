@@ -49,15 +49,8 @@ from spyder_kernels.customize.umr import UserModuleReloader
 from spyder_kernels.customize.utils import capture_last_Expr, canonic, create_pathlist
 
 
-# UMR instance
-__umr__ = UserModuleReloader(namelist=os.environ.get("SPY_UMR_NAMELIST", None))
-
 # For logging
 logger = logging.getLogger(__name__)
-
-# Main constants
-SHOW_GLOBAL_MSG = True
-SHOW_INVALID_SYNTAX_MSG = True
 
 
 def runfile_arguments(func):
@@ -152,6 +145,13 @@ class SpyderCodeRunner(Magics):
     """
     Functions and magics related to code execution, debugging, profiling, etc.
     """
+    def __init__(self, *args, **kwargs):
+        self.show_global_msg = True
+        self.show_invalid_syntax_msg = True
+        self.umr = UserModuleReloader(
+            namelist=os.environ.get("SPY_UMR_NAMELIST", None)
+        )
+        super().__init__(*args, **kwargs)
 
     @runfile_arguments
     @needs_local_scope
@@ -377,8 +377,8 @@ class SpyderCodeRunner(Magics):
         """
         Execute a file.
         """
-        if __umr__.enabled:
-            __umr__.run()
+        if self.umr.enabled:
+            self.umr.run()
         if args is not None and not isinstance(args, str):
             raise TypeError("expected a character buffer object")
 
@@ -435,7 +435,7 @@ class SpyderCodeRunner(Magics):
                     print("Working directory {} doesn't exist.\n".format(wdir))
 
             try:
-                if __umr__.has_cython:
+                if self.umr.has_cython:
                     # Cython files
                     with io.open(filename, encoding="utf-8") as f:
                         self.shell.run_cell_magic("cython", "", f.read())
@@ -554,9 +554,6 @@ class SpyderCodeRunner(Magics):
         global_warning=False,
     ):
         """Execute code and display any exception."""
-        global SHOW_INVALID_SYNTAX_MSG
-        global SHOW_GLOBAL_MSG
-
         if exec_fun is None:
             exec_fun = exec
 
@@ -575,7 +572,7 @@ class SpyderCodeRunner(Magics):
                     except SyntaxError:
                         raise e from None
                     else:
-                        if SHOW_INVALID_SYNTAX_MSG:
+                        if self.show_invalid_syntax_msg:
                             print(
                                 "\nWARNING: This is not valid Python code. "
                                 "If you want to use IPython magics, "
@@ -583,12 +580,12 @@ class SpyderCodeRunner(Magics):
                                 "we recommend that you save this file with the "
                                 ".ipy extension.\n"
                             )
-                            SHOW_INVALID_SYNTAX_MSG = False
+                            self.show_invalid_syntax_msg = False
             else:
                 ast_code = ast.parse(self._transform_cell(code))
 
             # Print warning for global
-            if global_warning and SHOW_GLOBAL_MSG:
+            if global_warning and self.show_global_msg:
                 has_global = any(
                     isinstance(node, ast.Global) for node in ast.walk(ast_code)
                 )
@@ -602,7 +599,7 @@ class SpyderCodeRunner(Magics):
                         "Configuration per file', if you want to capture the "
                         "namespace.\n"
                     )
-                    SHOW_GLOBAL_MSG = False
+                    self.show_global_msg = False
 
             if code.rstrip()[-1] == ";":
                 # Supress output with ;
