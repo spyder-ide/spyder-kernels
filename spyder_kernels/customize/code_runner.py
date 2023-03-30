@@ -4,14 +4,18 @@
 # Licensed under the terms of the MIT License
 # (see spyder_kernels/__init__.py for details)
 # -----------------------------------------------------------------------------
-#
-# Spyder magics
-#
 
+"""
+Spyder magics related to code execution, debugging, profiling, etc.
+"""
+
+# Standard library imports
 import ast
 import bdb
 import builtins
+from contextlib import contextmanager
 import cProfile
+from functools import partial
 import io
 import logging
 import os
@@ -20,9 +24,8 @@ import tempfile
 import shlex
 import sys
 import time
-from functools import partial
-from contextlib import contextmanager
 
+# Third-party imports
 from IPython.core.inputtransformer2 import (
     TransformerManager,
     leading_indent,
@@ -38,6 +41,7 @@ from IPython.core.magic import (
 )
 from IPython.core import magic_arguments
 
+# Local imports
 from spyder_kernels.comms.frontendcomm import frontend_request, CommError
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 from spyder_kernels.customize.spyderpdb import SpyderPdb
@@ -45,8 +49,13 @@ from spyder_kernels.customize.umr import UserModuleReloader
 from spyder_kernels.customize.utils import capture_last_Expr, canonic, create_pathlist
 
 
+# UMR instance
 __umr__ = UserModuleReloader(namelist=os.environ.get("SPY_UMR_NAMELIST", None))
+
+# For logging
 logger = logging.getLogger(__name__)
+
+# Main constants
 SHOW_GLOBAL_MSG = True
 SHOW_INVALID_SYNTAX_MSG = True
 
@@ -140,7 +149,9 @@ def runcell_arguments(func):
 
 @magics_class
 class SpyderCodeRunner(Magics):
-    """Magics related to code execution, debugging, profiling, etc."""
+    """
+    Functions and magics related to code execution, debugging, profiling, etc.
+    """
 
     @runfile_arguments
     @needs_local_scope
@@ -289,19 +300,20 @@ class SpyderCodeRunner(Magics):
 
         session = self.shell.pdb_session
         sys.settrace(None)
+
         # Create child debugger
         debugger = SpyderPdb(
             completekey=session.completekey,
             stdin=session.stdin, stdout=session.stdout)
         debugger.use_rawinput = session.use_rawinput
         debugger.prompt = "(%s) " % session.prompt.strip()
-
         debugger.set_remote_filename(filename)
         debugger.continue_if_has_breakpoints = continue_if_has_breakpoints
 
         try:
             def debug_exec(code, glob, loc):
                 return sys.call_tracing(debugger.run, (code, glob, loc))
+
             # Enter recursive debugger
             yield debug_exec
         finally:
@@ -374,9 +386,9 @@ class SpyderCodeRunner(Magics):
             file_code = self._get_file_code(filename, raise_exception=True)
         except Exception:
             print(
-                "This command failed to be executed because an error occurred"
-                " while trying to get the file code from Spyder's"
-                " editor. The error was:\n\n"
+                "This command failed to be executed because an error occurred "
+                "while trying to get the file code from Spyder's  editor. "
+                "The error was:\n\n"
             )
             self.shell.showtraceback(exception_only=True)
             return
@@ -411,11 +423,11 @@ class SpyderCodeRunner(Magics):
                     wdir = os.path.dirname(filename)
                 if os.path.isdir(wdir):
                     os.chdir(wdir)
+
                     # See https://github.com/spyder-ide/spyder/issues/13632
                     if "multiprocessing.process" in sys.modules:
                         try:
                             import multiprocessing.process
-
                             multiprocessing.process.ORIGINAL_DIR = os.path.abspath(wdir)
                         except Exception:
                             pass
@@ -459,9 +471,9 @@ class SpyderCodeRunner(Magics):
             cell_code = frontend_request(blocking=True).run_cell(cell_id, filename)
         except Exception:
             print(
-                "This command failed to be executed because an error occurred"
-                " while trying to get the cell code from Spyder's"
-                " editor. The error was:\n\n"
+                "This command failed to be executed because an error occurred "
+                "while trying to get the cell code from Spyder's editor."
+                "The error was:\n\n"
             )
             self.shell.showtraceback(exception_only=True)
             return
@@ -502,9 +514,9 @@ class SpyderCodeRunner(Magics):
             return frontend_request(blocking=True).current_filename()
         except Exception:
             print(
-                "This command failed to be executed because an error occurred"
-                " while trying to get the current file name from Spyder's"
-                " editor. The error was:\n\n"
+                "This command failed to be executed because an error occurred "
+                "while trying to get the current file name from Spyder's editor."
+                "The error was:\n\n"
             )
             self.shell.showtraceback(exception_only=True)
             return None
@@ -523,9 +535,11 @@ class SpyderCodeRunner(Magics):
                     return f.read()
             except FileNotFoundError:
                 pass
+
             if raise_exception:
                 raise
-            # Else return None
+
+            # Finally return None
             return None
 
     def _exec_code(
@@ -549,10 +563,12 @@ class SpyderCodeRunner(Magics):
         is_ipython = os.path.splitext(filename)[1] == ".ipy"
         try:
             if not is_ipython:
-                # TODO: remove the try-except and let the SyntaxError raise
-                # Because there should not be ipython code in a python file
+                # TODO: Remove the try-except and let the SyntaxError raise
+                # because there should't be IPython code in a Python file.
                 try:
-                    ast_code = ast.parse(self._transform_cell(code, indent_only=True))
+                    ast_code = ast.parse(
+                        self._transform_cell(code, indent_only=True)
+                    )
                 except SyntaxError as e:
                     try:
                         ast_code = ast.parse(self._transform_cell(code))
@@ -604,7 +620,6 @@ class SpyderCodeRunner(Magics):
                 out = ns_globals.pop("_spyder_out", None)
                 if out is not None:
                     return out
-
         except SystemExit as status:
             # ignore exit(0)
             if status.code:
