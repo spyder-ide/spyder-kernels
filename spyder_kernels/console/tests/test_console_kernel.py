@@ -1409,7 +1409,7 @@ def test_django_settings(kernel):
 @flaky(max_runs=3)
 def test_running_namespace_profile(tmpdir):
     """
-    Test that profile can get variables from running namespace.
+    Test that profile can get variables from the running namespace.
     """
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
@@ -1424,8 +1424,8 @@ def test_running_namespace_profile(tmpdir):
         d.write(code)
 
         # Run code file `d`
-        client.execute_interactive("%runfile {}"
-                                  .format(repr(str(d))), timeout=TIMEOUT)
+        client.execute_interactive(
+            "%runfile {}".format(repr(str(d))), timeout=TIMEOUT)
 
         # Verify that `result` is defined in the current namespace
         client.inspect('sucess')
