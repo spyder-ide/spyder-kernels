@@ -424,6 +424,83 @@ def load_dictionary(filename):
     return data, error_message
 
 
+def load_hdf5(filename):
+    """
+    Load an hdf5 file.
+
+    Notes
+    -----
+    - This is a fairly dumb implementation which reads the whole HDF5 file into
+      Spyder's variable explorer.  Since HDF5 files are designed for storing
+      very large data-sets, it may be much better to work directly with the
+      HDF5 objects, thus keeping the data on disk. Nonetheless, this gives
+      quick and dirty but convenient access to them.
+    - There is no support for creating files with compression, chunking etc,
+      although these can be read without problem.
+    - When reading an HDF5 file with sub-groups, groups in the file will
+      correspond to dictionaries with the same layout.
+    """
+    def get_group(group):
+        contents = {}
+        for name, obj in list(group.items()):
+            if isinstance(obj, h5py.Dataset):
+                contents[name] = np.array(obj)
+            elif isinstance(obj, h5py.Group):
+                # it is a group, so call self recursively
+                contents[name] = get_group(obj)
+            # other objects such as links are ignored
+        return contents
+
+    try:
+        import h5py
+
+        f = h5py.File(filename, 'r')
+        contents = get_group(f)
+        f.close()
+        return contents, None
+    except Exception as error:
+        return None, str(error)
+
+
+def save_hdf5(data, filename):
+    """
+    Save an hdf5 file.
+
+    Notes
+    -----
+    - All datatypes to be saved must be convertible to a numpy array, otherwise
+      an exception will be raised.
+    - Data attributes are currently ignored.
+    - When saving data after reading it with load_hdf5, dictionaries are not
+      turned into HDF5 groups.
+    """
+    try:
+        import h5py
+
+        f = h5py.File(filename, 'w')
+        for key, value in list(data.items()):
+            f[key] = np.array(value)
+        f.close()
+    except Exception as error:
+        return str(error)
+
+
+def load_dicom(filename):
+    """Load a DICOM files."""
+    try:
+        from pydicom import dicomio
+
+        name = osp.splitext(osp.basename(filename))[0]
+        try:
+            data = dicomio.read_file(filename, force=True)
+        except TypeError:
+            data = dicomio.read_file(filename)
+        arr = data.pixel_array
+        return {name: arr}, None
+    except Exception as error:
+        return None, str(error)
+
+
 class IOFunctions:
     def __init__(self):
         self.load_extensions = None
@@ -434,7 +511,7 @@ class IOFunctions:
         self.save_funcs = None
 
     def setup(self):
-        iofuncs = self.get_internal_funcs()+self.get_3rd_party_funcs()
+        iofuncs = self.get_internal_funcs()
         load_extensions = {}
         save_extensions = {}
         load_funcs = {}
@@ -442,6 +519,7 @@ class IOFunctions:
         load_filters = []
         save_filters = []
         load_ext = []
+
         for ext, name, loadfunc, savefunc in iofuncs:
             filter_str = str(name + " (*%s)" % ext)
             if loadfunc is not None:
@@ -453,9 +531,12 @@ class IOFunctions:
                 save_extensions[filter_str] = ext
                 save_filters.append(filter_str)
                 save_funcs[ext] = savefunc
+
         load_filters.insert(
-            0, str("Supported files" + " (*" + " *".join(load_ext) + ")"))
+            0, str("Supported files" + " (*" + " *".join(load_ext) + ")")
+        )
         load_filters.append(str("All files (*.*)"))
+
         self.load_filters = "\n".join(load_filters)
         self.save_filters = "\n".join(save_filters)
         self.load_funcs = load_funcs
@@ -465,35 +546,22 @@ class IOFunctions:
 
     def get_internal_funcs(self):
         return [
-                ('.spydata', "Spyder data files",
-                             load_dictionary, save_dictionary),
-                ('.npy', "NumPy arrays", load_array, None),
-                ('.npz', "NumPy zip arrays", load_array, None),
-                ('.mat', "Matlab files", load_matlab, save_matlab),
-                ('.csv', "CSV text files", 'import_wizard', None),
-                ('.txt', "Text files", 'import_wizard', None),
-                ('.jpg', "JPEG images", load_image, None),
-                ('.png', "PNG images", load_image, None),
-                ('.gif', "GIF images", load_image, None),
-                ('.tif', "TIFF images", load_image, None),
-                ('.pkl', "Pickle files", load_pickle, None),
-                ('.pickle', "Pickle files", load_pickle, None),
-                ('.json', "JSON files", load_json, None),
-                ]
-
-    def get_3rd_party_funcs(self):
-        other_funcs = []
-        try:
-            from spyder.otherplugins import get_spyderplugins_mods
-            for mod in get_spyderplugins_mods(io=True):
-                try:
-                    other_funcs.append((mod.FORMAT_EXT, mod.FORMAT_NAME,
-                                        mod.FORMAT_LOAD, mod.FORMAT_SAVE))
-                except AttributeError as error:
-                    print("%s: %s" % (mod, str(error)), file=sys.stderr)
-        except ImportError:
-            pass
-        return other_funcs
+            ('.spydata', "Spyder data files", load_dictionary, save_dictionary),
+            ('.npy', "NumPy arrays", load_array, None),
+            ('.npz', "NumPy zip arrays", load_array, None),
+            ('.mat', "Matlab files", load_matlab, save_matlab),
+            ('.csv', "CSV text files", 'import_wizard', None),
+            ('.txt', "Text files", 'import_wizard', None),
+            ('.jpg', "JPEG images", load_image, None),
+            ('.png', "PNG images", load_image, None),
+            ('.gif', "GIF images", load_image, None),
+            ('.tif', "TIFF images", load_image, None),
+            ('.pkl', "Pickle files", load_pickle, None),
+            ('.pickle', "Pickle files", load_pickle, None),
+            ('.json', "JSON files", load_json, None),
+            ('.h5', "HDF5 files", load_hdf5, save_hdf5),
+            ('.dcm', "DICOM images", load_dicom, None),
+        ]
 
     def save(self, data, filename):
         ext = osp.splitext(filename)[1].lower()
