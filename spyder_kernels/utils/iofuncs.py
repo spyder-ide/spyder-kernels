@@ -32,6 +32,8 @@ from spyder_kernels.utils.lazymodules import (
     FakeObject, numpy as np, pandas as pd, PIL, scipy as sp)
 
 
+# ---- For Matlab files
+# -----------------------------------------------------------------------------
 class MatlabStruct(dict):
     """
     Matlab style struct, enhanced.
@@ -41,7 +43,7 @@ class MatlabStruct(dict):
 
     Examples
     ========
-    >>> from spyder.utils.iofuncs import MatlabStruct
+    >>> from spyder_kernels.utils.iofuncs import MatlabStruct
     >>> a = MatlabStruct()
     >>> a.b = 'spam'  # a["b"] == 'spam'
     >>> a.c["d"] = 'eggs'  # a.c.d == 'eggs'
@@ -165,6 +167,8 @@ def save_matlab(data, filename):
         return str(error)
 
 
+# ---- For arrays
+# -----------------------------------------------------------------------------
 def load_array(filename):
     if np.load is FakeObject:
         return None, ''
@@ -189,6 +193,8 @@ def __save_array(data, basename, index):
     return fname
 
 
+# ---- For PIL images
+# -----------------------------------------------------------------------------
 if sys.byteorder == 'little':
     _ENDIAN = '<'
 else:
@@ -233,6 +239,8 @@ def load_image(filename):
         return None, str(error)
 
 
+# ---- For misc formats
+# -----------------------------------------------------------------------------
 def load_pickle(filename):
     """Load a pickle file as a dictionary"""
     try:
@@ -256,6 +264,8 @@ def load_json(filename):
         return None, str(err)
 
 
+# ---- For Spydata files
+# -----------------------------------------------------------------------------
 def save_dictionary(data, filename):
     """Save dictionary in a single file .spydata file"""
     filename = osp.abspath(filename)
@@ -424,6 +434,8 @@ def load_dictionary(filename):
     return data, error_message
 
 
+# ---- For HDF5 files
+# -----------------------------------------------------------------------------
 def load_hdf5(filename):
     """
     Load an hdf5 file.
@@ -485,6 +497,8 @@ def save_hdf5(data, filename):
         return str(error)
 
 
+# ---- For DICOM files
+# -----------------------------------------------------------------------------
 def load_dicom(filename):
     """Load a DICOM files."""
     try:
@@ -501,6 +515,8 @@ def load_dicom(filename):
         return None, str(error)
 
 
+# ---- Class to group all IO functionality
+# -----------------------------------------------------------------------------
 class IOFunctions:
     def __init__(self):
         self.load_extensions = None
@@ -581,11 +597,8 @@ iofunctions = IOFunctions()
 iofunctions.setup()
 
 
-def save_auto(data, filename):
-    """Save data into filename, depending on file extension"""
-    pass
-
-
+# ---- Test
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
     import datetime
     testdict = {'d': 1, 'a': np.random.rand(10, 10), 'b': [1, 2]}
@@ -604,9 +617,9 @@ if __name__ == "__main__":
     import time
     t0 = time.time()
     save_dictionary(example, "test.spydata")
-    print(" Data saved in %.3f seconds" % (time.time()-t0))  # spyder: test-skip
+    print(" Data saved in %.3f seconds" % (time.time()-t0))
     t0 = time.time()
     example2, ok = load_dictionary("test.spydata")
     os.remove("test.spydata")
 
-    print("Data loaded in %.3f seconds" % (time.time()-t0))  # spyder: test-skip
+    print("Data loaded in %.3f seconds" % (time.time()-t0))
