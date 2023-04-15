@@ -616,9 +616,12 @@ if __name__ == '__main__':
 
 
 @flaky(max_runs=3)
-@pytest.mark.skipif(
+@pytest.mark.skipif(not PY3, reason="Only meant for Python 3")
     sys.platform == 'darwin' and sys.version_info[:2] == (3, 8),
     reason="Fails on Mac with Python 3.8")
+@pytest.mark.skipif(
+    os.environ.get('USE_CONDA') != 'true',
+    reason="Doesn't work with pip packages")
 def test_dask_multiprocessing(tmpdir):
     """
     Test that dask multiprocessing works.
@@ -1160,7 +1163,7 @@ def test_locals_globals_in_pdb(kernel):
 @flaky(max_runs=3)
 @pytest.mark.parametrize("backend", [None, 'inline', 'tk', 'qt5'])
 @pytest.mark.skipif(
-    not bool(os.environ.get('USE_CONDA')),
+    os.environ.get('USE_CONDA') != 'true',
     reason="Doesn't work with pip packages")
 @pytest.mark.skipif(
     sys.version_info[:2] < (3, 9),
