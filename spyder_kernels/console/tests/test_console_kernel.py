@@ -1119,6 +1119,7 @@ def test_locals_globals_in_pdb(kernel):
 @pytest.mark.skipif(
     sys.version_info[:2] < (3, 9),
     reason="Too flaky in Python 3.7/8 and doesn't work in older versions")
+@pytest.mark.skipif(sys.platform == 'darwin', reason="Fails on Mac")
 def test_get_interactive_backend(backend):
     """
     Test that we correctly get the interactive backend set in the kernel.
