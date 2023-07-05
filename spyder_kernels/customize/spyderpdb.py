@@ -316,9 +316,12 @@ class SpyderPdb(ipyPdb):
         # Never stop if we are continuing unless there is a breakpoint
         if self.stopframe == self.botframe:
             return False
-        if (frame is not None
-                and "__tracebackhide__" in frame.f_locals
-                and frame.f_locals["__tracebackhide__"] == "__pdb_exit__"):
+
+        if (
+            frame is not None
+            and "__tracebackhide__" in frame.f_locals
+            and frame.f_locals["__tracebackhide__"] == "__pdb_exit__"
+        ):
             self.onecmd('exit')
             return False
 
