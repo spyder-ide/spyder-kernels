@@ -609,7 +609,6 @@ class SpyderKernel(IPythonKernel):
         os.chdir(dirname)
         self.publish_state()
 
-    @comm_handler
     def get_cwd(self):
         """Get current working directory."""
         try:
