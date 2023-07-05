@@ -542,6 +542,7 @@ class SpyderKernel(IPythonKernel):
             # magic but not through our Preferences.
             return -1
 
+    @comm_handler
     def set_matplotlib_conf(self, conf):
         """Set matplotlib configuration"""
         pylab_autoload_n = 'pylab/autoload'
