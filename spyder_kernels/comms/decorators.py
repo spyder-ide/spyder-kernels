@@ -5,7 +5,7 @@
 # (see spyder/__init__.py for details)
 
 """
-decorators
+Comms decorators.
 """
 
 
