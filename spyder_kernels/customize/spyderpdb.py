@@ -601,7 +601,7 @@ class SpyderPdb(ipyPdb):
                       "For copying text while debugging, use Ctrl+Shift+C",
                       file=self.stdout)
 
-    @lru_cache()
+    @lru_cache
     def canonic(self, filename):
         """Return canonical form of filename."""
         return super().canonic(filename)
