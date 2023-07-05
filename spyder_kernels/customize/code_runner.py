@@ -318,6 +318,7 @@ class SpyderCodeRunner(Magics):
                 os.makedirs(tmp_dir, exist_ok=True)
             except Exception:
                 tmp_dir = None
+
         with tempfile.TemporaryDirectory(dir=tmp_dir) as tempdir:
             # Reset the tracing function in case we are debugging
             trace_fun = sys.gettrace()
