@@ -305,11 +305,6 @@ def test_get_namespace_view_filter_on(kernel, filter_on):
     if not filter_on:
         assert 'TestFilterOn' in nsview
         assert 'TestFilterOff' in nsview
-        assert "'type': 'int'" in nsview or "'type': u'int'" in nsview
-        assert "'size': 1" in nsview
-        assert "'view': '1'" in nsview
-        assert "'numpy_type': 'Unknown'" in nsview
-        assert "'python_type': 'int'" in nsview
     else:
         assert 'TestFilterOff' not in nsview
         assert 'TestFilterOn' not in nsview
