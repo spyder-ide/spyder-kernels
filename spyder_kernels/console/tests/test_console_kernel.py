@@ -294,7 +294,7 @@ def test_get_namespace_view_filter_on(kernel, filter_on):
     """
     Test the namespace view of the kernel with filters on and off.
     """
-    execute = asyncio.run(kernel.do_execute('TestFilterOn = 1', True))
+    execute = asyncio.run(kernel.do_execute('a = 1', True))
     asyncio.run(kernel.do_execute('TestFilterOff = 1', True))
 
     settings = kernel.namespace_view_settings
@@ -303,11 +303,11 @@ def test_get_namespace_view_filter_on(kernel, filter_on):
     nsview = kernel.get_namespace_view()
 
     if not filter_on:
-        assert 'TestFilterOn' in nsview
+        assert 'a' in nsview
         assert 'TestFilterOff' in nsview
     else:
         assert 'TestFilterOff' not in nsview
-        assert 'TestFilterOn' not in nsview
+        assert 'a' in nsview
 
     # Restore settings for other tests
     settings['filter_on'] = True
