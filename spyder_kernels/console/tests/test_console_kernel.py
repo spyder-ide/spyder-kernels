@@ -289,6 +289,33 @@ def test_get_namespace_view(kernel):
     assert "'python_type': 'int'" in nsview
 
 
+@pytest.mark.parametrize("filter_on", [True, False])
+def test_get_namespace_view_filter_on(kernel, filter_on):
+    """
+    Test the namespace view of the kernel with filters on and off.
+    """
+    execute = asyncio.run(kernel.do_execute('_a = 1', True))
+
+    settings = kernel.namespace_view_settings
+    settings['filter_on'] = filter_on
+    nsview = kernel.get_namespace_view()
+
+    # Callables and modules should always be in nsview when the option
+    # is active.
+    if not filter_on:
+        assert '_a' in nsview
+        assert "'type': 'int'" in nsview or "'type': u'int'" in nsview
+        assert "'size': 1" in nsview
+        assert "'view': '1'" in nsview
+        assert "'numpy_type': 'Unknown'" in nsview
+        assert "'python_type': 'int'" in nsview
+    else:
+        assert '_a' not in nsview
+
+    # Restore settings for other tests
+    settings['filter_on'] = True
+
+
 def test_get_var_properties(kernel):
     """
     Test the properties fo the variables in the namespace.
