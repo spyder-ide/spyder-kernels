@@ -300,8 +300,6 @@ def test_get_namespace_view_filter_on(kernel, filter_on):
     settings['filter_on'] = filter_on
     nsview = kernel.get_namespace_view()
 
-    # Callables and modules should always be in nsview when the option
-    # is active.
     if not filter_on:
         assert '_a' in nsview
         assert "'type': 'int'" in nsview or "'type': u'int'" in nsview
