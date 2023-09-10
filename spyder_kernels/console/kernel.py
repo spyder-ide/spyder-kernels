@@ -29,6 +29,7 @@ import zmq
 from zmq.utils.garbage import gc
 
 # Local imports
+import spyder_kernels
 from spyder_kernels.comms.frontendcomm import FrontendComm
 from spyder_kernels.comms.decorators import (
     register_comm_handlers, comm_handler)
@@ -76,6 +77,18 @@ class SpyderKernel(IPythonKernel):
 
         # Socket to signal shell_stream locally
         self.loopback_socket = None
+
+    @property
+    def kernel_info(self):
+        # Used for checking correct version by spyder
+        infos = super().kernel_info
+        infos.update({
+            "spyder_kernels_info": (
+                spyder_kernels.__version__,
+                sys.executable
+            )
+        })
+        return infos
 
     # -- Public API -----------------------------------------------------------
     def frontend_call(self, blocking=False, broadcast=True,
@@ -620,6 +633,22 @@ class SpyderKernel(IPythonKernel):
                 elif value == "light":
                     self.shell.run_line_magic("colors", "lightbg")
                     self.set_sympy_forecolor(background_color='light')
+            elif key == "jedi_completer":
+                self.set_jedi_completer(value)
+            elif key == "greedy_completer":
+                self.set_greedy_completer(value)
+            elif key == "autocall":
+                self.set_autocall(value)
+            elif key == "matplotlib_backend":
+                self.set_matplotlib_backend(*value)
+            elif key == "mpl_inline_figure_format":
+                self.set_mpl_inline_figure_format(value)
+            elif key == "mpl_inline_resolution":
+                self.set_mpl_inline_resolution(value)
+            elif key == "mpl_inline_figure_size":
+                self.set_mpl_inline_figure_size(*value)
+            elif key == "mpl_inline_bbox_inches":
+                self.set_mpl_inline_bbox_inches(value)
         return ret
 
     def get_cwd(self):
