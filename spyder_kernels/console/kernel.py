@@ -34,8 +34,7 @@ from spyder_kernels.comms.frontendcomm import FrontendComm
 from spyder_kernels.comms.decorators import (
     register_comm_handlers, comm_handler)
 from spyder_kernels.utils.iofuncs import iofunctions
-from spyder_kernels.utils.mpl import (
-    MPL_BACKENDS_FROM_SPYDER, MPL_BACKENDS_TO_SPYDER, INLINE_FIGURE_FORMATS)
+from spyder_kernels.utils.mpl import automatic_backend, MPL_BACKENDS_TO_SPYDER
 from spyder_kernels.utils.nsview import (
     get_remote_data, make_remote_view, get_size)
 from spyder_kernels.console.shell import SpyderShell
@@ -66,7 +65,6 @@ class SpyderKernel(IPythonKernel):
         register_comm_handlers(self.shell, self.frontend_comm)
 
         self.namespace_view_settings = {}
-        self._mpl_backend_error = None
         self.faulthandler_handle = None
         self._cwd_initialised = False
 
@@ -536,7 +534,7 @@ class SpyderKernel(IPythonKernel):
         if framework is None:
             # Since no interactive backend has been set yet, this is
             # equivalent to having the inline one.
-            return 0
+            return 'inline'
         elif framework in mapping:
             return MPL_BACKENDS_TO_SPYDER[mapping[framework]]
         else:
@@ -545,25 +543,38 @@ class SpyderKernel(IPythonKernel):
             # magic but not through our Preferences.
             return -1
 
-    def set_matplotlib_backend(self, backend, pylab=False):
-        """Set matplotlib backend given a Spyder backend option."""
-        mpl_backend = MPL_BACKENDS_FROM_SPYDER[str(backend)]
-        self._set_mpl_backend(mpl_backend, pylab=pylab)
+    @comm_handler
+    def set_matplotlib_conf(self, conf):
+        """Set matplotlib configuration"""
+        pylab_autoload_n = 'pylab/autoload'
+        pylab_backend_n = 'pylab/backend'
+        figure_format_n = 'pylab/inline/figure_format'
+        resolution_n = 'pylab/inline/resolution'
+        width_n = 'pylab/inline/width'
+        height_n = 'pylab/inline/height'
+        bbox_inches_n = 'pylab/inline/bbox_inches'
+        inline_backend = 'inline'
 
-    def set_mpl_inline_figure_format(self, figure_format):
-        """Set the inline figure format to use with matplotlib."""
-        mpl_figure_format = INLINE_FIGURE_FORMATS[figure_format]
-        self._set_config_option(
-            'InlineBackend.figure_format', mpl_figure_format)
+        if pylab_autoload_n in conf or pylab_backend_n in conf:
+            self._set_mpl_backend(
+                conf.get(pylab_backend_n, inline_backend),
+                pylab=conf.get(pylab_autoload_n, False)
+            )
+        if figure_format_n in conf:
+            self._set_config_option(
+                'InlineBackend.figure_format',
+                conf[figure_format_n]
+            )
+        if resolution_n in conf:
+            self._set_mpl_inline_rc_config('figure.dpi', conf[resolution_n])
+        if width_n in conf and height_n in conf:
+            self._set_mpl_inline_rc_config(
+                'figure.figsize',
+                (conf[width_n], conf[height_n])
+            )
+        if bbox_inches_n in conf:
+            self.set_mpl_inline_bbox_inches(conf[bbox_inches_n])
 
-    def set_mpl_inline_resolution(self, resolution):
-        """Set inline figure resolution."""
-        self._set_mpl_inline_rc_config('figure.dpi', resolution)
-
-    def set_mpl_inline_figure_size(self, width, height):
-        """Set inline figure size."""
-        value = (width, height)
-        self._set_mpl_inline_rc_config('figure.figsize', value)
 
     def set_mpl_inline_bbox_inches(self, bbox_inches):
         """
@@ -621,35 +632,30 @@ class SpyderKernel(IPythonKernel):
                 self.shell.set_pdb_configuration(value)
             elif key == "faulthandler":
                 ret[key] = self.enable_faulthandler()
-            elif key == "show_mpl_backend_errors":
-                self.show_mpl_backend_errors()
-            elif key == "check_special_kernel":
-                ret[key] = self.check_special_kernel()
+            elif key == "special_kernel":
+                ret[key] = self.set_special_kernel(value)
             elif key == "color scheme":
-                if value == "dark":
-                    # Needed to change the colors of tracebacks
-                    self.shell.run_line_magic("colors", "linux")
-                    self.set_sympy_forecolor(background_color='dark')
-                elif value == "light":
-                    self.shell.run_line_magic("colors", "lightbg")
-                    self.set_sympy_forecolor(background_color='light')
+                self.set_color_scheme(value)
             elif key == "jedi_completer":
                 self.set_jedi_completer(value)
             elif key == "greedy_completer":
                 self.set_greedy_completer(value)
             elif key == "autocall":
                 self.set_autocall(value)
-            elif key == "matplotlib_backend":
-                self.set_matplotlib_backend(*value)
-            elif key == "mpl_inline_figure_format":
-                self.set_mpl_inline_figure_format(value)
-            elif key == "mpl_inline_resolution":
-                self.set_mpl_inline_resolution(value)
-            elif key == "mpl_inline_figure_size":
-                self.set_mpl_inline_figure_size(*value)
-            elif key == "mpl_inline_bbox_inches":
-                self.set_mpl_inline_bbox_inches(value)
+            elif key == "matplotlib":
+                self.set_matplotlib_conf(value)
+            elif key == "update_gui":
+                self.shell.update_gui_frontend = value
         return ret
+
+    def set_color_scheme(self, color_scheme):
+        if color_scheme == "dark":
+            # Needed to change the colors of tracebacks
+            self.shell.run_line_magic("colors", "linux")
+            self.set_sympy_forecolor(background_color='dark')
+        elif color_scheme == "light":
+            self.shell.run_line_magic("colors", "lightbg")
+            self.set_sympy_forecolor(background_color='light')
 
     def get_cwd(self):
         """Get current working directory."""
@@ -677,27 +683,66 @@ class SpyderKernel(IPythonKernel):
         except:
             pass
 
-    def check_special_kernel(self):
+    def set_special_kernel(self, special):
         """
         Check if optional dependencies are available for special consoles.
         """
-        try:
-            if os.environ.get('SPY_AUTOLOAD_PYLAB_O') == 'True':
-                import matplotlib
-            elif os.environ.get('SPY_SYMPY_O') == 'True':
-                import sympy
-            elif os.environ.get('SPY_RUN_CYTHON') == 'True':
-                import cython
-        except Exception:
-            # Use Exception instead of ImportError here because modules can
-            # fail to be imported due to a lot of issues.
-            if os.environ.get('SPY_AUTOLOAD_PYLAB_O') == 'True':
-                return u'matplotlib'
-            elif os.environ.get('SPY_SYMPY_O') == 'True':
-                return u'sympy'
-            elif os.environ.get('SPY_RUN_CYTHON') == 'True':
-                return u'cython'
-        return None
+        self.shell.special = None
+        if special is None:
+            return
+
+        if special == "pylab":
+            try:
+               import matplotlib
+            except Exception:
+                return "matplotlib"
+            self.do_execute("from pylab import *", silent=True)
+            self.shell.special = special
+            return
+
+        if special == "sympy":
+            try:
+               import sympy
+            except Exception:
+                return "sympy"
+            sympy_init = "\n".join([
+                "from sympy import *",
+                "x, y, z, t = symbols('x y z t')",
+                "k, m, n = symbols('k m n', integer=True)",
+                "f, g, h = symbols('f g h', cls=Function)",
+                "init_printing()",
+            ])
+            self.do_execute(sympy_init, silent=True)
+            self.shell.special = special
+            return
+
+        if special == "cython":
+            try:
+               import cython
+
+               # Import pyximport to enable Cython files support for
+               # import statement
+               import pyximport
+               pyx_setup_args = {}
+
+               # Add Numpy include dir to pyximport/distutils
+               try:
+                   import numpy
+                   pyx_setup_args['include_dirs'] = numpy.get_include()
+               except Exception:
+                   pass
+
+               # Setup pyximport and enable Cython files reload
+               pyximport.install(setup_args=pyx_setup_args,
+                                 reload_support=True)
+            except Exception:
+                return "cython"
+            
+            self.shell.run_line_magic("reload_ext", "Cython")
+            self.shell.special = special
+            return
+
+        raise NotImplementedError(f"{special}")
 
     @comm_handler
     def update_syspath(self, path_dict, new_path_dict):
@@ -850,6 +895,9 @@ class SpyderKernel(IPythonKernel):
 
         magic = 'pylab' if pylab else 'matplotlib'
 
+        if backend == "auto":
+            backend = automatic_backend()
+
         error = None
         try:
             # This prevents Matplotlib to automatically set the backend, which
@@ -888,8 +936,8 @@ class SpyderKernel(IPythonKernel):
             error = generic_error.format(err) + '\n\n' + additional_info
         except Exception:
             error = generic_error.format(traceback.format_exc())
-
-        self._mpl_backend_error = error
+        if error:
+            print(error)
 
     def _set_config_option(self, option, value):
         """
@@ -921,23 +969,18 @@ class SpyderKernel(IPythonKernel):
             # Needed in case matplolib isn't installed
             pass
 
-    def show_mpl_backend_errors(self):
-        """Show Matplotlib backend errors after the prompt is ready."""
-        if self._mpl_backend_error is not None:
-            print(self._mpl_backend_error)  # spyder: test-skip
-
-    @comm_handler
     def set_sympy_forecolor(self, background_color='dark'):
         """Set SymPy forecolor depending on console background."""
-        if os.environ.get('SPY_SYMPY_O') == 'True':
-            try:
-                from sympy import init_printing
-                if background_color == 'dark':
-                    init_printing(forecolor='White', ip=self.shell)
-                elif background_color == 'light':
-                    init_printing(forecolor='Black', ip=self.shell)
-            except Exception:
-                pass
+        if self.shell.special != "sympy":
+            return
+        try:
+            from sympy import init_printing
+            if background_color == 'dark':
+                init_printing(forecolor='White', ip=self.shell)
+            elif background_color == 'light':
+                init_printing(forecolor='Black', ip=self.shell)
+        except Exception:
+            pass
 
     # --- Others
     def _load_autoreload_magic(self):
