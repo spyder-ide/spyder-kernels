@@ -120,7 +120,15 @@ def getdoc(obj):
                     args, varargs, varkw, defaults,
                     formatvalue=lambda o:'='+repr(o))
             else:
-                sig = inspect.signature(obj)
+                # This is necessary to catch errors for objects without a
+                # signature, like numpy.where.
+                # Fixes spyder-ide/spyder#21148
+                try:
+                    sig = inspect.signature(obj)
+                except ValueError:
+                    sig = getargspecfromtext(doc['docstring'])
+                    if not sig:
+                        sig = '(...)'
                 doc['argspec'] = str(sig)
             if name == '<lambda>':
                 doc['name'] = name + ' lambda '
@@ -340,20 +348,3 @@ def isdefined(obj, force_import=False, namespace=None):
                 return False
         base += '.'+attr
     return True
-    
-
-if __name__ == "__main__":
-    class Test(object):
-        def method(self, x, y=2):
-            pass
-    print(getargtxt(Test.__init__))  # spyder: test-skip
-    print(getargtxt(Test.method))  # spyder: test-skip
-    print(isdefined('numpy.take', force_import=True))  # spyder: test-skip
-    print(isdefined('__import__'))  # spyder: test-skip
-    print(isdefined('.keys', force_import=True))  # spyder: test-skip
-    print(getobj('globals'))  # spyder: test-skip
-    print(getobj('globals().keys'))  # spyder: test-skip
-    print(getobj('+scipy.signal.'))  # spyder: test-skip
-    print(getobj('4.'))  # spyder: test-skip
-    print(getdoc(sorted))  # spyder: test-skip
-    print(getargtxt(sorted))  # spyder: test-skip
