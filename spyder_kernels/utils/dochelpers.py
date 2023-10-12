@@ -171,40 +171,50 @@ def getsource(obj):
 
 
 def getsignaturefromtext(text, objname):
-    """Get object signatures from text (object documentation)
-    Return a list containing a single string in most cases
-    Example of multiple signatures: PyQt5 objects"""
+    """Get object signature from text (i.e. object documentation)."""
     if isinstance(text, dict):
         text = text.get('docstring', '')
+
     # Regexps
-    oneline_re = objname + r'\([^\)].+?(?<=[\w\]\}\'"])\)(?!,)'
-    multiline_re = objname + r'\([^\)]+(?<=[\w\]\}\'"])\)(?!,)'
-    multiline_end_parenleft_re = r'(%s\([^\)]+(\),\n.+)+(?<=[\w\]\}\'"])\))'
+    args_re = r'(\(.+?\))'
+    if objname:
+        signature_re = objname + args_re
+    else:
+        identifier_re = r'(\w+)'
+        signature_re = identifier_re + args_re
+
     # Grabbing signatures
     if not text:
         text = ''
-    sigs_1 = re.findall(oneline_re + '|' + multiline_re, text)
-    sigs_2 = [g[0] for g in re.findall(multiline_end_parenleft_re % objname, text)]
-    all_sigs = sigs_1 + sigs_2
-    # The most relevant signature is usually the first one. There could be
-    # others in doctests but those are not so important
-    if all_sigs:
-        return all_sigs[0]
-    else:
-        return ''
 
-# Fix for Issue 1953
-# TODO: Add more signatures and remove this hack in 2.4
-getsignaturesfromtext = getsignaturefromtext
+    sigs = re.findall(signature_re, text)
+
+    # The most relevant signature is usually the first one. There could be
+    # others in doctests or other places, but those are not so important.
+    sig = ''
+    if sigs:
+        if PY2:
+            # We don't have an easy way to check if the identifier detected by
+            # signature_re is a valid one in Python 2. So, we simply select the
+            # first match.
+            sig = sigs[0] if objname else sigs[0][1]
+        else:
+            if objname:
+                sig = sigs[0]
+            else:
+                valid_sigs = [s for s in sigs if s[0].isidentifier()]
+                if valid_sigs:
+                    sig = valid_sigs[0][1]
+
+    return sig
 
 
 def getargspecfromtext(text):
     """
     Try to get the formatted argspec of a callable from the first block of its
-    docstring
+    docstring.
     
-    This will return something like
-    '(foo, bar, k=1)'
+    This will return something like `(x, y, k=1)`.
     """
     blocks = text.split("\n\n")
     first_block = blocks[0].strip()
@@ -212,10 +222,10 @@ def getargspecfromtext(text):
 
 
 def getargsfromtext(text, objname):
-    """Get arguments from text (object documentation)"""
+    """Get arguments from text (object documentation)."""
     signature = getsignaturefromtext(text, objname)
     if signature:
-        argtxt = signature[signature.find('(')+1:-1]
+        argtxt = signature[signature.find('(') + 1:-1]
         return argtxt.split(',')
 
 
