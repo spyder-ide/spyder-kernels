@@ -617,10 +617,10 @@ class SpyderKernel(IPythonKernel):
 
     # --- Additional methods
     @comm_handler
-    def set_configuration(self, dic):
+    def set_configuration(self, conf):
         """Set kernel configuration"""
         ret = {}
-        for key, value in dic.items():
+        for key, value in conf.items():
             if key == "cwd":
                 self._cwd_initialised = True
                 os.chdir(value)
@@ -631,7 +631,8 @@ class SpyderKernel(IPythonKernel):
             elif key == "pdb":
                 self.shell.set_pdb_configuration(value)
             elif key == "faulthandler":
-                ret[key] = self.enable_faulthandler()
+                if value:
+                    ret[key] = self.enable_faulthandler()
             elif key == "special_kernel":
                 ret[key] = self.set_special_kernel(value)
             elif key == "color scheme":
@@ -646,6 +647,11 @@ class SpyderKernel(IPythonKernel):
                 self.set_matplotlib_conf(value)
             elif key == "update_gui":
                 self.shell.update_gui_frontend = value
+            elif key == "wurlitzer":
+                if value:
+                    self._load_wurlitzer()
+            elif key == "autoreload_magic":
+                self._autoreload_magic(value)
         return ret
 
     def set_color_scheme(self, color_scheme):
@@ -693,54 +699,55 @@ class SpyderKernel(IPythonKernel):
 
         if special == "pylab":
             try:
-               import matplotlib
+                import matplotlib
+                exec("from pylab import *", self.shell.user_ns)
+                self.shell.special = special
+                return
             except Exception:
                 return "matplotlib"
-            exec("from pylab import *", self.shell.user_ns)
-            self.shell.special = special
-            return
 
         if special == "sympy":
             try:
-               import sympy
+                import sympy
+                sympy_init = "\n".join([
+                    "from sympy import *",
+                    "x, y, z, t = symbols('x y z t')",
+                    "k, m, n = symbols('k m n', integer=True)",
+                    "f, g, h = symbols('f g h', cls=Function)",
+                    "init_printing()",
+                ])
+                exec(sympy_init, self.shell.user_ns)
+                self.shell.special = special
+                return
             except Exception:
                 return "sympy"
-            sympy_init = "\n".join([
-                "from sympy import *",
-                "x, y, z, t = symbols('x y z t')",
-                "k, m, n = symbols('k m n', integer=True)",
-                "f, g, h = symbols('f g h', cls=Function)",
-                "init_printing()",
-            ])
-            exec(sympy_init, self.shell.user_ns)
-            self.shell.special = special
-            return
 
         if special == "cython":
             try:
-               import cython
+                import cython
 
-               # Import pyximport to enable Cython files support for
-               # import statement
-               import pyximport
-               pyx_setup_args = {}
+                # Import pyximport to enable Cython files support for
+                # import statement
+                import pyximport
+                pyx_setup_args = {}
 
-               # Add Numpy include dir to pyximport/distutils
-               try:
-                   import numpy
-                   pyx_setup_args['include_dirs'] = numpy.get_include()
-               except Exception:
-                   pass
+                # Add Numpy include dir to pyximport/distutils
+                try:
+                    import numpy
+                    pyx_setup_args['include_dirs'] = numpy.get_include()
+                except Exception:
+                    pass
 
-               # Setup pyximport and enable Cython files reload
-               pyximport.install(setup_args=pyx_setup_args,
-                                 reload_support=True)
+                # Setup pyximport and enable Cython files reload
+                pyximport.install(setup_args=pyx_setup_args,
+                                  reload_support=True)
+
+                self.shell.run_line_magic("reload_ext", "Cython")
+                self.shell.special = special
+                return
+
             except Exception:
                 return "cython"
-            
-            self.shell.run_line_magic("reload_ext", "Cython")
-            self.shell.special = special
-            return
 
         raise NotImplementedError(f"{special}")
 
@@ -983,11 +990,15 @@ class SpyderKernel(IPythonKernel):
             pass
 
     # --- Others
-    def _load_autoreload_magic(self):
+    def _autoreload_magic(self, enable):
         """Load %autoreload magic."""
         try:
-            self.shell.run_line_magic('reload_ext', 'autoreload')
-            self.shell.run_line_magic('autoreload', '2')
+            if enable:
+                self.shell.run_line_magic('reload_ext', 'autoreload')
+                self.shell.run_line_magic('autoreload', "2")
+            else:
+                self.shell.run_line_magic('autoreload', "off")
+
         except Exception:
             pass
 
