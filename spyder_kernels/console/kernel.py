@@ -29,6 +29,7 @@ import zmq
 from zmq.utils.garbage import gc
 
 # Local imports
+import spyder_kernels
 from spyder_kernels.comms.frontendcomm import FrontendComm
 from spyder_kernels.comms.decorators import (
     register_comm_handlers, comm_handler)
@@ -64,7 +65,6 @@ class SpyderKernel(IPythonKernel):
         register_comm_handlers(self.shell, self.frontend_comm)
 
         self.namespace_view_settings = {}
-        self._mpl_backend_error = None
         self.faulthandler_handle = None
         self._cwd_initialised = False
 
@@ -75,6 +75,18 @@ class SpyderKernel(IPythonKernel):
 
         # Socket to signal shell_stream locally
         self.loopback_socket = None
+
+    @property
+    def kernel_info(self):
+        # Used for checking correct version by spyder
+        infos = super().kernel_info
+        infos.update({
+            "spyder_kernels_info": (
+                spyder_kernels.__version__,
+                sys.executable
+            )
+        })
+        return infos
 
     # -- Public API -----------------------------------------------------------
     def frontend_call(self, blocking=False, broadcast=True,
@@ -113,7 +125,6 @@ class SpyderKernel(IPythonKernel):
         except Exception:
             pass
 
-    @comm_handler
     def enable_faulthandler(self):
         """
         Open a file to save the faulthandling and identifiers for
@@ -138,6 +149,11 @@ class SpyderKernel(IPythonKernel):
         ]
         faulthandler.enable(self.faulthandler_handle)
         return self.faulthandler_handle.name, main_id, system_ids
+
+    @comm_handler
+    def safe_exec(self, filename):
+        """Exec file using ipykernelapp _exec_file"""
+        self.parent._exec_file(filename)
 
     @comm_handler
     def get_fault_text(self, fault_filename, main_id, ignore_ids):
@@ -259,11 +275,6 @@ class SpyderKernel(IPythonKernel):
         return frames
 
     # --- For the Variable Explorer
-    @comm_handler
-    def set_namespace_view_settings(self, settings):
-        """Set namespace_view_settings."""
-        self.namespace_view_settings = settings
-
     @comm_handler
     def get_namespace_view(self, frame=None):
         """
@@ -554,18 +565,22 @@ class SpyderKernel(IPythonKernel):
                 conf.get(pylab_backend_n, inline_backend),
                 pylab=conf.get(pylab_autoload_n, False)
             )
+
         if figure_format_n in conf:
             self._set_config_option(
                 'InlineBackend.figure_format',
                 conf[figure_format_n]
             )
+
         if resolution_n in conf:
             self._set_mpl_inline_rc_config('figure.dpi', conf[resolution_n])
+
         if width_n in conf and height_n in conf:
             self._set_mpl_inline_rc_config(
                 'figure.figsize',
                 (conf[width_n], conf[height_n])
             )
+
         if bbox_inches_n in conf:
             self.set_mpl_inline_bbox_inches(conf[bbox_inches_n])
 
@@ -611,11 +626,54 @@ class SpyderKernel(IPythonKernel):
 
     # --- Additional methods
     @comm_handler
-    def set_cwd(self, dirname):
-        """Set current working directory."""
-        self._cwd_initialised = True
-        os.chdir(dirname)
-        self.publish_state()
+    def set_configuration(self, conf):
+        """Set kernel configuration"""
+        ret = {}
+        for key, value in conf.items():
+            if key == "cwd":
+                self._cwd_initialised = True
+                os.chdir(value)
+                self.publish_state()
+            elif key == "namespace_view_settings":
+                self.namespace_view_settings = value
+                self.publish_state()
+            elif key == "pdb":
+                self.shell.set_pdb_configuration(value)
+            elif key == "faulthandler":
+                if value:
+                    ret[key] = self.enable_faulthandler()
+            elif key == "special_kernel":
+                try:
+                    self.set_special_kernel(value)
+                except Exception:
+                    ret["special_kernel_error"] = value
+            elif key == "color scheme":
+                self.set_color_scheme(value)
+            elif key == "jedi_completer":
+                self.set_jedi_completer(value)
+            elif key == "greedy_completer":
+                self.set_greedy_completer(value)
+            elif key == "autocall":
+                self.set_autocall(value)
+            elif key == "matplotlib":
+                self.set_matplotlib_conf(value)
+            elif key == "update_gui":
+                self.shell.update_gui_frontend = value
+            elif key == "wurlitzer":
+                if value:
+                    self._load_wurlitzer()
+            elif key == "autoreload_magic":
+                self._autoreload_magic(value)
+        return ret
+
+    def set_color_scheme(self, color_scheme):
+        if color_scheme == "dark":
+            # Needed to change the colors of tracebacks
+            self.shell.run_line_magic("colors", "linux")
+            self.set_sympy_forecolor(background_color='dark')
+        elif color_scheme == "light":
+            self.shell.run_line_magic("colors", "lightbg")
+            self.set_sympy_forecolor(background_color='light')
 
     def get_cwd(self):
         """Get current working directory."""
@@ -643,28 +701,58 @@ class SpyderKernel(IPythonKernel):
         except:
             pass
 
-    @comm_handler
-    def is_special_kernel_valid(self, special):
+    def set_special_kernel(self, special):
         """
         Check if optional dependencies are available for special consoles.
         """
+        self.shell.special = None
         if special is None:
             return
-        elif special == "pylab":
+
+        if special == "pylab":
+            import matplotlib
+            exec("from pylab import *", self.shell.user_ns)
+            self.shell.special = special
+            return
+           
+
+        if special == "sympy":
+            import sympy
+            sympy_init = "\n".join([
+                "from sympy import *",
+                "x, y, z, t = symbols('x y z t')",
+                "k, m, n = symbols('k m n', integer=True)",
+                "f, g, h = symbols('f g h', cls=Function)",
+                "init_printing()",
+            ])
+            exec(sympy_init, self.shell.user_ns)
+            self.shell.special = special
+            return
+
+        if special == "cython":
+            import cython
+
+            # Import pyximport to enable Cython files support for
+            # import statement
+            import pyximport
+            pyx_setup_args = {}
+
+            # Add Numpy include dir to pyximport/distutils
             try:
-               import matplotlib
+                import numpy
+                pyx_setup_args['include_dirs'] = numpy.get_include()
             except Exception:
-                return "matplotlib"
-        elif special == "sympy":
-            try:
-               import sympy
-            except Exception:
-                return "sympy"
-        elif special == "cython":
-            try:
-               import cython
-            except Exception:
-                return "cython"
+                pass
+
+            # Setup pyximport and enable Cython files reload
+            pyximport.install(setup_args=pyx_setup_args,
+                              reload_support=True)
+
+            self.shell.run_line_magic("reload_ext", "Cython")
+            self.shell.special = special
+            return
+
+        raise NotImplementedError(f"{special}")
 
     @comm_handler
     def update_syspath(self, path_dict, new_path_dict):
@@ -858,8 +946,8 @@ class SpyderKernel(IPythonKernel):
             error = generic_error.format(err) + '\n\n' + additional_info
         except Exception:
             error = generic_error.format(traceback.format_exc())
-
-        self._mpl_backend_error = error
+        if error:
+            print(error)
 
     def _set_config_option(self, option, value):
         """
@@ -891,15 +979,11 @@ class SpyderKernel(IPythonKernel):
             # Needed in case matplolib isn't installed
             pass
 
-    @comm_handler
-    def show_mpl_backend_errors(self):
-        """Show Matplotlib backend errors after the prompt is ready."""
-        if self._mpl_backend_error is not None:
-            print(self._mpl_backend_error)  # spyder: test-skip
-
-    @comm_handler
     def set_sympy_forecolor(self, background_color='dark'):
         """Set SymPy forecolor depending on console background."""
+        if self.shell.special != "sympy":
+            return
+
         try:
             from sympy import init_printing
             if background_color == 'dark':
@@ -910,11 +994,15 @@ class SpyderKernel(IPythonKernel):
             pass
 
     # --- Others
-    def _load_autoreload_magic(self):
+    def _autoreload_magic(self, enable):
         """Load %autoreload magic."""
         try:
-            self.shell.run_line_magic('reload_ext', 'autoreload')
-            self.shell.run_line_magic('autoreload', '2')
+            if enable:
+                self.shell.run_line_magic('reload_ext', 'autoreload')
+                self.shell.run_line_magic('autoreload', "2")
+            else:
+                self.shell.run_line_magic('autoreload', "off")
+
         except Exception:
             pass
 
