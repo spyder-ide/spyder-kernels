@@ -595,7 +595,6 @@ class SpyderKernel(IPythonKernel):
         if bbox_inches_n in conf:
             self.set_mpl_inline_bbox_inches(conf[bbox_inches_n])
 
-
     def set_mpl_inline_bbox_inches(self, bbox_inches):
         """
         Set inline print figure bbox inches.
@@ -725,7 +724,7 @@ class SpyderKernel(IPythonKernel):
             exec("from pylab import *", self.shell.user_ns)
             self.shell.special = special
             return
-           
+
         if special == "sympy":
             import sympy  # noqa
             sympy_init = "\n".join([
@@ -765,7 +764,7 @@ class SpyderKernel(IPythonKernel):
         raise NotImplementedError(f"{special}")
 
     @comm_handler
-    def update_syspath(self, path_dict, new_path_dict):
+    def update_syspath(self, path_dict, new_path_dict, prioritize):
         """
         Update the PYTHONPATH of the kernel.
 
@@ -774,6 +773,8 @@ class SpyderKernel(IPythonKernel):
 
         `path_dict` corresponds to the previous state of the PYTHONPATH.
         `new_path_dict` corresponds to the new state of the PYTHONPATH.
+        `newe_prioritize` determines whether to prioritize PYTHONPATH in
+        sys.path.
         """
         # Remove old paths
         for path in path_dict:
@@ -783,8 +784,18 @@ class SpyderKernel(IPythonKernel):
         # Add new paths
         pypath = [path for path, active in new_path_dict.items() if active]
         if pypath:
-            sys.path.extend(pypath)
             os.environ.update({'PYTHONPATH': os.pathsep.join(pypath)})
+
+            if prioritize:
+                pypath.reverse()
+                [sys.path.insert(0, path) for path in pypath]
+
+                # Ensure current directory is always first
+                if '' in sys.path:
+                    sys.path.remove('')
+                    sys.path.insert(0, '')
+            else:
+                sys.path.extend(pypath)
         else:
             os.environ.pop('PYTHONPATH', None)
 
@@ -907,9 +918,9 @@ class SpyderKernel(IPythonKernel):
             return
 
         generic_error = (
-            "\n" + "="*73 + "\n"
+            "\n" + "=" * 73 + "\n"
             "NOTE: The following error appeared when setting "
-            "your Matplotlib backend!!\n" + "="*73 + "\n\n"
+            "your Matplotlib backend!!\n" + "=" * 73 + "\n\n"
             "{0}"
         )
 
@@ -931,7 +942,7 @@ class SpyderKernel(IPythonKernel):
             # trying to set a backend. See issue 5541
             if "GUI eventloops" in str(err):
                 previous_backend = matplotlib.get_backend()
-                if not backend in previous_backend.lower():
+                if backend not in previous_backend.lower():
                     # Only inform about an error if the user selected backend
                     # and the one set by Matplotlib are different. Else this
                     # message is very confusing.
