@@ -770,7 +770,7 @@ class SpyderKernel(IPythonKernel):
         raise NotImplementedError(f"{special}")
 
     @comm_handler
-    def update_syspath(self, path_dict, new_path_dict):
+    def update_syspath(self, path_dict, new_path_dict, prioritize):
         """
         Update the PYTHONPATH of the kernel.
 
@@ -779,6 +779,8 @@ class SpyderKernel(IPythonKernel):
 
         `path_dict` corresponds to the previous state of the PYTHONPATH.
         `new_path_dict` corresponds to the new state of the PYTHONPATH.
+        `newe_prioritize` determines whether to prioritize PYTHONPATH in
+        sys.path.
         """
         # Remove old paths
         for path in path_dict:
@@ -788,8 +790,18 @@ class SpyderKernel(IPythonKernel):
         # Add new paths
         pypath = [path for path, active in new_path_dict.items() if active]
         if pypath:
-            sys.path.extend(pypath)
             os.environ.update({'PYTHONPATH': os.pathsep.join(pypath)})
+
+            if prioritize:
+                pypath.reverse()
+                [sys.path.insert(0, path) for path in pypath]
+
+                # Ensure current directory is always first
+                if '' in sys.path:
+                    sys.path.remove('')
+                    sys.path.insert(0, '')
+            else:
+                sys.path.extend(pypath)
         else:
             os.environ.pop('PYTHONPATH', None)
 
