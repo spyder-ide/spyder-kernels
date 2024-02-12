@@ -770,38 +770,33 @@ class SpyderKernel(IPythonKernel):
         raise NotImplementedError(f"{special}")
 
     @comm_handler
-    def update_syspath(self, path_dict, new_path_dict, prioritize):
+    def update_syspath(self, old_path, new_path, prioritize):
         """
         Update the PYTHONPATH of the kernel.
 
-        `path_dict` and `new_path_dict` have the paths as keys and the state
-        as values. The state is `True` for active and `False` for inactive.
-
-        `path_dict` corresponds to the previous state of the PYTHONPATH.
-        `new_path_dict` corresponds to the new state of the PYTHONPATH.
-        `newe_prioritize` determines whether to prioritize PYTHONPATH in
-        sys.path.
+        `old_path` corresponds to the previous state of the PYTHONPATH.
+        `new_path` corresponds to the new state of the PYTHONPATH.
+        `prioritize` determines whether to prioritize PYTHONPATH in sys.path.
         """
         # Remove old paths
-        for path in path_dict:
+        for path in old_path:
             while path in sys.path:
                 sys.path.remove(path)
 
         # Add new paths
-        pypath = [path for path, active in new_path_dict.items() if active]
-        if pypath:
-            os.environ.update({'PYTHONPATH': os.pathsep.join(pypath)})
+        if new_path:
+            os.environ.update({'PYTHONPATH': os.pathsep.join(new_path)})
 
             if prioritize:
-                pypath.reverse()
-                [sys.path.insert(0, path) for path in pypath]
+                new_path.reverse()
+                [sys.path.insert(0, path) for path in new_path]
 
                 # Ensure current directory is always first
                 if '' in sys.path:
                     sys.path.remove('')
                     sys.path.insert(0, '')
             else:
-                sys.path.extend(pypath)
+                sys.path.extend(new_path)
         else:
             os.environ.pop('PYTHONPATH', None)
 
