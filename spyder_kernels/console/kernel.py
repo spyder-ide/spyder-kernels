@@ -93,6 +93,14 @@ class SpyderKernel(IPythonKernel):
         # To save the python env info
         self.pythonenv_info: PythonEnvInfo = {}
 
+        # Store original sys.path. Kernels are started with PYTHONPATH
+        # removed from environment variables, so this will never have
+        # user paths and should be clean.
+        self._sys_path = sys.path.copy()
+        if '' in self._sys_path:
+            self._sys_path.remove('')
+        self._sys_path.insert(0, '')
+
     @property
     def kernel_info(self):
         # Used for checking correct version by spyder
@@ -770,34 +778,34 @@ class SpyderKernel(IPythonKernel):
         raise NotImplementedError(f"{special}")
 
     @comm_handler
-    def update_syspath(self, old_path, new_path, prioritize):
+    def update_syspath(self, new_path, prioritize):
         """
         Update the PYTHONPATH of the kernel.
 
-        `old_path` corresponds to the previous state of the PYTHONPATH.
         `new_path` corresponds to the new state of the PYTHONPATH.
         `prioritize` determines whether to prioritize PYTHONPATH in sys.path.
-        """
-        # Remove old paths
-        for path in old_path:
-            while path in sys.path:
-                sys.path.remove(path)
 
-        # Add new paths
-        if new_path:
+        A copy of sys.path is made at instantiation, which should be clean,
+        so we can just prepend/append to the copy without having to explicitly
+        remove old user paths. PYTHONPATH can just be overwritten.
+        """
+        if new_path is not None:
+            # Overwrite PYTHONPATH
             os.environ.update({'PYTHONPATH': os.pathsep.join(new_path)})
 
+            # Add new paths to original sys.path
             if prioritize:
-                new_path.reverse()
-                [sys.path.insert(0, path) for path in new_path]
+                sys.path[:] = new_path + self._sys_path
 
                 # Ensure current directory is always first
                 if '' in sys.path:
                     sys.path.remove('')
                     sys.path.insert(0, '')
             else:
-                sys.path.extend(new_path)
+                sys.path[:] = self._sys_path + new_path
         else:
+            # Restore original sys.path and remove PYTHONPATH
+            sys.path[:] = self._sys_path
             os.environ.pop('PYTHONPATH', None)
 
     @comm_handler

@@ -529,11 +529,11 @@ def test_prioritize(kernel):
     append_path = ['/test/append/path']
     prepend_path = ['/test/prepend/path']
 
-    kernel.update_syspath([], append_path, prioritize=False)
+    kernel.update_syspath(append_path, prioritize=False)
     new_syspath = kernel.get_syspath()
     assert new_syspath == syspath + append_path
 
-    kernel.update_syspath(append_path, prepend_path, prioritize=True)
+    kernel.update_syspath(prepend_path, prioritize=True)
     new_syspath = kernel.get_syspath()
     assert new_syspath == prepend_path + syspath
 
