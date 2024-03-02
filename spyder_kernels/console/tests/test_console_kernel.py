@@ -526,17 +526,16 @@ def test_cwd_in_sys_path():
 def test_prioritize(kernel):
     """Test that user path priority is honored in sys.path."""
     syspath = kernel.get_syspath()
-    syspath.remove('')
     append_path = ['/test/append/path']
     prepend_path = ['/test/prepend/path']
 
     kernel.update_syspath(append_path, prioritize=False)
     new_syspath = kernel.get_syspath()
-    assert new_syspath == [''] + syspath + append_path
+    assert new_syspath == syspath + append_path
 
     kernel.update_syspath(prepend_path, prioritize=True)
     new_syspath = kernel.get_syspath()
-    assert new_syspath == [''] + prepend_path + syspath
+    assert new_syspath == prepend_path + syspath
 
 
 @flaky(max_runs=3)
