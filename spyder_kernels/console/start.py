@@ -33,6 +33,7 @@ def import_spydercustomize():
     # crashes when people name Python files or modules with
     # the same name as standard library modules.
     # See spyder-ide/spyder#8007
+    # Inject it back into sys.path after kernel starts
     while '' in sys.path:
         sys.path.remove('')
 
@@ -45,6 +46,7 @@ def import_spydercustomize():
         sys.path.remove(customize_dir)
     except ValueError:
         pass
+
 
 def kernel_config():
     """Create a config object with IPython kernel options."""

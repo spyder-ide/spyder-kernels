@@ -81,13 +81,15 @@ class SpyderKernel(IPythonKernel):
         # To track the interactive backend
         self.interactive_backend = None
 
+        # Re-add current working directory path into sys.path after
+        # removing it before kernel started
+        if '' not in sys.path:
+            sys.path.insert(0, '')
+
         # Store original sys.path. Kernels are started with PYTHONPATH
         # removed from environment variables, so this will never have
         # user paths and should be clean.
         self._sys_path = sys.path.copy()
-        if '' in self._sys_path:
-            self._sys_path.remove('')
-        self._sys_path.insert(0, '')
 
     @property
     def kernel_info(self):
@@ -760,10 +762,10 @@ class SpyderKernel(IPythonKernel):
             if prioritize:
                 sys.path[:] = new_path + self._sys_path
 
-                # Ensure current directory is always first
-                if '' in sys.path:
-                    sys.path.remove('')
-                    sys.path.insert(0, '')
+                # Ensure current directory is always first to imitate Python
+                # standard behavior
+                sys.path.remove('')
+                sys.path.insert(0, '')
             else:
                 sys.path[:] = self._sys_path + new_path
         else:
