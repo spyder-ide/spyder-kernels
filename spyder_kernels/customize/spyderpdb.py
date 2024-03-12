@@ -270,6 +270,7 @@ class SpyderPdb(ipyPdb):
                         + fun_ast.body[0].body[-1:]  # Locals update
                     )
                     code_ast = fun_ast
+                    locals = None
 
                 try:
                     exec(compile(code_ast, "<stdin>", "exec"), globals, locals)
