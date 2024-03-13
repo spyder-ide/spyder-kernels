@@ -135,10 +135,10 @@ def exec_encapsulate_locals(
     """
     Execute by encapsulating locals if needed.
 
-    Warning: 
-        In general, the dict returned by locals() might or might not be modified.
-        In this case, the encapsulated dict can not.
-    
+    Notes
+    ----- 
+    * In general, the dict returned by locals() might or might not be modified.
+      In this case, the encapsulated dict can not.
     """
     use_locals_hack = locals is not None and locals is not globals
     if use_locals_hack:
