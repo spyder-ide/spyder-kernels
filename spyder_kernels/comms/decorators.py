@@ -25,6 +25,7 @@ def register_comm_handlers(instance, frontend_comm):
             frontend_comm.register_call_handler(
                 method_name, method)
 
+
 def kernel_config(key):
     """Decorarot to mark function as kernel config for set_configuration."""
     def config_decorator(fun):
