@@ -187,7 +187,7 @@ def main():
         pass
 
     # Re-add current working directory path into sys.path after all of the
-    # import statements, but before initiializing the kernel.
+    # import statements, but before initializing the kernel.
     if '' not in sys.path:
         sys.path.insert(0, '')
 
