@@ -557,7 +557,7 @@ class SpyderKernel(IPythonKernel):
 
         if figure_format_n in conf:
             self._set_inline_config_option(
-                'figure_format', conf[figure_format_n]
+                'figure_formats', conf[figure_format_n]
             )
 
         rc = {}
@@ -945,7 +945,7 @@ class SpyderKernel(IPythonKernel):
         Set config options using the %config magic.
 
         As parameters:
-            option: config option, for example 'InlineBackend.figure_format'.
+            option: config option, for example 'InlineBackend.figure_formats'.
             value: value of the option, for example 'SVG', 'Retina', etc.
         """
         try:
