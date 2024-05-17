@@ -25,7 +25,7 @@ import cloudpickle
 # Third-party imports
 from ipykernel.ipkernel import IPythonKernel
 from ipykernel import get_connection_info
-from traitlets.config.loader import LazyConfigValue
+from traitlets.config.loader import Config, LazyConfigValue
 import zmq
 from zmq.utils.garbage import gc
 
@@ -554,13 +554,6 @@ class SpyderKernel(IPythonKernel):
         fontsize_n = 'pylab/inline/fontsize'
         bottom_n = 'pylab/inline/bottom'
         bbox_inches_n = 'pylab/inline/bbox_inches'
-        inline_backend = 'inline'
-
-        if pylab_autoload_n in conf or pylab_backend_n in conf:
-            self._set_mpl_backend(
-                conf.get(pylab_backend_n, inline_backend),
-                pylab=conf.get(pylab_autoload_n, False)
-            )
 
         if figure_format_n in conf:
             self._set_config_option(
@@ -589,6 +582,30 @@ class SpyderKernel(IPythonKernel):
         if bbox_inches_n in conf:
             self.set_mpl_inline_bbox_inches(conf[bbox_inches_n])
 
+        # To update rcParams in inline mode we can either do so directly or
+        # re-assert inline mode. However, either will prevent restoring
+        # rcParams when toggling to interactive mode. The workaround is to
+        # first toggle to interactive mode, then back to inline. This updates
+        # the rcParams and restores rcParams when switching to interactive.
+        interactive_backend = self.get_mpl_interactive_backend()
+        current_backend = self.get_matplotlib_backend()
+        pylab_changed = pylab_autoload_n in conf
+        backend_changed = pylab_backend_n in conf
+        if (
+            current_backend == 'inline'
+            and not backend_changed
+            and interactive_backend not in ('inline', -1)
+        ):
+            self._set_mpl_backend(interactive_backend)
+        if (
+            current_backend == 'inline'  # toggle back to inline for rcParams
+            or pylab_changed
+            or backend_changed
+        ):
+            self._set_mpl_backend(
+                conf.get(pylab_backend_n, current_backend),
+                pylab=conf.get(pylab_autoload_n, False)
+            )
 
     def set_mpl_inline_bbox_inches(self, bbox_inches):
         """
@@ -974,14 +991,26 @@ class SpyderKernel(IPythonKernel):
 
     def _set_mpl_inline_rc_config(self, option, value):
         """
-        Update any of the Matplolib rcParams given an option and value.
+        Update InlineBackend.rc given an option and value.
         """
-        try:
-            from matplotlib import rcParams
-            rcParams[option] = value
-        except Exception:
-            # Needed in case matplolib isn't installed
-            pass
+        _rc = {option: value}
+        if (
+            'InlineBackend' in self.config
+            and 'rc' in self.config['InlineBackend']
+        ):
+            self.config['InlineBackend']['rc'].update({_rc})
+        elif 'InlineBackend' in self.config:
+            self.config['InlineBackend'].update({'rc': _rc})
+        else:
+            self.config.update({'InlineBackend': Config({'rc': _rc})})
+        rc = self.config['InlineBackend']['rc']
+
+        # This seems to be necessary for newer versions of Traitlets because
+        # print_figure_kwargs doesn't return a dict.
+        if isinstance(rc, LazyConfigValue):
+            rc = rc.to_dict().get('update') or rc
+
+        self._set_config_option('InlineBackend.rc', rc)
 
     def set_sympy_forecolor(self, background_color='dark'):
         """Set SymPy forecolor depending on console background."""
