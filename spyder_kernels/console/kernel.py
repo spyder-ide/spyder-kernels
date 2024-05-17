@@ -585,23 +585,21 @@ class SpyderKernel(IPythonKernel):
         # the rcParams and restores rcParams when switching to interactive.
         interactive_backend = self.get_mpl_interactive_backend()
         current_backend = self.get_matplotlib_backend()
-        pylab_changed = pylab_autoload_n in conf
-        backend_changed = pylab_backend_n in conf
+        pylab_autoload_o = conf.get(pylab_autoload_n, False)
+        pylab_backend_o = conf.get(pylab_backend_n, current_backend)
+        backend_changed = current_backend != pylab_backend_o
         if (
-            current_backend == 'inline'
+            current_backend == 'inline' and rc
             and not backend_changed
             and interactive_backend not in ('inline', -1)
         ):
             self._set_mpl_backend(interactive_backend)
         if (
-            current_backend == 'inline'  # toggle back to inline for rcParams
-            or pylab_changed
+            (current_backend == 'inline' and rc)  # toggle back to inline
+            or pylab_autoload_o
             or backend_changed
         ):
-            self._set_mpl_backend(
-                conf.get(pylab_backend_n, current_backend),
-                pylab=conf.get(pylab_autoload_n, False)
-            )
+            self._set_mpl_backend(pylab_backend_o, pylab_autoload_o)
 
     # -- For completions
     def set_jedi_completer(self, use_jedi):
