@@ -11,7 +11,6 @@ Spyder kernel for Jupyter.
 """
 
 # Standard library imports
-from collections import namedtuple
 import faulthandler
 import json
 import logging
@@ -48,6 +47,14 @@ logger = logging.getLogger(__name__)
 # Excluded variables from the Variable Explorer (i.e. they are not
 # shown at all there)
 EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
+
+
+class SpyderFrameSummary():
+    def __init__(self, filename, lineno, name, line):
+        self.filename = filename
+        self.lineno = lineno
+        self.name = name
+        self.line = line
 
 
 class SpyderKernel(IPythonKernel):
@@ -261,10 +268,6 @@ class SpyderKernel(IPythonKernel):
         frames = {}
         thread_names = {thread.ident: thread.name
                         for thread in threading.enumerate()}
-
-        SpyderFrameSummary = namedtuple(
-            "SpyderFrameSummary", ["filename", "lineno", "name", "line"]
-        )
 
         for thread_id, frame in sys._current_frames().items():
             stack = traceback.StackSummary.extract(
