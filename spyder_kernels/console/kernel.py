@@ -556,31 +556,27 @@ class SpyderKernel(IPythonKernel):
         bbox_inches_n = 'pylab/inline/bbox_inches'
 
         if figure_format_n in conf:
-            self._set_config_option(
-                'InlineBackend.figure_format',
-                conf[figure_format_n]
+            self._set_inline_config_option(
+                'figure_format', conf[figure_format_n]
             )
 
+        rc = {}
         if resolution_n in conf:
-            self._set_mpl_inline_rc_config('figure.dpi', conf[resolution_n])
-
-        if width_n in conf and height_n in conf:
-            self._set_mpl_inline_rc_config(
-                'figure.figsize',
-                (conf[width_n], conf[height_n])
-            )
-
+            rc.update({'figure.dpi': conf[resolution_n]})
+        if width_n in conf or height_n in conf:
+            rc.update({'figure.figsize': (conf[width_n], conf[height_n])})
         if fontsize_n in conf:
-            self._set_mpl_inline_rc_config('font.size', conf[fontsize_n])
-
+            rc.update({'font.size': conf[fontsize_n]})
         if bottom_n in conf:
-            self._set_mpl_inline_rc_config(
-                'figure.subplot.bottom',
-                conf[bottom_n]
-            )
+            rc.update({'figure.subplot.bottom': conf[bottom_n]})
+        if rc:
+            self._set_inline_config_option('rc', rc)
 
         if bbox_inches_n in conf:
-            self.set_mpl_inline_bbox_inches(conf[bbox_inches_n])
+            bbox_inches = 'tight' if conf[bbox_inches_n] else None
+            self._set_inline_config_option(
+                'print_figure_kwargs', {'bbox_inches': bbox_inches}
+            )
 
         # To update rcParams in inline mode we can either do so directly or
         # re-assert inline mode. However, either will prevent restoring
@@ -606,32 +602,6 @@ class SpyderKernel(IPythonKernel):
                 conf.get(pylab_backend_n, current_backend),
                 pylab=conf.get(pylab_autoload_n, False)
             )
-
-    def set_mpl_inline_bbox_inches(self, bbox_inches):
-        """
-        Set inline print figure bbox inches.
-
-        The change is done by updating the 'print_figure_kwargs' config dict.
-        """
-        config = self.config
-        inline_config = (
-            config['InlineBackend'] if 'InlineBackend' in config else {})
-        print_figure_kwargs = (
-            inline_config['print_figure_kwargs']
-            if 'print_figure_kwargs' in inline_config else {})
-        bbox_inches_dict = {
-            'bbox_inches': 'tight' if bbox_inches else None}
-        print_figure_kwargs.update(bbox_inches_dict)
-
-        # This seems to be necessary for newer versions of Traitlets because
-        # print_figure_kwargs doesn't return a dict.
-        if isinstance(print_figure_kwargs, LazyConfigValue):
-            figure_kwargs_dict = print_figure_kwargs.to_dict().get('update')
-            if figure_kwargs_dict:
-                print_figure_kwargs = figure_kwargs_dict
-
-        self._set_config_option(
-            'InlineBackend.print_figure_kwargs', print_figure_kwargs)
 
     # -- For completions
     def set_jedi_completer(self, use_jedi):
@@ -989,28 +959,31 @@ class SpyderKernel(IPythonKernel):
         except Exception:
             pass
 
-    def _set_mpl_inline_rc_config(self, option, value):
+    def _set_inline_config_option(self, option, value):
         """
-        Update InlineBackend.rc given an option and value.
+        Update InlineBackend given an option and value.
+
+        As parameters:
+            option: config option; one of 'close_figures', 'figure_formats',
+                'print_figure_kwargs', or 'rc'.
+            value: value of the option
         """
-        _rc = {option: value}
         if (
             'InlineBackend' in self.config
-            and 'rc' in self.config['InlineBackend']
+            and option in self.config['InlineBackend']
+            and isinstance(value, dict)
         ):
-            self.config['InlineBackend']['rc'].update({_rc})
+            self.config['InlineBackend'][option].update(value)
         elif 'InlineBackend' in self.config:
-            self.config['InlineBackend'].update({'rc': _rc})
+            self.config['InlineBackend'].update({option: value})
         else:
-            self.config.update({'InlineBackend': Config({'rc': _rc})})
-        rc = self.config['InlineBackend']['rc']
+            self.config.update({'InlineBackend': Config({option: value})})
+        value = self.config['InlineBackend'][option]
 
-        # This seems to be necessary for newer versions of Traitlets because
-        # print_figure_kwargs doesn't return a dict.
-        if isinstance(rc, LazyConfigValue):
-            rc = rc.to_dict().get('update') or rc
+        if isinstance(value, LazyConfigValue):
+            value = value.to_dict().get('update') or value
 
-        self._set_config_option('InlineBackend.rc', rc)
+        self._set_config_option(f'InlineBackend.{option}', value)
 
     def set_sympy_forecolor(self, background_color='dark'):
         """Set SymPy forecolor depending on console background."""
