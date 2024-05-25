@@ -1391,5 +1391,26 @@ def test_django_settings(kernel):
     assert "'settings':" in nsview
 
 
+def test_hard_link_pdb(tmpdir):
+    """
+    Test that breakpoints on a file are recognised even when the path is 
+    different.
+    """
+    # Create a file and a hard link
+    d = tmpdir.join("file.py")
+    d.write('def func():\n    bb = "hello"\n')
+    folder = tmpdir.join("folder")
+    os.mkdir(folder)
+    hard_link = folder.join("file.py")
+    os.link(d, hard_link)
+    
+    # Make sure both paths point to the same file
+    assert os.path.samefile(d, hard_link)
+    
+    # Make sure canonic returns the same path for a single file
+    pdb_obj = SpyderPdb()
+    assert pdb_obj.canonic(str(d)) == pdb_obj.canonic(str(hard_link))
+
+
 if __name__ == "__main__":
     pytest.main()
