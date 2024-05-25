@@ -830,6 +830,18 @@ class SpyderPdb(ipyPdb):
         if self.pdb_publish_stack:
             # Publish Pdb stack so we can update the Debugger plugin on Spyder
             pdb_stack = traceback.StackSummary.extract(self.stack)
+            
+            pdb_stack = [
+                {
+                    "filename": frame.filename,
+                    "lineno": frame.lineno,
+                    "name": frame.name,
+                    "line": frame.line
+                }
+                for frame in pdb_stack
+            ] 
+            
+            
             pdb_index = self.curindex
 
             skip_hidden = getattr(self, 'skip_hidden', False)

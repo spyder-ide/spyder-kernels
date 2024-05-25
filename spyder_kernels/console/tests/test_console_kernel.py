@@ -1272,13 +1272,12 @@ def test_interrupt():
     """
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
-    import pickle
     with setup_kernel(cmd) as client:
         kernel_comm = CommBase()
 
         # Create new comm and send the highest protocol
         comm = Comm(kernel_comm._comm_name, client)
-        comm.open(data={'pickle_highest_protocol': pickle.HIGHEST_PROTOCOL})
+        comm.open(data={})
         comm._send_channel = client.control_channel
         kernel_comm._register_comm(comm)
 
@@ -1328,13 +1327,12 @@ def test_enter_debug_after_interruption():
     """
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
-    import pickle
     with setup_kernel(cmd) as client:
         kernel_comm = CommBase()
 
         # Create new comm and send the highest protocol
         comm = Comm(kernel_comm._comm_name, client)
-        comm.open(data={'pickle_highest_protocol': pickle.HIGHEST_PROTOCOL})
+        comm.open(data={})
         comm._send_channel = client.control_channel
         kernel_comm._register_comm(comm)
 

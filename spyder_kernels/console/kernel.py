@@ -49,14 +49,6 @@ logger = logging.getLogger(__name__)
 EXCLUDED_NAMES = ['In', 'Out', 'exit', 'get_ipython', 'quit']
 
 
-class SpyderFrameSummary():
-    def __init__(self, filename, lineno, name, line):
-        self.filename = filename
-        self.lineno = lineno
-        self.name = name
-        self.line = line
-
-
 class SpyderKernel(IPythonKernel):
     """Spyder kernel for Jupyter."""
 
@@ -285,12 +277,12 @@ class SpyderKernel(IPythonKernel):
                 # Transform stack in a named tuple because FrameSummary objects
                 # are not compatible between versions of python
                 frames[thread_name] = [
-                    SpyderFrameSummary(
-                        frame.filename,
-                        frame.lineno,
-                        frame.name,
-                        frame.line
-                    )
+                    {
+                        "filename": frame.filename,
+                        "lineno": frame.lineno,
+                        "name": frame.name,
+                        "line": frame.line
+                    }
                     for frame in stack
                 ]
         return frames
