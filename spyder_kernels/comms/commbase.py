@@ -36,18 +36,20 @@ The messages exchanged are:
             'settings': A dictionnary of settings,
             'call_args': The function args,
             'call_kwargs': The function kwargs,
-            'buffers_args_idx': The args index that are bytes,
-            'buffers_kwargs_keys': the kwargs keys that are bytes
-            }
+            'buffered_args': The args index that are in the buffers,
+            'buffered_kwargs': the kwargs keys that are in the buffers
+          }
+        - The buffer contains any bytes in the arguments
     - If the 'settings' has `'blocking' =  True`, a reply is sent.
       (spyder_msg_type = 'remote_call_reply'):
         - The 'content' is a dict with: {
-                'is_error': a boolean indicating if the return value is an
-                            exception to be raised.
-                'call_id': The uuid from above,
-                'call_name': The function name (mostly for debugging),
-                'call_return_value': The return value of the function
-                }
+            'is_error': a boolean indicating if the return value is an
+                        exception to be raised.
+            'call_id': The uuid from above,
+            'call_name': The function name (mostly for debugging),
+            'call_return_value': The return value of the function
+           }
+        - The buffer contains the return value if it is bytes
 """
 import logging
 import sys
@@ -323,17 +325,17 @@ class CommBase:
             kwargs = msg_dict['call_kwargs']
             
             if buffers:
-                for idx in msg_dict['buffers_args_idx']:
+                for idx in msg_dict['buffered_args']:
                     args[idx] = buffers.pop(0)
-                for name in msg_dict['buffers_kwargs_keys']:
+                for name in msg_dict['buffered_kwargs']:
                     kwargs[name] = buffers.pop(0)
                 assert len(buffers) == 0
             
             return_value = self._remote_callback(
-                    msg_dict['call_name'],
-                    args,
-                    kwargs
-                    )
+                msg_dict['call_name'],
+                args,
+                kwargs
+            )
             self._set_call_return_value(msg_dict, return_value)
         except Exception:
             exc_infos = CommsErrorWrapper(
@@ -536,26 +538,26 @@ class RemoteCall():
         """
         Transmit the call to the other side of the tunnel.
 
-        The args and kwargs have to be picklable.
+        The args and kwargs have to be JSON-serializable or bytes.
         """
         blocking = 'blocking' in self._settings and self._settings['blocking']
         self._settings['send_reply'] = blocking or self._callback is not None
         
-        # put all bytes in a buffer
+        # The call will be serialized with json. The bytes are sent separately.
         buffers = []
-        buffers_args_idx = []
+        buffered_args = []
+        buffered_kwargs = []
         args = list(args)
         for i, arg in enumerate(args):
             if isinstance(arg, bytes):
                 buffers.append(arg)
-                buffers_args_idx.append(i)
+                buffered_args.append(i)
                 args[i] = None
-        buffers_kwargs_keys = []
         for name in kwargs:
             arg = kwargs[name]
             if isinstance(arg, bytes):
                 buffers.append(arg)
-                buffers_kwargs_keys.append(name)
+                buffered_kwargs.append(name)
                 kwargs[name] = None
 
         call_id = uuid.uuid4().hex
@@ -565,8 +567,8 @@ class RemoteCall():
             'settings': self._settings,
             'call_args': args,
             'call_kwargs': kwargs,
-            'buffers_args_idx': buffers_args_idx,
-            'buffers_kwargs_keys': buffers_kwargs_keys
+            'buffered_args': buffered_args,
+            'buffered_kwargs': buffered_kwargs
             }
 
         if not self._comms_wrapper.is_open(self._comm_id):
