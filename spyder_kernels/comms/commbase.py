@@ -420,7 +420,6 @@ class CommBase:
         settings = call_dict['settings']
 
         blocking = 'blocking' in settings and settings['blocking']
-
         if not blocking:
             return
 
@@ -441,7 +440,6 @@ class CommBase:
 
         if content['is_error']:
             return self._sync_error(return_value)
-
         return return_value
 
     def _wait_reply(self, comm_id, call_id, call_name, timeout):

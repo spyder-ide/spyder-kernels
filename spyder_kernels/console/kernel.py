@@ -275,7 +275,7 @@ class SpyderKernel(IPythonKernel):
                     thread_name = thread_names[thread_id]
                 else:
                     thread_name = str(thread_id)
-                # Transform stack in a named tuple because FrameSummary objects
+                # Transform stack in a dict because FrameSummary objects
                 # are not compatible between versions of python
                 frames[thread_name] = [
                     {
