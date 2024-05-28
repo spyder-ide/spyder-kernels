@@ -560,17 +560,21 @@ class SpyderKernel(IPythonKernel):
                 'figure_formats', conf[figure_format_n]
             )
 
-        rc = {}
+        inline_rc = {}
         if resolution_n in conf:
-            rc.update({'figure.dpi': conf[resolution_n]})
+            inline_rc.update({'figure.dpi': conf[resolution_n]})
         if width_n in conf or height_n in conf:
-            rc.update({'figure.figsize': (conf[width_n], conf[height_n])})
+            inline_rc.update(
+                {'figure.figsize': (conf[width_n], conf[height_n])}
+            )
         if fontsize_n in conf:
-            rc.update({'font.size': conf[fontsize_n]})
+            inline_rc.update({'font.size': conf[fontsize_n]})
         if bottom_n in conf:
-            rc.update({'figure.subplot.bottom': conf[bottom_n]})
-        if rc:
-            self._set_inline_config_option('rc', rc)
+            inline_rc.update({'figure.subplot.bottom': conf[bottom_n]})
+
+        # Update Inline backend parameters, if available.
+        if inline_rc:
+            self._set_inline_config_option('rc', inline_rc)
 
         if bbox_inches_n in conf:
             bbox_inches = 'tight' if conf[bbox_inches_n] else None
@@ -589,13 +593,13 @@ class SpyderKernel(IPythonKernel):
         pylab_backend_o = conf.get(pylab_backend_n, current_backend)
         backend_changed = current_backend != pylab_backend_o
         if (
-            current_backend == 'inline' and rc
+            current_backend == 'inline' and inline_rc
             and not backend_changed
             and interactive_backend not in ('inline', -1)
         ):
             self._set_mpl_backend(interactive_backend)
         if (
-            (current_backend == 'inline' and rc)  # toggle back to inline
+            (current_backend == 'inline' and inline_rc)  # toggle back to inline
             or pylab_autoload_o
             or backend_changed
         ):
@@ -976,6 +980,7 @@ class SpyderKernel(IPythonKernel):
             self.config['InlineBackend'].update({option: value})
         else:
             self.config.update({'InlineBackend': Config({option: value})})
+
         value = self.config['InlineBackend'][option]
 
         if isinstance(value, LazyConfigValue):
