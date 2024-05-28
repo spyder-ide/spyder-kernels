@@ -8,7 +8,7 @@
 Class that handles communications between Spyder kernel and frontend.
 
 Comms transmit data in a list of buffers, and in a json-able dictionnary.
-Here, we only support json to avoid issues of compatibility between python
+Here, we only support json to avoid issues of compatibility between Python
 versions. In the abstraction below, buffers is used to send bytes.
 
 The messages exchanged have the following msg_dict:
@@ -17,7 +17,7 @@ The messages exchanged have the following msg_dict:
     msg_dict = {
         'spyder_msg_type': spyder_msg_type,
         'content': content,
-        }
+    }
     ```
 
 To simplify the usage of messaging, we use a higher level function calling
@@ -269,8 +269,7 @@ class CommBase:
         comm_id: int
             the comm to send to. If None sends to all comms.
         buffers: list(bytes)
-            a list of bytes to send
-        
+            a list of bytes to send.
         """
         if not self.is_open(comm_id):
             raise CommError("The comm is not connected.")
@@ -279,7 +278,7 @@ class CommBase:
             msg_dict = {
                 'spyder_msg_type': spyder_msg_type,
                 'content': content,
-                }
+            }
 
             self._comms[comm_id]['comm'].send(msg_dict, buffers=buffers)
 
@@ -318,7 +317,7 @@ class CommBase:
         self._comms[comm.comm_id] = {
             'comm': comm,
             'status': 'opening',
-            }
+        }
 
     def _comm_close(self, msg):
         """Close comm."""
@@ -395,10 +394,12 @@ class CommBase:
         if not send_reply:
             # Nothing to send back
             return
+
         buffers = None
         if isinstance(return_value, bytes):
             buffers = [return_value]
             return_value = None
+
         content = {
             'is_error': is_error,
             'call_id': call_dict['call_id'],
@@ -407,7 +408,9 @@ class CommBase:
         }
 
         self._send_message(
-            'remote_call_reply', content=content, comm_id=self.calling_comm_id,
+            'remote_call_reply',
+            content=content,
+            comm_id=self.calling_comm_id,
             buffers=buffers
         )
 
@@ -461,7 +464,6 @@ class CommBase:
         self._wait_reply(comm_id, call_id, call_name, timeout)
 
         content = self._reply_inbox.pop(call_id)
-
         return_value = content['call_return_value']
 
         if content['is_error']:
@@ -483,6 +485,7 @@ class CommBase:
         call_name = content['call_name']
         is_error = content['is_error']
         return_value = content['call_return_value']
+
         # Prepare return value
         if is_error:
             return_value = CommsErrorWrapper.from_json(return_value)
@@ -572,11 +575,13 @@ class RemoteCall():
         buffered_args = []
         buffered_kwargs = []
         args = list(args)
+
         for i, arg in enumerate(args):
             if isinstance(arg, bytes):
                 buffers.append(arg)
                 buffered_args.append(i)
                 args[i] = None
+
         for name in kwargs:
             arg = kwargs[name]
             if isinstance(arg, bytes):
@@ -593,7 +598,7 @@ class RemoteCall():
             'call_kwargs': kwargs,
             'buffered_args': buffered_args,
             'buffered_kwargs': buffered_kwargs
-            }
+        }
 
         if not self._comms_wrapper.is_open(self._comm_id):
             # Only an error if the call is blocking.
