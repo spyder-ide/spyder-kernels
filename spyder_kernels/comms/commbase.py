@@ -68,6 +68,32 @@ class CommError(RuntimeError):
     pass
 
 
+def stacksummary_to_json(stack):
+    """StackSummary to json."""
+    return [
+        {
+            "filename": frame.filename,
+            "lineno": frame.lineno,
+            "name": frame.name,
+            "line": frame.line
+        }
+        for frame in stack
+    ]
+
+
+def staksummary_from_json(stack):
+    """StackSummary from json."""
+    traceback.StackSummary.from_list([
+        (
+            frame["filename"],
+            frame["lineno"],
+            frame["name"],
+            frame["line"]
+        )
+        for frame in stack
+    ])
+
+
 class CommsErrorWrapper():
     def __init__(self, call_name, call_id):
         self.call_name = call_name
@@ -81,10 +107,7 @@ class CommsErrorWrapper():
             "call_id": self.call_id,
             "etype": self.etype.__name__,
             "args": self.error.args,
-            "tb": [
-                (frame.filename, frame.lineno, frame.name, frame.line)
-                for frame in self.tb
-            ]
+            "tb": stacksummary_to_json(self.tb)
         }
 
     @classmethod
@@ -99,7 +122,7 @@ class CommsErrorWrapper():
             type(etype, (Exception,), {})
         )
         instance.error = instance.etype(*json_data["args"])
-        instance.tb = traceback.StackSummary.from_list(json_data["tb"])
+        instance.tb = staksummary_from_json(json_data["tb"])
         return instance
 
     def raise_error(self):
@@ -323,14 +346,14 @@ class CommBase:
             # read buffers
             args = msg_dict['call_args']
             kwargs = msg_dict['call_kwargs']
-            
+
             if buffers:
                 for idx in msg_dict['buffered_args']:
                     args[idx] = buffers.pop(0)
                 for name in msg_dict['buffered_kwargs']:
                     kwargs[name] = buffers.pop(0)
                 assert len(buffers) == 0
-            
+
             return_value = self._remote_callback(
                 msg_dict['call_name'],
                 args,
@@ -540,7 +563,7 @@ class RemoteCall():
         """
         blocking = 'blocking' in self._settings and self._settings['blocking']
         self._settings['send_reply'] = blocking or self._callback is not None
-        
+
         # The call will be serialized with json. The bytes are sent separately.
         buffers = []
         buffered_args = []
