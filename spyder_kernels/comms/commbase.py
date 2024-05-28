@@ -102,6 +102,7 @@ class CommsErrorWrapper():
         self.tb = traceback.extract_tb(tb)
 
     def to_json(self):
+        """Create JSON representation."""
         return {
             "call_name": self.call_name,
             "call_id": self.call_id,
@@ -112,6 +113,7 @@ class CommsErrorWrapper():
 
     @classmethod
     def from_json(cls, json_data):
+        """Get a CommsErrorWrapper from a JSON representation."""
         instance = cls.__new__(cls)
         instance.call_name = json_data["call_name"]
         instance.call_id = json_data["call_id"]
@@ -253,8 +255,8 @@ class CommBase:
 
     # ---- Private -----
     def _send_message(
-            self, spyder_msg_type, content=None, comm_id=None, buffers=None
-        ):
+        self, spyder_msg_type, content=None, comm_id=None, buffers=None
+    ):
         """
         Publish custom messages to the other side.
 
@@ -264,10 +266,11 @@ class CommBase:
             The spyder message type
         content: dict
             The (JSONable) content of the message
-        data: any
-            Any object that is serializable by json.
         comm_id: int
             the comm to send to. If None sends to all comms.
+        buffers: list(bytes)
+            a list of bytes to send
+        
         """
         if not self.is_open(comm_id):
             raise CommError("The comm is not connected.")
