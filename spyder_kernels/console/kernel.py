@@ -582,27 +582,12 @@ class SpyderKernel(IPythonKernel):
                 'print_figure_kwargs', {'bbox_inches': bbox_inches}
             )
 
-        # To update rcParams in inline mode we can either do so directly or
-        # re-assert inline mode. However, either will prevent restoring
-        # rcParams when toggling to interactive mode. The workaround is to
-        # first toggle to interactive mode, then back to inline. This updates
-        # the rcParams and restores rcParams when switching to interactive.
-        interactive_backend = self.get_mpl_interactive_backend()
-        current_backend = self.get_matplotlib_backend()
+        # Only update backend if it has changed or if autoloading pylab.
         pylab_autoload_o = conf.get(pylab_autoload_n, False)
+        current_backend = self.get_matplotlib_backend()
         pylab_backend_o = conf.get(pylab_backend_n, current_backend)
         backend_changed = current_backend != pylab_backend_o
-        if (
-            current_backend == 'inline' and inline_rc
-            and not backend_changed
-            and interactive_backend not in ('inline', -1)
-        ):
-            self._set_mpl_backend(interactive_backend)
-        if (
-            (current_backend == 'inline' and inline_rc)  # toggle back to inline
-            or pylab_autoload_o
-            or backend_changed
-        ):
+        if pylab_autoload_o or backend_changed:
             self._set_mpl_backend(pylab_backend_o, pylab_autoload_o)
 
     # -- For completions
@@ -987,6 +972,28 @@ class SpyderKernel(IPythonKernel):
             value = value.to_dict().get('update') or value
 
         self._set_config_option(f'InlineBackend.{option}', value)
+
+        if option == 'rc' and self.get_matplotlib_backend() == 'inline':
+            # Explicitly update rcParams if already in inline mode so that
+            # new settings are effective immediately.
+            import matplotlib
+            matplotlib.rcParams.update(value)
+
+    def _restore_rc_file_defaults(self):
+        """Restore inline rcParams to file defaults"""
+        try:
+            import matplotlib
+        except Exception:
+            return
+
+        if (
+            'InlineBackend' in self.config
+            and 'rc' in self.config['InlineBackend']
+        ):
+            # Only restore keys that may have been set explicitly by
+            # _set_inline_config_option
+            for k in self.config['InlineBackend']['rc'].keys():
+                matplotlib.rcParams[k] = matplotlib.rcParamsOrig[k]
 
     def set_sympy_forecolor(self, background_color='dark'):
         """Set SymPy forecolor depending on console background."""
