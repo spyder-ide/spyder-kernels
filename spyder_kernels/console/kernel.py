@@ -950,10 +950,13 @@ class SpyderKernel(IPythonKernel):
         """
         Update InlineBackend given an option and value.
 
-        As parameters:
-            option: config option; one of 'close_figures', 'figure_formats',
-                'print_figure_kwargs', or 'rc'.
-            value: value of the option
+        Parameters
+        ----------
+        option: str
+            Configuration option. One of 'close_figures', 'figure_formats',
+            'print_figure_kwargs', or 'rc'.
+        value: str | dict
+            Value of the option.
         """
         if (
             'InlineBackend' in self.config
@@ -976,10 +979,13 @@ class SpyderKernel(IPythonKernel):
         if option == 'rc' and self.get_matplotlib_backend() == 'inline':
             # Explicitly update rcParams if already in inline mode so that
             # new settings are effective immediately.
-            import matplotlib
-            matplotlib.rcParams.update(value)
+            try:
+                import matplotlib
+                matplotlib.rcParams.update(value)
+            except Exception:
+                pass
 
-    def _restore_rc_file_defaults(self):
+    def restore_rc_file_defaults(self):
         """Restore inline rcParams to file defaults"""
         try:
             import matplotlib

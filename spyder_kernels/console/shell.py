@@ -91,7 +91,7 @@ class SpyderShell(ZMQInteractiveShell):
 
         # Before activating the backend, restore to file default those
         # InlineBackend settings that may have been set explicitly.
-        self.kernel._restore_rc_file_defaults()
+        self.kernel.restore_rc_file_defaults()
 
         enabled_gui, backend = super().enable_matplotlib(gui)
 
