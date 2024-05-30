@@ -749,8 +749,8 @@ def test_runfile(tmpdir):
     sys.platform == 'darwin' and sys.version_info[:2] == (3, 8),
     reason="Fails on Mac with Python 3.8")
 def test_np_threshold(kernel):
-    """Test that setting Numpy threshold doesn't make the Variable Explorer
-    slow.
+    """
+    Test that setting Numpy threshold doesn't make the Variable Explorer slow.
     """
 
     cmd = "from spyder_kernels.console import start; start.main()"
