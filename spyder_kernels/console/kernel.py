@@ -779,9 +779,17 @@ class SpyderKernel(IPythonKernel):
         """
         Update the PYTHONPATH of the kernel.
 
-        `new_path` corresponds to the new state of the PYTHONPATH.
-        `prioritize` determines whether to prioritize PYTHONPATH in sys.path.
+        Parameters
+        ----------
+        new_path: list of str
+            List of PYTHONPATH paths.
+        prioritize: bool
+            Whether to place PYTHONPATH paths at the front (True) or
+            back (False) of sys.path.
 
+
+        Notes
+        -----
         A copy of sys.path is made at instantiation, which should be clean,
         so we can just prepend/append to the copy without having to explicitly
         remove old user paths. PYTHONPATH can just be overwritten.

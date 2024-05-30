@@ -16,9 +16,8 @@ import os.path as osp
 import sys
 import site
 
-# Remove current directory from sys.path to prevent kernel
-# crashes when people name Python files or modules with
-# the same name as standard library modules.
+# Remove current directory from sys.path to prevent kernel crashes when people
+# name Python files or modules with the same name as standard library modules.
 # See spyder-ide/spyder#8007
 # Inject it back into sys.path after all imports in this module but
 # before the kernel is initialized
