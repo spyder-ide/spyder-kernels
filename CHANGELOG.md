@@ -1,5 +1,24 @@
 # History of changes
 
+## Version 3.0.0b7 (2024-06-18)
+
+### Issues Closed
+
+* [Issue 491](https://github.com/spyder-ide/spyder-kernels/issues/491) - Debugger misses breakpoint when a file can have several canonic paths ([PR 490](https://github.com/spyder-ide/spyder-kernels/pull/490) by [@impact27](https://github.com/impact27))
+* [Issue 468](https://github.com/spyder-ide/spyder-kernels/issues/468) - Debugger not working for environments with different Python versions ([PR 492](https://github.com/spyder-ide/spyder-kernels/pull/492) by [@impact27](https://github.com/impact27))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+* [PR 492](https://github.com/spyder-ide/spyder-kernels/pull/492) - PR: Enable comms to work across different Python versions, by [@impact27](https://github.com/impact27) ([468](https://github.com/spyder-ide/spyder-kernels/issues/468))
+* [PR 490](https://github.com/spyder-ide/spyder-kernels/pull/490) - PR: Use inodes for single canonic file path (Debugger), by [@impact27](https://github.com/impact27) ([491](https://github.com/spyder-ide/spyder-kernels/issues/491))
+* [PR 487](https://github.com/spyder-ide/spyder-kernels/pull/487) - PR: Fix issue where Spyder's inline graphics preferences were not applied, by [@mrclary](https://github.com/mrclary)
+
+In this release 3 pull requests were closed.
+
+----
+
 ## Version 3.0.0b6 (2024-05-15)
 
 ### Issues Closed
