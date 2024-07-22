@@ -31,10 +31,11 @@ from jupyter_client import BlockingKernelClient
 import numpy as np
 
 # Local imports
-from spyder_kernels.utils.iofuncs import iofunctions
-from spyder_kernels.utils.test_utils import get_kernel, get_log_text
-from spyder_kernels.customize.spyderpdb import SpyderPdb
 from spyder_kernels.comms.commbase import CommBase
+from spyder_kernels.customize.spyderpdb import SpyderPdb
+from spyder_kernels.utils.iofuncs import iofunctions
+from spyder_kernels.utils.pythonenv import PythonEnvType
+from spyder_kernels.utils.test_utils import get_kernel, get_log_text
 
 # =============================================================================
 # Constants and utility functions
@@ -1408,6 +1409,27 @@ def test_hard_link_pdb(tmpdir):
     # Make sure canonic returns the same path for a single file
     pdb_obj = SpyderPdb()
     assert pdb_obj.canonic(str(d)) == pdb_obj.canonic(str(hard_link))
+
+
+@pytest.mark.skipif(not os.environ.get('CI'), reason="Only works on CIs")
+def test_get_pythonenv_info(kernel):
+    """Test the output we get from this method."""
+    output = kernel.get_pythonenv_info()
+    assert output["path"] == sys.executable
+
+    if os.environ.get('USE_CONDA'):
+        assert output["name"] == "test"
+        assert output["env_type"] == PythonEnvType.Conda
+    else:
+        assert output["env_type"] in [
+            # This Custom here accounts for Linux packagers that run our tests
+            # in their CIs
+            PythonEnvType.Custom,
+            PythonEnvType.Conda,
+        ]
+
+    # Check this key is present. Otherwise we'll break Spyder.
+    assert output["py_version"]
 
 
 if __name__ == "__main__":

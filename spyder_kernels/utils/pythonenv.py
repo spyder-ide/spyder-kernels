@@ -9,8 +9,27 @@
 """Utilities to get information about Python environments."""
 
 # Standard library imports
+from __future__ import annotations
 import os
 from pathlib import Path
+from typing import TypedDict
+
+
+class PythonEnvType:
+    """Enum with the different types of Python environments we can detect."""
+
+    Conda = "conda"
+    PyEnv = "pyenv"
+    Custom = "custom"  # Nor Conda or Pyenv
+
+
+class PythonEnvInfo(TypedDict):
+    """Schema for Python environment information."""
+
+    path: str
+    env_type: PythonEnvType
+    name: str
+    py_version: str
 
 
 def add_quotes(path):
