@@ -13,6 +13,14 @@ import os
 from pathlib import Path
 
 
+class PythonEnvironmentType:
+    """Enum with the different types of Python environments we can detect."""
+
+    Conda = "conda"
+    PyEnv = "pyenv"
+    Custom = "custom"  # Nor Conda or Pyenv
+
+
 def add_quotes(path):
     """Return quotes if needed for spaces on path."""
     quotes = '"' if ' ' in path and '"' not in path else ''
