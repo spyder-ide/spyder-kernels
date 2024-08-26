@@ -53,7 +53,8 @@ def get_conda_env_path(pyexec, quote=False):
     if os.name == 'nt':
         conda_env = os.path.dirname(pyexec)
     else:
-        conda_env = os.path.dirname(os.path.dirname(pyexec))
+        # Resolve possible symlink in case of macOS application bundle
+        conda_env = os.path.dirname(os.path.dirname(os.path.realpath(pyexec)))
 
     if quote:
         conda_env = add_quotes(conda_env)
