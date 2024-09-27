@@ -506,9 +506,9 @@ def load_dicom(filename):
 
         name = osp.splitext(osp.basename(filename))[0]
         try:
-            data = dicomio.dcmread(filename, force=True)
+            data = dicomio.read_file(filename, force=True)
         except TypeError:
-            data = dicomio.dcmread(filename)
+            data = dicomio.read_file(filename)
         arr = data.pixel_array
         return {name: arr}, None
     except Exception as error:
