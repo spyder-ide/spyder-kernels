@@ -24,7 +24,7 @@ jobs:
       RUNNER_OS: 'windows'
       USE_CONDA: 'true'
     strategy:
-      fail-fast: false 
+      fail-fast: false
       matrix:
         PYTHON_VERSION: ['3.8', '3.9', '3.10']
     timeout-minutes: 25
@@ -32,7 +32,7 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v1
       - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
            activate-environment: test
            auto-update-conda: true
@@ -65,7 +65,7 @@ jobs:
           pytest spyder_kernels --color=yes --cov=spyder_kernels -vv || \
           pytest spyder_kernels --cov=spyder_kernels -vv
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: false
           verbose: true
