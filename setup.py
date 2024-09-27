@@ -61,7 +61,7 @@ TEST_REQUIREMENTS = [
     'pillow',
     'django',
     'h5py',
-    'pydicom'
+    'pydicom>=3.0'
 ]
 
 setup(
