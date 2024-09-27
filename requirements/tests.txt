@@ -12,4 +12,4 @@ xarray
 pillow
 django
 h5py
-pydicom
+pydicom<3.0
