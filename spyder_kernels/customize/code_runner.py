@@ -12,7 +12,6 @@ Spyder magics related to code execution, debugging, profiling, etc.
 # Standard library imports
 import ast
 import bdb
-import builtins
 from contextlib import contextmanager
 import cProfile
 from functools import partial
@@ -332,7 +331,7 @@ class SpyderCodeRunner(Magics):
 
             try:
                 if self.shell.is_debugging():
-                    def prof_exec(code, glob, loc):
+                    def prof_exec(code, glob=None, loc=None):
                         """
                         If we are debugging (tracing), call_tracing is
                         necessary for profiling.
