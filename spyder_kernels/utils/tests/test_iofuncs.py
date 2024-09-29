@@ -14,7 +14,6 @@ Tests for iofuncs.py.
 import copy
 import io
 import os
-import sys
 
 # Third party imports
 from PIL import ImageFile
@@ -352,8 +351,8 @@ def test_save_load_hdf5_files(tmp_path):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 10, 0),
-    reason="pydicom 3.0 is incompatible with Python < 3.10"
+    os.environ.get("USE_CONDA") == "true",
+    reason="Pydicom is not installed correctly in Conda envs"
 )
 def test_load_dicom_files():
     """Check that we can load DICOM files."""
