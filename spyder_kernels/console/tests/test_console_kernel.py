@@ -1314,13 +1314,17 @@ def test_interrupt():
         kernel_comm.remote_call().raise_interrupt_signal()
         # Wait for shell message
         while True:
-            assert time.time() - t0 < 5
+            delta = time.time() - t0
+            assert delta < 5
             msg = client.get_shell_msg(timeout=TIMEOUT)
             if msg["parent_header"].get("msg_id") != msg_id:
                 # not from my request
                 continue
             break
-        assert time.time() - t0 < 5
+        delta = time.time() - t0
+        assert (
+            delta < 5
+        ), "10 second long call should have been interupted, interrupt signal was likely misshandled"
 
 
 def test_enter_debug_after_interruption():
