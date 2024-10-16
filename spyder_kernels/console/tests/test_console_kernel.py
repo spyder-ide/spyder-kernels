@@ -1321,10 +1321,12 @@ def test_interrupt():
                 # not from my request
                 continue
             break
+
         delta = time.time() - t0
-        assert (
-            delta < 5
-        ), "10 second long call should have been interupted, interrupt signal was likely misshandled"
+        assert delta < 5, (
+            "10 seconds long call should have been interrupted, so the "
+            "interrupt signal was likely mishandled"
+        )
 
 
 def test_enter_debug_after_interruption():
