@@ -40,30 +40,37 @@ def create_pygments_dict(color_scheme_dict):
     font_color =  fon_c
     font_font_weight = give_font_weight(fon_fw)
     font_font_style = give_font_style(fon_fs)
+
     key_c, key_fw, key_fs = color_scheme['keyword']
     keyword_color =  key_c
     keyword_font_weight = give_font_weight(key_fw)
     keyword_font_style = give_font_style(key_fs)
+
     bui_c, bui_fw, bui_fs = color_scheme['builtin']
     builtin_color =  bui_c
     builtin_font_weight = give_font_weight(bui_fw)
     builtin_font_style = give_font_style(bui_fs)
+
     str_c, str_fw, str_fs = color_scheme['string']
     string_color =  str_c
     string_font_weight = give_font_weight(str_fw)
     string_font_style = give_font_style(str_fs)
+
     num_c, num_fw, num_fs = color_scheme['number']
     number_color =  num_c
     number_font_weight = give_font_weight(num_fw)
     number_font_style = give_font_style(num_fs)
+
     com_c, com_fw, com_fs = color_scheme['comment']
     comment_color =  com_c
     comment_font_weight = give_font_weight(com_fw)
     comment_font_style = give_font_style(com_fs)
+
     def_c, def_fw, def_fs = color_scheme['definition']
     definition_color =  def_c
     definition_font_weight = give_font_weight(def_fw)
     definition_font_style = give_font_style(def_fs)
+
     ins_c, ins_fw, ins_fs = color_scheme['instance']
     instance_color =  ins_c
     instance_font_weight = give_font_weight(ins_fw)
