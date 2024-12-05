@@ -167,7 +167,10 @@ class SpyderPdb(ipyPdb):
                             global_ns[cmd], ZMQExitAutocall):
                         # Use the pdb call
                         cmd_in_namespace = False
-                cmd_func = getattr(self, 'do_' + cmd, None)
+                # Internal pdb command
+                if not cmd.startswith('_pdbcmd'):
+                    cmd = 'do_' + cmd
+                cmd_func = getattr(self, cmd, None)
                 is_pdb_cmd = cmd_func is not None
                 # Look for assignment
                 is_assignment = False
