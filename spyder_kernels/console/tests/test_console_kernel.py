@@ -1308,7 +1308,7 @@ def test_interrupt_short_loop():
         )
 
 
-@pytest.mark.skipif(os.name != "nt", reason="Windows doesn't do 'interrupting sleep'")
+@pytest.mark.skipif(os.name == "nt", reason="Windows doesn't do 'interrupting sleep'")
 def test_interrupt_long_sleep():
     # Command to start the kernel
     cmd = "from spyder_kernels.console import start; start.main()"
