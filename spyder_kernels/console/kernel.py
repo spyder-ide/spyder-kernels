@@ -787,7 +787,6 @@ class SpyderKernel(IPythonKernel):
             Whether to place PYTHONPATH paths at the front (True) or
             back (False) of sys.path.
 
-
         Notes
         -----
         A copy of sys.path is made at instantiation, which should be clean,
