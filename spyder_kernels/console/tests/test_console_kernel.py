@@ -901,13 +901,15 @@ def test_matplotlib_inline(kernel):
         assert 'inline' in value
 
 
-def test_do_complete(kernel):
+async def test_do_complete(kernel):
     """
     Check do complete works in normal and debugging mode.
     """
     asyncio.run(kernel.do_execute('abba = 1', True))
     assert kernel.get_value('abba') == 1
     match = kernel.do_complete('ab', 2)
+    if isawaitable(match):
+        match = await match
     assert 'abba' in match['matches']
 
     # test pdb
@@ -916,6 +918,8 @@ def test_do_complete(kernel):
     pdb_obj.completenames = lambda *ignore: ['baba']
     kernel.shell._namespace_stack = [pdb_obj]
     match = kernel.do_complete('ba', 2)
+    if isawaitable(match):
+        match = await match
     assert 'baba' in match['matches']
     pdb_obj.curframe = None
 
@@ -1435,6 +1439,7 @@ def test_django_settings(kernel):
 
     This is a regression test for issue spyder-ide/spyder#19516
     """
+    import django
     asyncio.run(kernel.do_execute('from django.conf import settings', True))
     nsview = repr(kernel.get_namespace_view())
     assert "'settings':" in nsview
