@@ -451,16 +451,19 @@ class SpyderKernel(IPythonKernel):
     # --- For Pdb
     async def _do_complete(self, code, cursor_pos):
         """Call parent class do_complete"""
-        super_method = super(SpyderKernel, self).do_complete
+        super_method = super().do_complete
 
         # handle async def do_comlpete
         if inspect.iscoroutinefunction(super_method):
-            return await method(code, cursor_pos)
-        res = super_method(code, cursor_pos)
+            return await super_method(code, cursor_pos)
+
+        result = super_method(code, cursor_pos)
+
         # handle sync do_complete, returns a Future.
-        if inspect.isawaitable(res):
-            res = await res
-        return res
+        if inspect.isawaitable(result):
+            result = await result
+
+        return result
 
     def do_complete(self, code, cursor_pos):
         """
