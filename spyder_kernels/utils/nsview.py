@@ -222,7 +222,7 @@ def is_editable_type(value):
             'Series',
             'PIL.Image.Image',
             'datetime.date',
-            'datetime.timedelta'
+            'datetime.timedelta',
         ]
 
         if (get_type_string(value) not in supported_types and
@@ -661,7 +661,8 @@ def get_supported_types():
         tuple,
         date,
         timedelta,
-        str]
+        str,
+    ]
     try:
         from numpy import ndarray, matrix, generic
         editable_types += [ndarray, matrix, generic]

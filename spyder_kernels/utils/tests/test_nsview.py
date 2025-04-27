@@ -55,8 +55,14 @@ def test_get_size():
                 return super(object, self).__getattribute__(name)
 
 
-    length = [list([1,2,3]), tuple([1,2,3]), set([1,2,3]), '123',
-              {1:1, 2:2, 3:3}, frozenset([1,2,3])]
+    length = [
+        list([1, 2, 3]),
+        tuple([1, 2, 3]),
+        set([1, 2, 3]),
+        '123',
+        {1:1, 2:2, 3:3},
+        frozenset([1, 2, 3]),
+    ]
     for obj in length:
         assert get_size(obj) == 3
 
