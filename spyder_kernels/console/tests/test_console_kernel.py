@@ -12,16 +12,17 @@ Tests for the console kernel.
 # Standard library imports
 import ast
 import asyncio
+from collections import namedtuple
+from contextlib import contextmanager
+import inspect
 import os
 import os.path as osp
-from textwrap import dedent
-from contextlib import contextmanager
-import time
+import random
 from subprocess import Popen, PIPE
 import sys
-import inspect
+from textwrap import dedent
+import time
 import uuid
-from collections import namedtuple
 
 # Test imports
 from flaky import flaky
@@ -900,15 +901,15 @@ def test_matplotlib_inline(kernel):
         # Assert backend is inline
         assert 'inline' in value
 
-
+@pytest.mark.anyio
 async def test_do_complete(kernel):
     """
     Check do complete works in normal and debugging mode.
     """
-    asyncio.run(kernel.do_execute('abba = 1', True))
-    assert kernel.get_value('abba') == 1
-    match = kernel.do_complete('ab', 2)
-    if isawaitable(match):
+    await kernel.do_execute("abba = 1", True)
+    assert kernel.get_value("abba") == 1
+    match = kernel.do_complete("ab", 2)
+    if inspect.isawaitable(match):
         match = await match
     assert 'abba' in match['matches']
 
@@ -918,7 +919,7 @@ async def test_do_complete(kernel):
     pdb_obj.completenames = lambda *ignore: ['baba']
     kernel.shell._namespace_stack = [pdb_obj]
     match = kernel.do_complete('ba', 2)
-    if isawaitable(match):
+    if inspect.isawaitable(match):
         match = await match
     assert 'baba' in match['matches']
     pdb_obj.curframe = None
@@ -1487,6 +1488,15 @@ def test_get_pythonenv_info(kernel):
     assert output["python_version"] == sys.version.split()[0]
     assert output["ipython_version"] == ipython_release.version
     assert output["sys_version"] == sys.version
+
+
+@pytest.mark.parametrize("prefix", ["%", "!"])
+def test_disable_pkg_managers(kernel, capsys, prefix):
+    """Test that we disable Python package manager magics and commands."""
+    pkg_manager = random.choice(kernel.shell._disabled_pkg_managers)
+    asyncio.run(kernel.do_execute(f"{prefix}{pkg_manager}", True))
+    captured = capsys.readouterr()
+    assert kernel.shell._disable_pkg_managers_msg[2:] == captured.out[1:-1]
 
 
 if __name__ == "__main__":
