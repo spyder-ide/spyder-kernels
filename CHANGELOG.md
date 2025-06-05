@@ -1,5 +1,19 @@
 # History of changes
 
+## Version 3.1.0a2 (2025/06/05)
+
+### Pull Requests Merged
+
+* [PR 542](https://github.com/spyder-ide/spyder-kernels/pull/542) - PR: Disable magics and commands to call Python package managers, by [@ccordoba12](https://github.com/ccordoba12)
+* [PR 541](https://github.com/spyder-ide/spyder-kernels/pull/541) - PR: Support pathlib and None in namespace view, by [@jitseniesen](https://github.com/jitseniesen)
+* [PR 540](https://github.com/spyder-ide/spyder-kernels/pull/540) - PR: Support `frozenset` in namespace view, by [@jitseniesen](https://github.com/jitseniesen)
+* [PR 535](https://github.com/spyder-ide/spyder-kernels/pull/535) - PR: Display contents of string arrays, by [@jitseniesen](https://github.com/jitseniesen)
+* [PR 533](https://github.com/spyder-ide/spyder-kernels/pull/533) - PR: Add pixi related utility functions and env info, by [@dalthviz](https://github.com/dalthviz)
+
+In this release 5 pull requests were closed.
+
+----
+
 ## Version 3.1.0a1 (2025/03/13)
 
 ### Pull Requests Merged
