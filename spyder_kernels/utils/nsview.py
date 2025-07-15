@@ -564,7 +564,7 @@ def get_human_readable_type(item):
             if text == 'polars.dataframe.frame.DataFrame':
                 return 'Polars DataFrame'
             else:
-                return text[text.find('.')+1:]
+                return text[text.find('.') + 1:]
     except Exception:
         return 'Unknown'
 
