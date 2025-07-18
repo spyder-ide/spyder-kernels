@@ -83,7 +83,7 @@ def stacksummary_to_json(stack):
 
 def stacksummary_from_json(stack):
     """StackSummary from json."""
-    traceback.StackSummary.from_list([
+    return traceback.StackSummary.from_list([
         (
             frame["filename"],
             frame["lineno"],
