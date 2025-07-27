@@ -324,7 +324,7 @@ class SpyderCodeRunner(Magics):
             # Do not use /tmp for temporary files
             try:
                 from xdg.BaseDirectory import xdg_data_home
-                tmp_dir = xdg_data_home
+                tmp_dir = os.path.join(xdg_data_home, "spyder")
                 os.makedirs(tmp_dir, exist_ok=True)
             except Exception:
                 tmp_dir = None
