@@ -54,6 +54,14 @@ from spyder_kernels.customize.utils import (
 logger = logging.getLogger(__name__)
 
 
+def profile_with_context(*args, **kwargs):
+    """Show a nice message when profiling is interrupted."""
+    try:
+        cProfile.runctx(*args, **kwargs)
+    except KeyboardInterrupt:
+        print("\nProfiling was interrupted")
+
+
 def runfile_arguments(func):
     """Decorator to add runfile magic arguments to magic."""
     decorators = [
@@ -336,13 +344,15 @@ class SpyderCodeRunner(Magics):
                         If we are debugging (tracing), call_tracing is
                         necessary for profiling.
                         """
-                        return sys.call_tracing(cProfile.runctx, (
+                        return sys.call_tracing(profile_with_context, (
                             code, glob, loc, profile_filename
                         ))
 
                     yield prof_exec
                 else:
-                    yield partial(cProfile.runctx, filename=profile_filename)
+                    yield partial(
+                        profile_with_context, filename=profile_filename
+                    )
             finally:
                 # Reset tracing function
                 sys.settrace(trace_fun)
