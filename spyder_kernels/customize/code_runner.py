@@ -19,9 +19,9 @@ import io
 import logging
 import os
 import pdb
-import tempfile
 import shlex
 import sys
+import tempfile
 import time
 
 # Third-party imports
@@ -31,17 +31,17 @@ from IPython.core.inputtransformer2 import (
     leading_empty_lines,
 )
 from IPython.core.magic import (
+    line_cell_magic,
+    line_magic,
+    Magics,
+    magics_class,
     needs_local_scope,
     no_var_expand,
-    line_cell_magic,
-    magics_class,
-    Magics,
-    line_magic,
 )
 from IPython.core import magic_arguments
 
 # Local imports
-from spyder_kernels.comms.frontendcomm import frontend_request, CommError
+from spyder_kernels.comms.frontendcomm import CommError, frontend_request
 from spyder_kernels.customize.namespace_manager import NamespaceManager
 from spyder_kernels.customize.spyderpdb import SpyderPdb
 from spyder_kernels.customize.umr import UserModuleReloader
@@ -214,7 +214,8 @@ class SpyderCodeRunner(Magics):
     def profilefile(self, line, local_ns=None):
         """Profile a file."""
         args, local_ns = self._parse_runfile_argstring(
-            self.profilefile, line, local_ns)
+            self.profilefile, line, local_ns
+        )
 
         with self._profile_exec() as prof_exec:
             self._exec_file(
@@ -292,6 +293,7 @@ class SpyderCodeRunner(Magics):
         """Profile the given line."""
         if cell is not None:
             line += "\n" + cell
+
         with self._profile_exec() as prof_exec:
             return prof_exec(line, self.shell.user_ns, local_ns)
 
@@ -344,9 +346,10 @@ class SpyderCodeRunner(Magics):
                         If we are debugging (tracing), call_tracing is
                         necessary for profiling.
                         """
-                        return sys.call_tracing(profile_with_context, (
-                            code, glob, loc, profile_filename
-                        ))
+                        return sys.call_tracing(
+                            profile_with_context,
+                            (code, glob, loc, profile_filename),
+                        )
 
                     yield prof_exec
                 else:
@@ -361,6 +364,7 @@ class SpyderCodeRunner(Magics):
                 if os.path.isfile(profile_filename):
                     with open(profile_filename, "br") as f:
                         profile_result = f.read()
+
                     try:
                         frontend_request(blocking=False).show_profile_file(
                             profile_result, create_pathlist()
