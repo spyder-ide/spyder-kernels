@@ -148,7 +148,7 @@ class SpyderShell(ZMQInteractiveShell):
         # Call `%colors` following theme for IPython 8.x tracebacks
         if parse_version(ipython_release.version) < parse_version("9.0"):
             colors = "linux" if theme == "dark" else "lightbg"
-            self.shell.run_line_magic("colors", colors)
+            self.run_line_magic("colors", colors)
 
     def get_spyder_theme(self):
         """Get the theme for the console."""
