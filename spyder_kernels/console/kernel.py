@@ -722,15 +722,12 @@ class SpyderKernel(IPythonKernel):
                 extra_style = linux_theme.extra_style
 
             extra_style.update(create_pygments_dict(syntax_style))
-            theme = Theme(
-                "spyder_theme",
-                base,
-                extra_style,
-            )
+            theme = Theme("spyder_theme", base, extra_style)
             IPython.utils.PyColorize.theme_table["spyder_theme"] = theme
             self.shell.run_line_magic("colors", "spyder_theme")
         else:
-            # Use `tb_highlight_style` class attribute to set the style (IPython 8.x)
+            # Use `tb_highlight_style` class attribute to set the style (
+            # IPython 8.x)
             import IPython.core.ultratb
             from IPython.core.ultratb import VerboseTB
 
