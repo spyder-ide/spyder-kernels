@@ -248,11 +248,6 @@ class SpyderPdb(ipyPdb):
         self.message("\nProgram interrupted. (Use 'cont' to resume).")
         self.set_step()
 
-    def set_trace(self, frame=None):
-        """Register that debugger is tracing."""
-        self.shell.add_pdb_session(self)
-        super(SpyderPdb, self).set_trace(frame)
-
     def set_quit(self):
         """Register that debugger is not tracing."""
         self.shell.remove_pdb_session(self)
