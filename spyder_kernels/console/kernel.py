@@ -385,6 +385,12 @@ class SpyderKernel(IPythonKernel):
             value = value.to_pandas()
 
         if encoded:
+            # See spyder-ide/spyder#24395
+            if isinstance(value, set) and type(value) is not set:
+                raise TypeError(
+                    "Classes inheriting from `set` cannot be safely pickled"
+                )
+
             # Encode with cloudpickle
             value = cloudpickle.dumps(value)
         return value
