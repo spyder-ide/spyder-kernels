@@ -1070,7 +1070,7 @@ def test_functions_with_locals_in_pdb(kernel):
     """
     pdb_obj = SpyderPdb()
 
-    if sys.version_info[:2] >=(3, 14):
+    if sys.version_info[:2] >= (3, 14):
         Frame = namedtuple("Frame", ["f_globals", "f_locals"])
         pdb_obj.curframe = Frame(
             f_globals=kernel.shell.user_ns,
