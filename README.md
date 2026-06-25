@@ -4,6 +4,7 @@
 [![Linux status](https://github.com/spyder-ide/spyder-kernels/workflows/Linux%20tests/badge.svg)](https://github.com/spyder-ide/spyder-kernels/actions?query=workflow%3A%22Linux+tests%22)
 [![Macos status](https://github.com/spyder-ide/spyder-kernels/workflows/Macos%20tests/badge.svg)](https://github.com/spyder-ide/spyder-kernels/actions?query=workflow%3A%22Macos+tests%22)
 [![codecov](https://codecov.io/gh/spyder-ide/spyder-kernels/branch/master/graph/badge.svg)](https://codecov.io/gh/spyder-ide/spyder-kernels/branch/master)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/spyder-ide/spyder-kernels/badge)](https://scorecard.dev/viewer/?uri=github.com/spyder-ide/spyder-kernels)
 
 Package that provides Jupyter kernels for use with the consoles of Spyder, the
 Scientific Python Development Environment.
