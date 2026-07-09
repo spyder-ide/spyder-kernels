@@ -361,6 +361,18 @@ def test_get_value_with_polars(kernel):
     assert_series_equal(kernel.get_value('polars_s'), pandas_s)
 
 
+def test_get_value_with_subclass_of_set(kernel):
+    command = """
+    class my_set(set):
+        def __init__(self, *args):
+            super().__init__(*args)
+    ms = my_set()
+    """
+    asyncio.run(kernel.do_execute(command, True))
+    with pytest.raises(TypeError):
+        kernel.get_value('ms', encoded=True)
+
+
 def test_set_value(kernel):
     """Test setting the value of a variable."""
     name = 'a'
