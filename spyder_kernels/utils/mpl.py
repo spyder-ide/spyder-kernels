@@ -35,8 +35,9 @@ def automatic_backend():
         if is_module_installed(qt_binding):
             auto_backend = 'qt'
             break
-    elif is_module_installed('_tkinter'):
-        auto_backend = 'tk'
     else:
-        auto_backend = 'inline'
+        if is_module_installed('_tkinter'):
+            auto_backend = 'tk'
+        else:
+            auto_backend = 'inline'
     return auto_backend
