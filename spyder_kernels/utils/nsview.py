@@ -9,7 +9,7 @@
 """
 Utilities to build a namespace view.
 """
-from dataclasses import is_dataclass
+from dataclasses import is_dataclass, fields as dataclass_fields
 from itertools import islice
 import inspect
 import pathlib
@@ -348,6 +348,31 @@ def collections_display(value, level):
     return display
 
 
+def attrs_display(value, attrs, level):
+    """Display for collections specified by attribute names
+    (e.g., collections.namedtuple, dataclass)."""
+    classname = value.__class__.__name__
+    N = None  # by default show all attributes
+    if level == 1:
+        N = 11
+    elif level == 2:
+        N = 6
+    elif level >= 3:  # display no attributes
+        display = classname + '(...)'
+        return display
+    # Display as Class(attr1=value1, attr2=value2,...)
+    displays = [ attr + '=' + 
+        value_to_display(getattr(value,attr), level=level)
+        for attr in islice(attrs,N) 
+    ]
+    # Truncate if there are more than N-1 attributes.
+    # This gives similar behavior to collections_display.
+    if N is not None and (len(displays) > N-1):
+        displays[N-1] = ' ...'
+    display = classname + '(' + ', '.join(displays) + ')'
+    return display
+
+
 def value_to_display(value, minmax=False, level=0):
     """Convert value for display purpose"""
     # To save current Numpy printoptions
@@ -385,8 +410,12 @@ def value_to_display(value, minmax=False, level=0):
                     display = default_display(value)
             else:
                 display = 'Numpy array'
-        elif is_namedtuple(value) or is_dataclass(value):
-            display = repr(value)
+        elif is_namedtuple(value):
+            display = attrs_display(value, value._fields, level+1)
+        elif is_dataclass(value):
+            # 'fields' is generator to extract field names
+            fields = (field.name for field in dataclass_fields(value))
+            display = attrs_display(value, fields, level+1)
         elif type(value) in [list, set, frozenset, tuple, dict]:
             display = collections_display(value, level+1)
         elif isinstance(value, PIL.Image.Image):
