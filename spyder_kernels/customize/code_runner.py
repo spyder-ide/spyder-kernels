@@ -39,6 +39,8 @@ from IPython.core.magic import (
     no_var_expand,
 )
 from IPython.core import magic_arguments
+from pylint.lint import Run as PylintRun
+from pylint.reporters import CollectingReporter, JSON2Reporter
 
 # Local imports
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
@@ -203,6 +205,38 @@ class SpyderCodeRunner(Magics):
                 post_mortem=args.post_mortem,
                 context_globals=args.namespace,
                 context_locals=local_ns,
+            )
+
+    @runfile_arguments
+    @needs_local_scope
+    @line_magic
+    def pylint(self, line, local_ns=None):
+        """
+        Lint a file using Pylint.
+        """
+        args, local_ns = self._parse_runfile_argstring(
+            self.pylint, line, local_ns)
+
+        # Use collecting reporter to avoid unnecessary JSON parsing that occurs
+        # when using JSON2Reporter directly
+        reporter = CollectingReporter()
+
+        PylintRun(
+            [args.canonic_filename],
+            reporter=reporter,
+            exit=False,
+        )
+
+        messages = [JSON2Reporter.serialize(msg) for msg in reporter.messages]
+
+        try:
+            frontend_request(blocking=False).report_pylint(
+                args.canonic_filename,
+                messages,
+            )
+        except CommError:
+            logger.debug(
+                "Could not report Pylint results to the frontend."
             )
 
     @runfile_arguments
@@ -703,7 +737,7 @@ class SpyderCodeRunner(Magics):
             # wait for stdout to print
             time.sleep(0.1)
             p.interaction(frame, tb)
-    
+
     def _parse_argstring(self, magic_func, argstring):
         """
         Parse a string of arguments for a magic function.
@@ -719,7 +753,7 @@ class SpyderCodeRunner(Magics):
             args.filename = self._get_current_file_name()
         args.canonic_filename = canonic(args.filename)
         return args
-    
+
     def _parse_runfile_argstring(self, magic_func, argstring, local_ns):
         """Parse an args string for runfile and debugfile."""
         args = self._parse_argstring(magic_func, argstring)
