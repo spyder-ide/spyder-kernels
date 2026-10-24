@@ -24,11 +24,13 @@ def test_pylint_magic_failing(frontend_request: MagicMock):
 
 	report_pylint = frontend_request.return_value.report_pylint
 	report_pylint.assert_called_once()
+
 	args, _ = report_pylint.call_args
 	assert args[0] == filename
-	assert len(args[1]) == 2
-	assert any(msg["messageId"] == "C0304" for msg in args[1])
-	assert any(msg["messageId"] == "C0114" for msg in args[1])
+	assert len(args[1]["messages"]) == 2
+	assert any(msg["messageId"] == "C0304" for msg in args[1]["messages"])
+	assert any(msg["messageId"] == "C0114" for msg in args[1]["messages"])
+	assert args[1]["statistics"]["score"] == 0
 
 @patch("spyder_kernels.customize.code_runner.frontend_request", autospec=True)
 def test_pylint_magic_passing(frontend_request: MagicMock):
@@ -41,4 +43,9 @@ def test_pylint_magic_passing(frontend_request: MagicMock):
 	frontend_request.assert_called_once_with(blocking=False)
 
 	report_pylint = frontend_request.return_value.report_pylint
-	report_pylint.assert_called_once_with(filename, [])
+	report_pylint.assert_called_once()
+
+	args, _ = report_pylint.call_args
+	assert args[0] == filename
+	assert len(args[1]["messages"]) == 0
+	assert args[1]["statistics"]["score"] == 10
