@@ -40,6 +40,7 @@ from IPython.core.magic import (
 )
 from IPython.core import magic_arguments
 from pylint.lint import Run as PylintRun
+from pylint.lint.caching import load_results
 from pylint.reporters import JSON2Reporter
 
 # Local imports
@@ -57,10 +58,21 @@ logger = logging.getLogger(__name__)
 
 
 class JSONCollector(JSON2Reporter):
-    """Custom JSON2Reporter that does not print any output"""
+    """
+    Custom JSON2Reporter that does not print any output and captures the
+    previous score
+    """
+    previous_score: int | None = None
 
     def display_messages(self, layout) -> None:
         """Do nothing."""
+
+    def display_reports(self, layout) -> None:
+        """Save the previous score before the new one is written to disk."""
+        previous = load_results(self.linter.file_state.base_name)
+
+        if previous:
+            self.previous_score = previous.global_note
 
 
 def profile_with_context(*args, **kwargs):
@@ -224,7 +236,6 @@ class SpyderCodeRunner(Magics):
         args, local_ns = self._parse_runfile_argstring(
             self.pylint, line, local_ns)
 
-        # Use custom reporter to avoid printing any output
         reporter = JSONCollector()
 
         PylintRun(
@@ -241,7 +252,10 @@ class SpyderCodeRunner(Magics):
                 args.canonic_filename,
                 {
                     "messages": messages,
-                    "statistics": statistics,
+                    "statistics": {
+                        "previousScore": reporter.previous_score,
+                        **statistics,
+                    },
                 },
             )
         except CommError:
