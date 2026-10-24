@@ -40,7 +40,7 @@ from IPython.core.magic import (
 )
 from IPython.core import magic_arguments
 from pylint.lint import Run as PylintRun
-from pylint.reporters import CollectingReporter, JSON2Reporter
+from pylint.reporters import JSON2Reporter
 
 # Local imports
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
@@ -54,6 +54,13 @@ from spyder_kernels.customize.utils import (
 
 # For logging
 logger = logging.getLogger(__name__)
+
+
+class JSONCollector(JSON2Reporter):
+    """Custom JSON2Reporter that does not print any output"""
+
+    def display_messages(self, layout) -> None:
+        """Do nothing."""
 
 
 def profile_with_context(*args, **kwargs):
@@ -217,9 +224,8 @@ class SpyderCodeRunner(Magics):
         args, local_ns = self._parse_runfile_argstring(
             self.pylint, line, local_ns)
 
-        # Use collecting reporter to avoid unnecessary JSON parsing that occurs
-        # when using JSON2Reporter directly
-        reporter = CollectingReporter()
+        # Use custom reporter to avoid printing any output
+        reporter = JSONCollector()
 
         PylintRun(
             [args.canonic_filename],
@@ -227,12 +233,16 @@ class SpyderCodeRunner(Magics):
             exit=False,
         )
 
-        messages = [JSON2Reporter.serialize(msg) for msg in reporter.messages]
+        messages = [reporter.serialize(msg) for msg in reporter.messages]
+        statistics = reporter.serialize_stats()
 
         try:
             frontend_request(blocking=False).report_pylint(
                 args.canonic_filename,
-                messages,
+                {
+                    "messages": messages,
+                    "statistics": statistics,
+                },
             )
         except CommError:
             logger.debug(
