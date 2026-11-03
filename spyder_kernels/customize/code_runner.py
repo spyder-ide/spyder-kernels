@@ -39,6 +39,9 @@ from IPython.core.magic import (
     no_var_expand,
 )
 from IPython.core import magic_arguments
+from pylint.lint import Run as PylintRun
+from pylint.lint.caching import load_results
+from pylint.reporters import JSON2Reporter
 
 # Local imports
 from spyder_kernels.comms.frontendcomm import CommError, frontend_request
@@ -52,6 +55,24 @@ from spyder_kernels.customize.utils import (
 
 # For logging
 logger = logging.getLogger(__name__)
+
+
+class JSONCollector(JSON2Reporter):
+    """
+    Custom JSON2Reporter that does not print any output and captures the
+    previous score
+    """
+    previous_score: int | None = None
+
+    def display_messages(self, layout) -> None:
+        """Do nothing."""
+
+    def display_reports(self, layout) -> None:
+        """Save the previous score before the new one is written to disk."""
+        previous = load_results(self.linter.file_state.base_name)
+
+        if previous:
+            self.previous_score = previous.global_note
 
 
 def profile_with_context(*args, **kwargs):
@@ -203,6 +224,43 @@ class SpyderCodeRunner(Magics):
                 post_mortem=args.post_mortem,
                 context_globals=args.namespace,
                 context_locals=local_ns,
+            )
+
+    @runfile_arguments
+    @needs_local_scope
+    @line_magic
+    def pylint(self, line, local_ns=None):
+        """
+        Lint a file using Pylint.
+        """
+        args, local_ns = self._parse_runfile_argstring(
+            self.pylint, line, local_ns)
+
+        reporter = JSONCollector()
+
+        PylintRun(
+            [args.canonic_filename],
+            reporter=reporter,
+            exit=False,
+        )
+
+        messages = [reporter.serialize(msg) for msg in reporter.messages]
+        statistics = reporter.serialize_stats()
+
+        try:
+            frontend_request(blocking=False).report_pylint(
+                args.canonic_filename,
+                {
+                    "messages": messages,
+                    "statistics": {
+                        "previousScore": reporter.previous_score,
+                        **statistics,
+                    },
+                },
+            )
+        except CommError:
+            logger.debug(
+                "Could not report Pylint results to the frontend."
             )
 
     @runfile_arguments
@@ -703,7 +761,7 @@ class SpyderCodeRunner(Magics):
             # wait for stdout to print
             time.sleep(0.1)
             p.interaction(frame, tb)
-    
+
     def _parse_argstring(self, magic_func, argstring):
         """
         Parse a string of arguments for a magic function.
@@ -719,7 +777,7 @@ class SpyderCodeRunner(Magics):
             args.filename = self._get_current_file_name()
         args.canonic_filename = canonic(args.filename)
         return args
-    
+
     def _parse_runfile_argstring(self, magic_func, argstring, local_ns):
         """Parse an args string for runfile and debugfile."""
         args = self._parse_argstring(magic_func, argstring)
